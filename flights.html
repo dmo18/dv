@@ -51,7 +51,7 @@
 
     .leaflet-marker-icon {
       /* Match transition to update interval so movement appears continuous, not choppy */
-      transition: transform 2.1s linear !important;
+      transition: transform 2.4s linear !important;
       will-change: transform;
       overflow: visible !important; /* Prevents scale() clipping on icon edges */
     }
@@ -445,9 +445,18 @@
     const LANDED_RETENTION_ALT_FT = 2000;
     const LANDED_RETENTION_MAX_SPEED_KT = 220;
 
-    // UPDATE_MS must be > FETCH_TIMEOUT_MS or inFlight blocks every tick.
-    const UPDATE_MS = 2200;
-    const FETCH_TIMEOUT_MS = 1800;
+    // FLIGHT DATA FEED
+    // The free ADS-B feeds no longer allow direct browser (CORS) access, so the
+    // page needs a small proxy. Deploy flights-proxy-worker.js as a free
+    // Cloudflare Worker and paste its URL here, for example:
+    //   const FEED_PROXY_URL = "https://flights-proxy.yourname.workers.dev";
+    // You can also test one without editing: flights.html?proxy=<worker url>
+    const FEED_PROXY_URL = "";
+
+    // A tick is skipped while the previous fetch is still running, so the
+    // timeout can safely be longer than the update interval.
+    const UPDATE_MS = 2500;
+    const FETCH_TIMEOUT_MS = 5000;
     const STALE_AIRCRAFT_MS = 32000;
 
     const MAX_LABELED_AIRCRAFT = 8;
@@ -727,7 +736,7 @@
 
 
     function aircraftClass(raw, aircraftInfo) {
-      const t = safeText((aircraftInfo && aircraftInfo.icaoType) || raw.t || raw.type).toUpperCase();
+      const t = safeText((aircraftInfo && aircraftInfo.icaoType !== "n/a" && aircraftInfo.icaoType) || raw.t).toUpperCase();
       if (/^H|HELI|EC\d|R44|R66|B06/.test(t))    return "heli";
       if (/C17|C5|A4|BLCF|AN|IL|C130/.test(t))   return "heavy";
       if (/A3|A2|B7|B3|E1|E7|CRJ|MD|DC/.test(t)) return "jet";
@@ -769,8 +778,13 @@
       fetch("https://api.rainviewer.com/public/weather-maps.json")
         .then(r => r.json())
         .then(data => {
-          const ts = data.radar.past[data.radar.past.length - 1].time;
-          L.tileLayer(`https://tilecache.rainviewer.com/v2/radar/${ts}/256/{z}/{x}/{y}/2/1_1.png`, {
+          const frame = data.radar.past[data.radar.past.length - 1];
+          const host = data.host || "https://tilecache.rainviewer.com";
+          // RainViewer now only serves radar tiles up to zoom 7 (higher zooms return a
+          // "Zoom Level Not Supported" image), so let Leaflet upscale zoom 7 tiles.
+          L.tileLayer(`${host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`, {
+            maxNativeZoom: 7,
+            maxZoom: 19,
             opacity: WEATHER_RADAR_OPACITY,
             zIndex: 3,
             interactive: false,
@@ -824,7 +838,7 @@
       if (kind === "heli")  return '<path d="M31 22h2v8h12v4H33v8h-2v-8H19v-4h12zM18 16h28v3H18zM29 42h6l5 9H24z"/>';
       if (kind === "heavy") return '<path d="M30 3h4c2 0 3 1.5 3 3.4v17l20 10.5c1.5.8 2.1 2.6 1.3 4.1l-1.4 2.5c-.8 1.4-2.5 1.9-3.9 1.2L37 36v9l9 5.5c1 .6 1.4 1.9.8 3l-1 2c-.6 1.2-2 1.7-3.2 1.1L32 52l-10.6 4.6c-1.2.6-2.6.1-3.2-1.1l-1-2c-.6-1.1-.2-2.4.8-3l9-5.5v-9l-16 5.7c-1.4.7-3.1.2-3.9-1.2L5.7 38c-.8-1.5-.2-3.3 1.3-4.1L27 23.4v-17C27 4.5 28 3 30 3z"/>';
       if (kind === "prop")  return '<path d="M30 5h4c1.6 0 2.7 1.2 2.7 2.8v17.5l17.2 10.4c1.3.8 1.8 2.4 1 3.7l-1.2 2c-.7 1.2-2.3 1.7-3.6 1L36.7 36v8.5l7.2 5.4c.9.7 1.2 2 .6 3l-1 1.7c-.6 1.1-2 1.5-3.1.9L32 51.3l-8.4 4.2c-1.1.6-2.5.2-3.1-.9l-1-1.7c-.6-1-.3-2.3.6-3l7.2-5.4V36l-13.4 7.4c-1.3.7-2.9.2-3.6-1l-1.2-2c-.8-1.3-.3-2.9 1-3.7l17.2-10.4V7.8C27.3 6.2 28.4 5 30 5zM25 16h14v3H25z"/>';
-      return '<path d="M30 4c1.6 0 3.1 1.2 3.1 3.1v18.1l20.1 12.1c1.4.8 2 2.6 1.2 4l-1.5 2.6c-.8 1.4-2.6 1.9-4 1.1L33.1 36.1v9.1l8 6c1 .8 1.3 2.2.7 3.3l-1.2 2c-.7 1.2-2.2 1.6-3.5 1l-9-4.6-9 4.6c-1.3.6-2.8.2-3.5-1l-1.2-2c-.6-1.1-.3-2.5.7-3.3l8-6v-9.1L15.2 45.1c-1.4.8-3.2.3-4-1.1l-1.5-2.6c-.8-1.4-.2-3.2 1.2-4l20.1-12.1V7.1C31 5.2 32.5 4 30 4z"/>';
+      return '<path d="M32 4c1.6 0 3.1 1.2 3.1 3.1v18.1l20.1 12.1c1.4.8 2 2.6 1.2 4l-1.5 2.6c-.8 1.4-2.6 1.9-4 1.1L35.1 36.1v9.1l8 6c1 .8 1.3 2.2.7 3.3l-1.2 2c-.7 1.2-2.2 1.6-3.5 1l-7.1-3.6-7.1 3.6c-1.3.6-2.8.2-3.5-1l-1.2-2c-.6-1.1-.3-2.5.7-3.3l8-6v-9.1L13.2 45.1c-1.4.8-3.2.3-4-1.1l-1.5-2.6c-.8-1.4-.2-3.2 1.2-4l20.1-12.1V7.1C28.9 5.2 30.4 4 32 4z"/>';
     }
 
     function makePlaneDivIcon(headingDeg, kind, color, glow, scale, opacity, emergency, ground, retainedGround) {
@@ -1086,6 +1100,9 @@
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        // 404 = "unknown aircraft/callsign": return null so the caller caches the miss
+        // instead of re-requesting it on every tick.
+        if (res.status === 404) return null;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return await res.json();
       } finally { clearTimeout(timer); }
@@ -1115,9 +1132,9 @@
         const make = info.manufacturer !== "n/a" ? info.manufacturer : "";
         const type = info.type !== "n/a" ? info.type : "";
         const icao = info.icaoType !== "n/a" ? info.icaoType : "";
-        return [make, type].filter(Boolean).join(" ") || icao || safeText(raw.t || raw.type);
+        return [make, type].filter(Boolean).join(" ") || icao || safeText(raw.desc || raw.t);
       }
-      return safeText(raw.t || raw.type);
+      return safeText(raw.desc || raw.t);
     }
 
     function airlineNameText(entry) {
@@ -1218,7 +1235,7 @@
         entry.lastRetainedGround !== n.retainedGround || entry.iconDirty;
 
       if (visualChanged) {
-        entry.marker.setIcon(makePlaneDivIcon(n.headingDeg, enrichedKind, color, glow, scale, opacity, n.emergency, n.ground));
+        entry.marker.setIcon(makePlaneDivIcon(n.headingDeg, enrichedKind, color, glow, scale, opacity, n.emergency, n.ground, n.retainedGround));
         entry.lastHeading = n.headingDeg; entry.lastKind = enrichedKind;
         entry.lastColor = color; entry.lastScale = scale; entry.lastOpacity = opacity;
         entry.lastEmergency = n.emergency; entry.lastGround = n.ground;
@@ -1284,6 +1301,7 @@
     let lastTickerUpdate = 0;
 
     function updateTicker() {
+      if (feedFailStreak >= 2) return; // keep the FEED DOWN message visible
       const now = Date.now();
       if (now - lastTickerUpdate < 30000) return;
       lastTickerUpdate = now;
@@ -1336,8 +1354,62 @@
     /***********************************************************************
      * API LOOP
      **********************************************************************/
-    function airplanesLiveUrl() {
-      return `https://api.airplanes.live/v2/point/${encodeURIComponent(FETCH_LAT)}/${encodeURIComponent(FETCH_LON)}/${encodeURIComponent(SEARCH_RADIUS_NM)}?t=${Date.now()}`;
+    // Proxy from ?proxy=<url> overrides FEED_PROXY_URL (handy for testing).
+    function feedProxyUrl() {
+      let p = FEED_PROXY_URL;
+      try {
+        const q = new URLSearchParams(location.search).get("proxy");
+        if (q) p = q;
+      } catch (_) {}
+      return safeText(p) === "n/a" ? "" : p.replace(/\/+$/, "");
+    }
+
+    // All sources return the same readsb style JSON ({ ac: [...] }).
+    // The direct feeds are kept as fallbacks in case one turns CORS back on.
+    function feedSources() {
+      const lat = encodeURIComponent(FETCH_LAT), lon = encodeURIComponent(FETCH_LON), r = encodeURIComponent(SEARCH_RADIUS_NM);
+      const list = [];
+      const proxy = feedProxyUrl();
+      if (proxy) list.push({ name: "proxy", url: () => `${proxy}/point/${lat}/${lon}/${r}` });
+      list.push({ name: "airplanes.live", url: () => `https://api.airplanes.live/v2/point/${lat}/${lon}/${r}?t=${Date.now()}` });
+      list.push({ name: "adsb.lol",       url: () => `https://api.adsb.lol/v2/point/${lat}/${lon}/${r}` });
+      list.push({ name: "adsb.fi",        url: () => `https://opendata.adsb.fi/api/v3/lat/${lat}/lon/${lon}/dist/${r}` });
+      return list;
+    }
+
+    const FEED_SOURCES = feedSources();
+    let feedIndex = 0;          // sticks to the last source that worked
+    let feedFailStreak = 0;
+
+    // Try the current source first, then the rest, and return the first good payload.
+    async function fetchFeed() {
+      let lastErr = null;
+      for (let i = 0; i < FEED_SOURCES.length; i++) {
+        const idx = (feedIndex + i) % FEED_SOURCES.length;
+        const src = FEED_SOURCES[idx];
+        try {
+          const res = await fetchWithTimeout(src.url(), FETCH_TIMEOUT_MS);
+          if (!res.ok) throw new Error(`${src.name} HTTP ${res.status}`);
+          const data = await res.json();
+          if (!data || !(Array.isArray(data.ac) || Array.isArray(data.aircraft) || Array.isArray(data))) {
+            throw new Error(`${src.name} bad payload`);
+          }
+          if (idx !== feedIndex) console.info(`[flights] feed source: ${src.name}`);
+          feedIndex = idx;
+          return data;
+        } catch (e) {
+          lastErr = e;
+          console.warn(`[flights] ${src.name} failed:`, e && (e.name === "AbortError" ? "timeout" : e.message));
+        }
+      }
+      throw lastErr || new Error("no feed sources");
+    }
+
+    function showFeedProblem() {
+      const hint = feedProxyUrl()
+        ? "proxy not responding, check the Worker URL"
+        : "browser access blocked, set FEED_PROXY_URL (see flights-proxy-worker.js)";
+      tickerEl.innerHTML = `<span class="tarr">FEED DOWN</span>&nbsp;&nbsp;·&nbsp;&nbsp;${esc(hint)}`;
     }
 
     async function fetchWithTimeout(url, timeoutMs) {
@@ -1364,10 +1436,7 @@
       const nowMs = Date.now();
 
       try {
-        const res = await fetchWithTimeout(airplanesLiveUrl(), FETCH_TIMEOUT_MS);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const selected = selectAircraftToRender(normalizeAircraftList(await res.json()));
+        const selected = selectAircraftToRender(normalizeAircraftList(await fetchFeed()));
         const visibleHexes = new Set();
 
         for (const n of selected) {
@@ -1387,9 +1456,12 @@
         pruneStale(nowMs);
         appState.lastOkMs = Date.now();
         appState.lastStatus = "OK";
+        if (feedFailStreak >= 2) lastTickerUpdate = 0; // replace the FEED DOWN message right away
+        feedFailStreak = 0;
       } catch (e) {
         appState.lastStatus = e && e.name === "AbortError" ? "SLOW" : "ERR";
         pruneStale(nowMs);
+        if (++feedFailStreak >= 2) showFeedProblem();
       } finally {
         scheduleVisualUpdate();
         appState.inFlight = false;
