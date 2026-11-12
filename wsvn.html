@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>7News Live</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      overflow: hidden;
+      height: 100vh;
+    }
+    #player {
+      width: 100%;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+
+<video
+  id="player"
+  data-account="4368278029001"
+  data-player="HyZhqV2ePb"
+  data-video-id="6024028001001"
+  data-embed="default"
+  class="video-js vjs-default-skin vjs-fill"
+  controls
+  preload="auto"
+  autoplay
+  muted
+  playsinline
+></video>
+
+<script src="https://players.brightcove.net/4368278029001/HyZhqV2ePb_default/index.min.js"></script>
+
+<script>
+  videojs('player', {
+    fluid: false,
+    fill: true,
+    autoplay: true,
+    muted: true,
+    controls: true,
+    liveui: true,
+    preferFullWindow: true,
+    bigPlayButton: false,  // hide big center play button
+    controlBar: {
+      volumePanel: { inline: false },
+      currentTimeDisplay: false,
+      timeDivider: false,
+      durationDisplay: false,
+      remainingTimeDisplay: false
+    }
+  }).ready(function() {
+    var player = this;
+
+    // Force captions ON when tracks are loaded
+    player.on('loadedmetadata', function() {
+      var tracks = player.remoteTextTracks();
+      if (tracks && tracks.length > 0) {
+        for (var i = 0; i < tracks.length; i++) {
+          if (tracks[i].kind === 'captions' || tracks[i].kind === 'subtitles') {
+            tracks[i].mode = 'showing';
+            break;
+          }
+        }
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
