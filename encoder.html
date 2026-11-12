@@ -3,7 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev13</title>
+<title>Encoder Rev14</title>
+<!--
+  VERSION: bump the Rev number (title above and the page heading) on every change to this file,
+  and add a line here (newest first).
+
+  Rev14  2026-11-12  Fixed dead saved streams: new addresses for LiveNOW Fox, i24, ABC1, ABC2, ABC10;
+                     added ABC News Live (24/7); removed ABC3 to ABC9 (off air, old addresses dead).
+                     Player base URL now defaults to player.html next to this page.
+  Rev13              Version as moved from the previous repository (earlier history not recorded).
+-->
 
 <style>
 html, body {
@@ -240,7 +249,7 @@ hr {
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev13</h1>
+  <h1>Wallboard URL Encoder Rev14</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL. Open uses a separate URL with no muted parameter.
@@ -261,7 +270,7 @@ hr {
   <hr />
 
   <label for="base">Player base URL</label>
-  <input id="base" type="text" value="https://dmo18.github.io/dv/player.html" />
+  <input id="base" type="text" value="" />
 
   <label for="srcId">Stream ID (used as ID= in the generated URL)</label>
   <input id="srcId" type="text" value="STREAM" />
@@ -354,22 +363,23 @@ The grid is generated automatically from STREAMS.
 */
 
 function $(id) { return document.getElementById(id); }
+
+// Default the player base URL to player.html next to this page, so it is right wherever the site is hosted.
+document.getElementById("base").value = new URL("player.html", location.href).href;
 function clean(s) { return (s || "").trim(); }
 
+// ABC1, ABC2 and ABC10 are ABC's event feeds: they only carry video while ABC has an event on air.
+// ABC3 to ABC9 were removed in Rev14: their old addresses are dead, and ABC only exposes a
+// feed's current address while that feed is on air. "ABC News Live" is the 24/7 channel.
 const STREAMS = [
   { name: "IRINN", url: "https://tv.irna.ir/live/stream/index.m3u8" },
-  { name: "Live now fox", url: "https://fox-foxnewsnow-vizio.amagi.tv/playlist.m3u8" },
+  { name: "Live now fox", url: "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8" },
   { name: "IL13", url: "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8" },
-  { name: "i24", url: "https://fastly.live.brightcove.com/6386790908112/eu-central-1/5377161796001/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3N0IjoiZXJmajYzLmVncmVzcy53YzQ3bTEiLCJhY2NvdW50X2lkIjoiNTM3NzE2MTc5NjAwMSIsImVobiI6ImZhc3RseS5saXZlLmJyaWdodGNvdmUuY29tIiwiaXNzIjoiYmxpdmUtcGxheWJhY2stc291cmNlLWFwaSIsInN1YiI6InBhdGhtYXB0b2tlbiIsImF1ZCI6WyI1Mzc3MTYxNzk2MDAxIl0sImp0aSI6IjYzODY3OTA5MDgxMTIifQ._w5c3EwfnEecDCEpDaKuVz07uuEyUb3vXvQN3svv-oU/chunklist.m3u8" },
-  { name: "ABC2", url: "https://abcnews-streams.akamaized.net/hls/live/2023561/abcnewshudson2/master.m3u8" },
-  { name: "ABC3", url: "https://abcnews-streams.akamaized.net/hls/live/2023562/abcnewshudson3/master.m3u8" },
-  { name: "ABC4", url: "https://abcnews-streams.akamaized.net/hls/live/2023563/abcnewshudson4/master.m3u8" },
-  { name: "ABC5", url: "https://abcnews-streams.akamaized.net/hls/live/2023564/abcnewshudson5/master.m3u8" },
-  { name: "ABC6", url: "https://abcnews-streams.akamaized.net/hls/live/2023565/abcnewshudson6/master.m3u8" },
-  { name: "ABC7", url: "https://abcnews-streams.akamaized.net/hls/live/2023566/abcnewshudson7/master.m3u8" },
-  { name: "ABC8", url: "https://abcnews-streams.akamaized.net/hls/live/2023567/abcnewshudson8/master.m3u8" },
-  { name: "ABC9", url: "https://abcnews-streams.akamaized.net/hls/live/2023568/abcnewshudson9/master.m3u8" },
-  { name: "ABC10", url: "https://abcnews-streams.akamaized.net/hls/live/2023569/abcnewshudson10/master.m3u8" },
+  { name: "i24", url: "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8" },
+  { name: "ABC News Live", url: "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8" },
+  { name: "ABC1", url: "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8" },
+  { name: "ABC2", url: "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8" },
+  { name: "ABC10", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index.m3u8" },
   { name: "Bloomberg", url: "https://liveprodusphoenixeast.akamaized.net/USPhx-HD/Channel-TX-USPhx-AWS-virginia-1/Source-USPhx-16k-1-s6lk2-BP-07-02-81ykIWnsMsg_live.m3u8" },
   { name: "GlobalNews", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8" },
   { name: "RT", url: "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8" },
