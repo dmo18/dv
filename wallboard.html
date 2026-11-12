@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard demo v12</title>
+<title>Wallboard v13</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v13  2026-11-12  Relative links; tiles named by channel; stream addresses encoded
+                   automatically; page reloads itself when a new version is published;
+                   replaced the dead i24 stream address; dropped "demo" from the title.
   v12  2026-11-12  Repointed all tile and frame URLs from the old
                    solutionssquad.github.io/shulboard site to dmo18.github.io/dv.
   v11              Version as moved from the previous repository (earlier history not recorded).
@@ -61,55 +64,70 @@ html, body {
 </style>
 
 <script>
-  const URLS = {
-    URL2: "https://dmo18.github.io/dv/player.html?ID=BBCNews&src=https%3A%2F%2Fvs-cmaf-pushb-ntham-gcomm-live.akamaized.net%2Fx%3D4%2Fi%3Durn%3Abbc%3Apips%3Aservice%3Abbc_world_news_north_america%2Fpc_hd_abr_v2.fmp4.m3u8&fit=contain&muted=1&reload=60",
-    URL3: "https://dmo18.github.io/dv/wsvn.html",
-    URL4: "https://dmo18.github.io/dv/player.html?ID=Livenowfox&src=https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8&fit=contain&reload=60",
+  // Builds a player.html link. The stream address is encoded here, so paste it in plain form.
+  const player = (id, stream) =>
+    "player.html?ID=" + id + "&src=" + encodeURIComponent(stream) + "&fit=contain&muted=1&reload=60";
 
-    URL5: "https://dmo18.github.io/dv/player.html?ID=IL13&src=https%3A%2F%2Fd2xg1g9o5vns8m.cloudfront.net%2Fout%2Fv1%2F66d4ac8748ce4a9298b4e40e48d1ae2f%2Findex.m3u8&fit=contain&muted=1&reload=60",
-    URL6: "https://dmo18.github.io/dv/player.html?ID=i24&src=https%3A%2F%2Ffastly.live.brightcove.com%2F6386790908112%2Feu-central-1%2F5377161796001%2FeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3N0IjoiZXJmajYzLmVncmVzcy53YzQ3bTEiLCJhY2NvdW50X2lkIjoiNTM3NzE2MTc5NjAwMSIsImVobiI6ImZhc3RseS5saXZlLmJyaWdodGNvdmUuY29tIiwiaXNzIjoiYmxpdmUtcGxheWJhY2stc291cmNlLWFwaSIsInN1YiI6InBhdGhtYXB0b2tlbiIsImF1ZCI6WyI1Mzc3MTYxNzk2MDAxIl0sImp0aSI6IjYzODY3OTA5MDgxMTIifQ._w5c3EwfnEecDCEpDaKuVz07uuEyUb3vXvQN3svv-oU%2Fchunklist.m3u8&fit=contain&muted=1&reload=60",
-    URL7: "https://dmo18.github.io/dv/player.html?ID=RT&src=https%3A%2F%2Frt-glb.rttv.com%2Fdvr%2Frtnews%2Fplaylist.m3u8&fit=contain&muted=1&reload=60",
-    URL8: "https://dmo18.github.io/dv/player.html?ID=Skynews&src=https%3A%2F%2Flinear417-gb-hls1-prd-ak.cdn.skycdp.com%2F100e%2FContent%2FHLS_001_1080_30%2FLive%2Fchannel%28skynews%29%2Findex_1080-30.m3u8&fit=contain&muted=1&reload=60",
+  // One entry per tile. Links are relative, so the board works from whatever address it is served at.
+  const TILES = {
+    BBC:       player("BBCNews", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
+    WSVN:      "wsvn.html",
+    LIVENOW:   player("Livenowfox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8"),
 
-    URL9:  "https://dmo18.github.io/dv/player.html?ID=ABC10&src=https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8&fit=contain&muted=1&reload=60",
-    URL10: "https://dmo18.github.io/dv/player.html?ID=ABC8&src=https%3A%2F%2Fabcnews-streams.akamaized.net%2Fhls%2Flive%2F2023567%2Fabcnewshudson8%2Fmaster.m3u8&fit=contain&muted=1&reload=60",
-    URL11: "https://dmo18.github.io/dv/player.html?ID=GlobalNews&src=https%3A%2F%2Flive.corusdigitaldev.com%2Fgroupd%2Flive%2F49a91e7f-1023-430f-8d66-561055f3d0f7%2Flive.isml%2Flive-audio_1%3D96000-video%3D2499968.m3u8&fit=contain&muted=1&reload=60",
-    URL12: "https://dmo18.github.io/dv/player.html?ID=AlJazeera&src=https%3A%2F%2Flive-hls-web-aje-gcp.thehlive.com%2FAJE%2F03.m3u8&fit=contain&muted=1&reload=60"
+    IL13:      player("IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
+    I24:       player("i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
+    RT:        player("RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
+    SKY:       player("Skynews", "https://linear417-gb-hls1-prd-ak.cdn.skycdp.com/100e/Content/HLS_001_1080_30/Live/channel(skynews)/index_1080-30.m3u8"),
+
+    ABC10:     player("ABC10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8"),
+    ABC8:      player("ABC8", "https://abcnews-streams.akamaized.net/hls/live/2023567/abcnewshudson8/master.m3u8"),
+    GLOBAL:    player("GlobalNews", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8"),
+    ALJAZEERA: player("AlJazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/03.m3u8")
   };
 
   window.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("iframe[data-src]").forEach((f) => {
-      const key = f.getAttribute("data-src");
-      const url = URLS[key];
-      f.src = url ? url : "about:blank";
+    document.querySelectorAll("iframe[data-tile]").forEach((f) => {
+      f.src = TILES[f.getAttribute("data-tile")] || "about:blank";
     });
   });
+
+  // Self-update: every 5 minutes, fetch this page fresh and reload if its title version changed.
+  const versionOf = (text) => (text.match(/<title>[^<]*\bv(\d+)/i) || [])[1];
+  const RUNNING = (document.title.match(/\bv(\d+)/i) || [])[1];
+  setInterval(async () => {
+    try {
+      const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      const latest = versionOf(await r.text());
+      if (latest && RUNNING && latest !== RUNNING) location.reload();
+    } catch (e) { /* offline or blocked: try again next time */ }
+  }, 5 * 60 * 1000);
 </script>
 </head>
 
 <body>
 <div class="grid">
   <div class="tile" style="grid-row:1; grid-column:1 / span 12;">
-    <iframe src="https://dmo18.github.io/dv/ticker.html"></iframe>
+    <iframe src="ticker.html"></iframe>
   </div>
 
   <div class="tile" style="grid-row:2; grid-column:1 / span 12;">
-    <iframe src="https://dmo18.github.io/dv/headlines.html"></iframe>
+    <iframe src="headlines.html"></iframe>
   </div>
 
-  <div class="tile" style="grid-row:3; grid-column:1 / span 4;"><iframe data-src="URL2"></iframe></div>
-  <div class="tile" style="grid-row:3; grid-column:5 / span 4;"><iframe data-src="URL3"></iframe></div>
-  <div class="tile" style="grid-row:3; grid-column:9 / span 4;"><iframe data-src="URL4"></iframe></div>
+  <div class="tile" style="grid-row:3; grid-column:1 / span 4;"><iframe data-tile="BBC"></iframe></div>
+  <div class="tile" style="grid-row:3; grid-column:5 / span 4;"><iframe data-tile="WSVN"></iframe></div>
+  <div class="tile" style="grid-row:3; grid-column:9 / span 4;"><iframe data-tile="LIVENOW"></iframe></div>
 
-  <div class="tile" style="grid-row:4; grid-column:1 / span 3;"><iframe data-src="URL5"></iframe></div>
-  <div class="tile" style="grid-row:4; grid-column:4 / span 3;"><iframe data-src="URL6"></iframe></div>
-  <div class="tile" style="grid-row:4; grid-column:7 / span 3;"><iframe data-src="URL7"></iframe></div>
-  <div class="tile" style="grid-row:4; grid-column:10 / span 3;"><iframe data-src="URL8"></iframe></div>
+  <div class="tile" style="grid-row:4; grid-column:1 / span 3;"><iframe data-tile="IL13"></iframe></div>
+  <div class="tile" style="grid-row:4; grid-column:4 / span 3;"><iframe data-tile="I24"></iframe></div>
+  <div class="tile" style="grid-row:4; grid-column:7 / span 3;"><iframe data-tile="RT"></iframe></div>
+  <div class="tile" style="grid-row:4; grid-column:10 / span 3;"><iframe data-tile="SKY"></iframe></div>
 
-  <div class="tile" style="grid-row:5; grid-column:1 / span 3;"><iframe data-src="URL9"></iframe></div>
-  <div class="tile" style="grid-row:5; grid-column:4 / span 3;"><iframe data-src="URL10"></iframe></div>
-  <div class="tile" style="grid-row:5; grid-column:7 / span 3;"><iframe data-src="URL11"></iframe></div>
-  <div class="tile" style="grid-row:5; grid-column:10 / span 3;"><iframe data-src="URL12"></iframe></div>
+  <div class="tile" style="grid-row:5; grid-column:1 / span 3;"><iframe data-tile="ABC10"></iframe></div>
+  <div class="tile" style="grid-row:5; grid-column:4 / span 3;"><iframe data-tile="ABC8"></iframe></div>
+  <div class="tile" style="grid-row:5; grid-column:7 / span 3;"><iframe data-tile="GLOBAL"></iframe></div>
+  <div class="tile" style="grid-row:5; grid-column:10 / span 3;"><iframe data-tile="ALJAZEERA"></iframe></div>
 </div>
 </body>
 </html>
