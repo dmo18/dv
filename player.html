@@ -18,12 +18,12 @@ or stalls, it automatically falls back to Clappr.
 How you use it
 --------------
 1) Save this file as:
-   /shulboard/player.html   (or another name, but update your wallboard URLs accordingly)
+   /dv/player.html   (or another name, but update your wallboard URLs accordingly)
 
 2) In your wallboard.html, each tile should iframe this player, passing the stream URL in
    the query string as a URL-encoded value:
 
-   <iframe src="https://solutionssquad.github.io/shulboard/player.html?src=ENCODED_M3U8_URL&fit=contain&reload=60"></iframe>
+   <iframe src="https://dmo18.github.io/dv/player.html?src=ENCODED_M3U8_URL&fit=contain&reload=60"></iframe>
 
 3) IMPORTANT: The src= parameter MUST be URL-encoded.
    That means characters like ":" "/" "?" "&" must be encoded so they do not break the query string.
@@ -65,20 +65,20 @@ Optional:
 Examples
 --------
 Example 1: Simple tile, keep full frame (no crop)
-  https://solutionssquad.github.io/shulboard/player.html?src=https%3A%2F%2Fabcnews-streams.akamaized.net%2Fhls%2Flive%2F2023566%2Fabcnewshudson7%2Fmaster.m3u8&fit=contain
+  https://dmo18.github.io/dv/player.html?src=https%3A%2F%2Fabcnews-streams.akamaized.net%2Fhls%2Flive%2F2023566%2Fabcnewshudson7%2Fmaster.m3u8&fit=contain
 
 Example 2: Crop-fill to eliminate bars, reload every 45 minutes
-  https://solutionssquad.github.io/shulboard/player.html?src=https%3A%2F%2Ffox-foxnewsnow-vizio.amagi.tv%2Fplaylist.m3u8&fit=cover&reload=45
+  https://dmo18.github.io/dv/player.html?src=https%3A%2F%2Ffox-foxnewsnow-vizio.amagi.tv%2Fplaylist.m3u8&fit=cover&reload=45
 
 Example 3: Unmuted (not recommended unless you need audio)
-  https://solutionssquad.github.io/shulboard/player.html?src=https%3A%2F%2Fexample.com%2Flive%2Fmaster.m3u8&muted=0&fit=contain
+  https://dmo18.github.io/dv/player.html?src=https%3A%2F%2Fexample.com%2Flive%2Fmaster.m3u8&muted=0&fit=contain
 
 Integrating with your URL-variable wallboard
 --------------------------------------------
 If your wallboard uses a URL map like:
 
   const URLS = {
-    URL7: "https://solutionssquad.github.io/shulboard/player.html?src=ENCODED&fit=contain&reload=60"
+    URL7: "https://dmo18.github.io/dv/player.html?src=ENCODED&fit=contain&reload=60"
   };
 
 Then your tile can be:
