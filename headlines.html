@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Headlines Rev11</title>
+<title>Headlines Rev12</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev12  2026-11-13  Redesigned so the ticker never waits on the network: it starts from the last
+                     headlines saved in the browser, fetches updates in the background and swaps
+                     them in between passes. Removed all timeouts, relay services and the
+                     "Refreshing" state. Feed list moved to headlines-feeds.json. Page reloads
+                     itself when a new Rev is published.
   Rev11  2026-11-13  Headlines now come from headlines.json, which a scheduled GitHub workflow
                      builds from the FEEDS list (the relay services the page relied on had
                      stopped working). Fixed the YWN, Middle East Eye, Times of Israel and
@@ -155,20 +160,19 @@ a { color: inherit; text-decoration: none; }
 
 <script>
 /* =========================================================
-   Headlines Rev10
-   Fix for occasional "duplicates scrolling over itself"
+   Headlines Rev12
 
-   Root cause in Rev9:
-   - It used one container and appended a clone inside it.
-   - The animation assumed scrollWidth/2 is always exactly one cycle.
-   - When fonts load late, content width changes mid-animation.
-   - During refresh, rebuild plus animation frames can momentarily overlap.
+   Design: the ticker never waits on the network.
 
-   Rev10 fix:
-   - Use two separate sibling runs (run1 and run2).
-   - Measure run1 width and loop cleanly when x <= -run1Width - spacer.
-   - Cancel animation before rebuilding and reset transforms.
-   - Wait for fonts (when available) before measuring to avoid width changes.
+   - A scheduled GitHub workflow ("Update headlines") collects the feeds listed in
+     headlines-feeds.json and publishes them as one file, headlines.json.
+   - This page keeps the last headlines it received in the browser's storage and
+     starts scrolling them the moment it loads.
+   - New headlines are fetched in the background. The ticker keeps scrolling while
+     that happens, and swaps the new set in at the end of a pass.
+   - If a fetch is slow or fails, nothing changes on screen: the current headlines
+     keep scrolling and the page simply tries again later. There are no timeouts,
+     no relay services and no "Refreshing" state.
 */
 
 /* -----------------------------
@@ -177,25 +181,10 @@ a { color: inherit; text-decoration: none; }
 const SPEED_PX_PER_SEC = 65;
 const PER_FEED_MAX = 4;
 const MAX_ITEMS = 40;
-const REFRESH_MINUTES = 10;
-const DEBUG = false;
+const CHECK_MINUTES = 5;         /* how often to look for a newer headlines.json */
+const RETRY_SECONDS = 30;        /* how soon to look again after a failed fetch */
 
-/* Feeds */
-const FEEDS = [
-  { name: "Google News", url: "https://news.google.com/rss" },
-  { name: "Political Wire", url: "https://politicalwire.com/feed/" },
-  { name: "BBC", url: "https://feeds.bbci.co.uk/news/rss.xml" },
-  { name: "NBC News", url: "https://feeds.nbcnews.com/nbcnews/public/news" },
-  { name: "YWN", url: "https://www.theyeshivaworld.com/feed" },
-  { name: "Middle East Eye", url: "https://www.middleeasteye.net/rss" },
-  { name: "Jpost", url: "https://www.jpost.com/rss/rssfeedsfrontpage.aspx" },
-  { name: "Times of Israel", url: "https://news.google.com/rss/search?q=site:timesofisrael.com+when:1d&hl=en-US&gl=US&ceid=US:en" },
-  { name: "IRNA", url: "https://en.irna.ir/rss" },
-  { name: "WSVN", url: "https://wsvn.com/feed/" },  
-  { name: "AP", url: "https://news.google.com/rss/search?q=site:apnews.com+when:1d&hl=en-US&gl=US&ceid=US:en" }
-];
-
-const CACHE_KEY = "headlines_rev10_cache_v1";
+const CACHE_KEY = "headlines_cache_v2";
 
 /* DOM refs */
 const statusEl = document.getElementById("status");
@@ -203,7 +192,7 @@ const marqueeEl = document.getElementById("marquee");
 const run1El = document.getElementById("run1");
 const run2El = document.getElementById("run2");
 
-/* Status */
+/* The status line is only ever visible before the very first headlines arrive. */
 function showStatus(msg) {
   statusEl.style.display = "flex";
   statusEl.textContent = msg;
@@ -212,114 +201,17 @@ function hideStatus() {
   statusEl.style.display = "none";
 }
 
-/* Proxies */
-function proxyCandidates(originalUrl) {
-  const u = encodeURIComponent(originalUrl);
-  return [
-    originalUrl,
-    "https://api.codetabs.com/v1/proxy?quest=" + u,
-    "https://thingproxy.freeboard.io/fetch/" + originalUrl,
-    "https://api.allorigins.win/raw?url=" + u
-  ];
-}
-
-/* Fetch with timeout */
-async function fetchText(url, timeoutMs) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { cache: "no-store", signal: controller.signal });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return await res.text();
-  } finally {
-    clearTimeout(t);
+/* Where the workflow publishes the headlines */
+function publishedUrl() {
+  let owner = "dmo18", repo = "dv";
+  if (location.hostname.endsWith(".github.io")) {
+    owner = location.hostname.split(".")[0];
+    repo = location.pathname.split("/").filter(Boolean)[0] || repo;
   }
-}
-
-/* Extract XML from wrapper pages */
-function extractXmlMaybe(text) {
-  const lower = text.toLowerCase();
-  const rssStart = lower.indexOf("<rss");
-  const feedStart = lower.indexOf("<feed");
-  let start = -1;
-  let endTag = "";
-
-  if (rssStart !== -1 && (feedStart === -1 || rssStart < feedStart)) {
-    start = rssStart;
-    endTag = "</rss>";
-  } else if (feedStart !== -1) {
-    start = feedStart;
-    endTag = "</feed>";
-  }
-
-  if (start === -1) return "";
-  const end = lower.lastIndexOf(endTag);
-  if (end === -1) return text.slice(start);
-  return text.slice(start, end + endTag.length);
-}
-
-/* Parse RSS + Atom */
-function parseFeedXml(xmlText, sourceName) {
-  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
-  if (doc.querySelector("parsererror")) return [];
-
-  const out = [];
-
-  /* RSS */
-  const items = Array.from(doc.querySelectorAll("item"));
-  for (const it of items) {
-    const title = (it.querySelector("title")?.textContent || "").trim();
-
-    let link = (it.querySelector("link")?.textContent || "").trim();
-    if (!link) {
-      const guid = it.querySelector("guid");
-      const isPermalink = (guid?.getAttribute("isPermaLink") || "").toLowerCase() === "true";
-      if (isPermalink) link = (guid?.textContent || "").trim();
-    }
-
-    const pubDate =
-      (it.querySelector("pubDate")?.textContent || "").trim() ||
-      (it.querySelector("dc\\:date")?.textContent || "").trim() ||
-      "";
-
-    if (title && link) out.push({ title, link, pubDate, source: sourceName });
-  }
-
-  /* Atom */
-  const entries = Array.from(doc.querySelectorAll("entry"));
-  for (const e of entries) {
-    const title = (e.querySelector("title")?.textContent || "").trim();
-
-    let link = "";
-    const linkEl = e.querySelector('link[rel="alternate"]') || e.querySelector("link");
-    if (linkEl) link = (linkEl.getAttribute("href") || "").trim();
-
-    const pubDate =
-      (e.querySelector("updated")?.textContent || "").trim() ||
-      (e.querySelector("published")?.textContent || "").trim() ||
-      "";
-
-    if (title && link) out.push({ title, link, pubDate, source: sourceName });
-  }
-
-  return out;
+  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/headlines-data/headlines.json";
 }
 
 /* Helpers */
-function normalizeTitle(t) {
-  return t.toLowerCase().replace(/\s+/g, " ").replace(/[“”"']/g, "").trim();
-}
-function dedupe(items) {
-  const seen = new Set();
-  const out = [];
-  for (const it of items) {
-    const key = normalizeTitle(it.title);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(it);
-  }
-  return out;
-}
 function safeTime(s) {
   const t = Date.parse(s);
   return Number.isFinite(t) ? t : 0;
@@ -336,57 +228,35 @@ function formatStamp(pubDate) {
   return dow + " " + hh + ":" + mm;
 }
 
-/* Cache */
-function saveCache(items) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
-  } catch (e) {}
+/* Pick what to show: newest first, at most PER_FEED_MAX per source, MAX_ITEMS in all */
+function selectItems(all) {
+  const count = {};
+  const seen = new Set();
+  const out = [];
+  const sorted = all.slice().sort((a, b) => safeTime(b.pubDate) - safeTime(a.pubDate));
+  for (const it of sorted) {
+    if (!it || !it.title || !it.link) continue;
+    const key = it.title.toLowerCase().replace(/\s+/g, " ").trim();
+    if (seen.has(key)) continue;
+    count[it.source] = (count[it.source] || 0) + 1;
+    if (count[it.source] > PER_FEED_MAX) continue;
+    seen.add(key);
+    out.push(it);
+    if (out.length >= MAX_ITEMS) break;
+  }
+  return out;
+}
+
+/* Local copy of the last headlines received */
+function saveCache(generated, items) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ generated, items })); } catch (e) {}
 }
 function loadCache() {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj || !Array.isArray(obj.items)) return null;
-    return obj.items;
+    const obj = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+    return obj && Array.isArray(obj.items) && obj.items.length ? obj : null;
   } catch (e) {
     return null;
-  }
-}
-
-/* Feed fetch with per-feed limiting */
-async function fetchFeed(feed) {
-  const candidates = proxyCandidates(feed.url);
-  const errors = [];
-
-  for (const u of candidates) {
-    try {
-      const text = await fetchText(u, 9000);
-      const xml = extractXmlMaybe(text) || text;
-
-      let items = parseFeedXml(xml, feed.name);
-      if (!items.length) {
-        errors.push(feed.name + " parse-empty via " + short(u));
-        continue;
-      }
-
-      items.sort((a, b) => safeTime(b.pubDate) - safeTime(a.pubDate));
-      items = items.slice(0, PER_FEED_MAX);
-
-      return { items, errors };
-    } catch (e) {
-      errors.push(feed.name + " " + String(e.message || e) + " via " + short(u));
-    }
-  }
-
-  return { items: [], errors };
-}
-
-function short(u) {
-  try {
-    return new URL(u).host;
-  } catch (e) {
-    return "url";
   }
 }
 
@@ -438,160 +308,107 @@ function buildRuns(items) {
   run2El.appendChild(run1El.cloneNode(true));
 }
 
-/* Animation state */
-let animId = null;
+/* -----------------------------
+   Ticker
+   ----------------------------- */
+let shownGenerated = 0;   /* "generated" stamp of the set on screen */
+let pending = null;       /* newer set waiting for the end of the current pass */
 let x = 0;
 let lastTs = null;
 let cycleWidth = 0;
-let isAnimating = false;
+let running = false;
 
-/* Ensure we measure after fonts are ready, so width stays stable */
-async function waitForFonts() {
-  if (document.fonts && document.fonts.ready) {
-    try { await document.fonts.ready; } catch (e) {}
-  } else {
-    await new Promise(r => setTimeout(r, 50));
-  }
-}
-
-/* Measure one cycle width: run1 width plus spacer */
 function measureCycleWidth() {
   const spacer = marqueeEl.querySelector(".runSpacer");
   const spacerW = spacer ? spacer.getBoundingClientRect().width : 0;
-  const run1W = run1El.getBoundingClientRect().width;
-  cycleWidth = run1W + spacerW;
+  cycleWidth = run1El.getBoundingClientRect().width + spacerW;
 }
 
-/* Stop animation cleanly */
-function stopScroll() {
-  if (animId) cancelAnimationFrame(animId);
-  animId = null;
-  isAnimating = false;
+/* Put a set on screen. Only called at a pass boundary (x === 0) or before the first pass. */
+function show(set) {
+  buildRuns(set.items);
+  shownGenerated = set.generated;
   x = 0;
-  lastTs = null;
   marqueeEl.style.transform = "translateY(-50%) translateX(0px)";
-}
-
-/* Start animation using measured cycleWidth */
-function startScroll() {
-  stopScroll();
-  if (!cycleWidth || cycleWidth < 10) return;
-
-  isAnimating = true;
-
-  function step(ts) {
-    if (!isAnimating) return;
-
-    if (lastTs == null) lastTs = ts;
-    const dt = (ts - lastTs) / 1000;
-    lastTs = ts;
-
-    x -= SPEED_PX_PER_SEC * dt;
-
-    /* When the first run has fully moved left, reset to 0 */
-    if (x <= -cycleWidth) x = 0;
-
-    marqueeEl.style.transform = "translateY(-50%) translateX(" + x + "px)";
-    animId = requestAnimationFrame(step);
-  }
-
-  animId = requestAnimationFrame(step);
-}
-
-/* Re-measure on resize */
-window.addEventListener("resize", () => {
-  if (!run1El.children.length) return;
   measureCycleWidth();
-});
-
-/* Published headlines (Rev11)
-   The "Update headlines" GitHub workflow fetches every feed in FEEDS about every
-   15 minutes and publishes the result as headlines.json on the headlines-data branch.
-   Reading that one file is the primary source. The per-feed relay method below is
-   only a fallback for when the file is missing or stale. */
-const PUBLISHED_MAX_AGE_MIN = 120;
-
-function publishedUrl() {
-  let owner = "dmo18", repo = "dv";
-  if (location.hostname.endsWith(".github.io")) {
-    owner = location.hostname.split(".")[0];
-    repo = location.pathname.split("/").filter(Boolean)[0] || repo;
-  }
-  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/headlines-data/headlines.json";
-}
-
-async function fetchPublished() {
-  try {
-    const data = JSON.parse(await fetchText(publishedUrl(), 9000));
-    if (!data || !Array.isArray(data.items) || !data.items.length) return [];
-    const ageMin = (Date.now() / 1000 - (data.generated || 0)) / 60;
-    if (ageMin > PUBLISHED_MAX_AGE_MIN) return [];
-
-    /* items arrive newest first; keep PER_FEED_MAX per source */
-    const count = {};
-    return data.items.filter((it) => {
-      count[it.source] = (count[it.source] || 0) + 1;
-      return it.title && it.link && count[it.source] <= PER_FEED_MAX;
-    });
-  } catch (e) {
-    return [];
-  }
-}
-
-/* Main refresh */
-async function refresh() {
-  showStatus("Refreshing");
-
-  /* Prevent rebuild while animating */
-  stopScroll();
-
-  let items = await fetchPublished();
-  let errors = [];
-
-  const results = items.length ? [] : await Promise.allSettled(FEEDS.map(fetchFeed));
-
-  for (const r of results) {
-    if (r.status === "fulfilled") {
-      items = items.concat(r.value.items);
-      errors = errors.concat(r.value.errors);
-    }
-  }
-
-  items = dedupe(items);
-  items.sort((a, b) => safeTime(b.pubDate) - safeTime(a.pubDate));
-  items = items.slice(0, MAX_ITEMS);
-
-  if (!items.length) {
-    const cached = loadCache();
-    if (cached && cached.length) {
-      buildRuns(cached);
-      await waitForFonts();
-      measureCycleWidth();
-      startScroll();
-      showStatus("Using cached headlines");
-      return;
-    }
-
-    if (DEBUG && errors.length) {
-      showStatus("No headlines. Last errors: " + errors.slice(0, 3).join(" | "));
-    } else {
-      showStatus("No headlines available");
-    }
-    return;
-  }
-
   hideStatus();
-  buildRuns(items);
-
-  /* Wait for fonts then measure and scroll so widths do not change mid-run */
-  await waitForFonts();
-  measureCycleWidth();
-  startScroll();
-  saveCache(items);
+  if (!running) {
+    running = true;
+    requestAnimationFrame(step);
+  }
 }
 
-refresh();
-setInterval(refresh, REFRESH_MINUTES * 60 * 1000);
+function step(ts) {
+  if (lastTs == null) lastTs = ts;
+  /* cap the step so a background tab coming back does not jump */
+  const dt = Math.min((ts - lastTs) / 1000, 0.1);
+  lastTs = ts;
+
+  if (cycleWidth > 10) {
+    x -= SPEED_PX_PER_SEC * dt;
+    if (x <= -cycleWidth) {
+      x = 0;
+      if (pending) {              /* swap in newer headlines between passes */
+        const next = pending;
+        pending = null;
+        show(next);
+      }
+    }
+    marqueeEl.style.transform = "translateY(-50%) translateX(" + x + "px)";
+  }
+  requestAnimationFrame(step);
+}
+
+/* Fonts loading late or a resize changes the width of a pass */
+window.addEventListener("resize", measureCycleWidth);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureCycleWidth);
+
+/* -----------------------------
+   Background updates
+   ----------------------------- */
+let fetching = false;
+
+async function checkForUpdate() {
+  if (fetching) return;           /* a slow request is simply left to finish */
+  fetching = true;
+  let ok = false;
+  try {
+    const res = await fetch(publishedUrl(), { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      const items = selectItems(Array.isArray(data.items) ? data.items : []);
+      const generated = data.generated || 0;
+      ok = true;
+      if (items.length && generated > shownGenerated) {
+        const set = { generated, items };
+        saveCache(generated, items);
+        if (running) pending = set; else show(set);
+      }
+    }
+  } catch (e) {
+    /* offline, blocked or bad data: keep showing what we have */
+  } finally {
+    fetching = false;
+    setTimeout(checkForUpdate, ok ? CHECK_MINUTES * 60 * 1000 : RETRY_SECONDS * 1000);
+  }
+}
+
+/* Start: show the saved headlines at once, then look for newer ones in the background */
+const cached = loadCache();
+if (cached) show(cached); else showStatus("Loading headlines");
+checkForUpdate();
+
+/* Self-update: every 5 minutes, reload if a newer Rev of this page has been published */
+const versionOf = (text) => (text.match(/<title>[^<]*\bRev(\d+)/i) || [])[1];
+const RUNNING_REV = versionOf("<title>" + document.title);
+setInterval(async () => {
+  try {
+    const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const latest = versionOf(await r.text());
+    if (latest && RUNNING_REV && latest !== RUNNING_REV) location.reload();
+  } catch (e) { /* try again next time */ }
+}, 5 * 60 * 1000);
 </script>
 </body>
 </html>
