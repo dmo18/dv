@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev14</title>
+<title>Encoder Rev15</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev15  2026-11-13  Added CNN (CNN's free streaming channel, up to 1080p) and Fox News
+                     (Fox's own preview feed of the live channel, 240p only).
   Rev14  2026-11-12  Fixed dead saved streams: new addresses for LiveNOW Fox, i24, ABC1, ABC2, ABC10;
                      added ABC News Live (24/7); removed ABC3 to ABC9 (off air, old addresses dead).
                      Player base URL now defaults to player.html next to this page.
@@ -249,7 +251,7 @@ hr {
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev14</h1>
+  <h1>Wallboard URL Encoder Rev15</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL. Open uses a separate URL with no muted parameter.
@@ -374,6 +376,8 @@ function clean(s) { return (s || "").trim(); }
 const STREAMS = [
   { name: "IRINN", url: "https://tv.irna.ir/live/stream/index.m3u8" },
   { name: "Live now fox", url: "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8" },
+  { name: "CNN", url: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8" },
+  { name: "Fox News", url: "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8" },
   { name: "IL13", url: "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8" },
   { name: "i24", url: "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8" },
   { name: "ABC News Live", url: "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8" },
