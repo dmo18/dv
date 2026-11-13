@@ -3,7 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Headlines Rev10</title>
+<title>Headlines Rev11</title>
+<!--
+  VERSION: bump the Rev number in the <title> above on every change to this file,
+  and add a line here (newest first).
+
+  Rev11  2026-11-13  Headlines now come from headlines.json, which a scheduled GitHub workflow
+                     builds from the FEEDS list (the relay services the page relied on had
+                     stopped working). Fixed the YWN, Middle East Eye, Times of Israel and
+                     AP feed addresses.
+  Rev10              Version as moved from the previous repository (earlier history not recorded).
+-->
 
 <style>
 :root{
@@ -176,13 +186,13 @@ const FEEDS = [
   { name: "Political Wire", url: "https://politicalwire.com/feed/" },
   { name: "BBC", url: "https://feeds.bbci.co.uk/news/rss.xml" },
   { name: "NBC News", url: "https://feeds.nbcnews.com/nbcnews/public/news" },
-  { name: "YWN", url: "https://www.theyeshivaworld.com/article.php/feed" },
-  { name: "Middle East Eye", url: "https://feeder.co/discover/5c9c89be31/middleeasteye-net-rss" },
+  { name: "YWN", url: "https://www.theyeshivaworld.com/feed" },
+  { name: "Middle East Eye", url: "https://www.middleeasteye.net/rss" },
   { name: "Jpost", url: "https://www.jpost.com/rss/rssfeedsfrontpage.aspx" },
-  { name: "Times of Israel", url: "https://www.timesofisrael.com/feed/" },
+  { name: "Times of Israel", url: "https://news.google.com/rss/search?q=site:timesofisrael.com+when:1d&hl=en-US&gl=US&ceid=US:en" },
   { name: "IRNA", url: "https://en.irna.ir/rss" },
   { name: "WSVN", url: "https://wsvn.com/feed/" },  
-  { name: "AP", url: "https://apnews.com/hub/ap-top-news?output=rss" }
+  { name: "AP", url: "https://news.google.com/rss/search?q=site:apnews.com+when:1d&hl=en-US&gl=US&ceid=US:en" }
 ];
 
 const CACHE_KEY = "headlines_rev10_cache_v1";
@@ -494,6 +504,40 @@ window.addEventListener("resize", () => {
   measureCycleWidth();
 });
 
+/* Published headlines (Rev11)
+   The "Update headlines" GitHub workflow fetches every feed in FEEDS about every
+   15 minutes and publishes the result as headlines.json on the headlines-data branch.
+   Reading that one file is the primary source. The per-feed relay method below is
+   only a fallback for when the file is missing or stale. */
+const PUBLISHED_MAX_AGE_MIN = 120;
+
+function publishedUrl() {
+  let owner = "dmo18", repo = "dv";
+  if (location.hostname.endsWith(".github.io")) {
+    owner = location.hostname.split(".")[0];
+    repo = location.pathname.split("/").filter(Boolean)[0] || repo;
+  }
+  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/headlines-data/headlines.json";
+}
+
+async function fetchPublished() {
+  try {
+    const data = JSON.parse(await fetchText(publishedUrl(), 9000));
+    if (!data || !Array.isArray(data.items) || !data.items.length) return [];
+    const ageMin = (Date.now() / 1000 - (data.generated || 0)) / 60;
+    if (ageMin > PUBLISHED_MAX_AGE_MIN) return [];
+
+    /* items arrive newest first; keep PER_FEED_MAX per source */
+    const count = {};
+    return data.items.filter((it) => {
+      count[it.source] = (count[it.source] || 0) + 1;
+      return it.title && it.link && count[it.source] <= PER_FEED_MAX;
+    });
+  } catch (e) {
+    return [];
+  }
+}
+
 /* Main refresh */
 async function refresh() {
   showStatus("Refreshing");
@@ -501,10 +545,10 @@ async function refresh() {
   /* Prevent rebuild while animating */
   stopScroll();
 
-  const results = await Promise.allSettled(FEEDS.map(fetchFeed));
-
-  let items = [];
+  let items = await fetchPublished();
   let errors = [];
+
+  const results = items.length ? [] : await Promise.allSettled(FEEDS.map(fetchFeed));
 
   for (const r of results) {
     if (r.status === "fulfilled") {
