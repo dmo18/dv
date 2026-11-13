@@ -51,7 +51,7 @@
 
     .leaflet-marker-icon {
       /* Match transition to update interval so movement appears continuous, not choppy */
-      transition: transform 2.4s linear !important;
+      transition: transform var(--moveMs, 3s) linear !important;
       will-change: transform;
       overflow: visible !important; /* Prevents scale() clipping on icon edges */
     }
@@ -88,6 +88,38 @@
       border-bottom: 1px solid rgba(255,255,255,.08);
       pointer-events: none;
     }
+
+    #keyChip { pointer-events: auto; cursor: pointer; }
+
+    #setup {
+      position: fixed; inset: 0; z-index: 2000;
+      display: none; place-items: center;
+      background: rgba(0,0,0,.62);
+      font-family: var(--font); color: #e9eef5;
+    }
+    #setup.open { display: grid; }
+    #setup .box {
+      width: min(440px, calc(100vw - 32px));
+      padding: 18px 18px 14px;
+      background: #0d1118; border: 1px solid rgba(255,255,255,.16); border-radius: 12px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.6);
+      font-size: 13px; line-height: 1.45;
+    }
+    #setup h2 { margin: 0 0 8px; font-size: 15px; color: var(--yellow); }
+    #setup p { margin: 0 0 10px; color: #b9c4d1; }
+    #setup a { color: #7cc4ff; }
+    #setup input {
+      width: 100%; box-sizing: border-box; margin: 2px 0 12px; padding: 9px 10px;
+      background: #05070b; color: #fff; border: 1px solid rgba(255,255,255,.22); border-radius: 8px;
+      font-family: var(--mono); font-size: 13px;
+    }
+    #setup .row { display: flex; gap: 8px; justify-content: flex-end; }
+    #setup button {
+      padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2);
+      background: #18202c; color: #e9eef5; font: inherit; cursor: pointer;
+    }
+    #setup button.primary { background: var(--yellow); color: #111; border-color: transparent; font-weight: 700; }
+    #setupState { font-family: var(--mono); font-size: 11px; color: #8fa0b3; margin-right: auto; align-self: center; }
 
     #tickerWrap {
       flex: 1 1 auto;
@@ -399,6 +431,24 @@
       <div class="chip" id="liveChip"><span class="live-led"></span><span id="liveText">START</span></div>
       <div class="chip"><span>AC</span><strong id="countText">0</strong></div>
       <div class="chip"><span>AGE</span><strong id="ageText">n/a</strong></div>
+      <div class="chip" id="keyChip" title="Feed key settings"><strong id="keyChipText">KEY</strong></div>
+    </div>
+
+    <div id="setup">
+      <div class="box">
+        <h2>Live feed key</h2>
+        <p>Without a key this page runs in FREE MODE: about 100 refreshes per day, one every 11 seconds.</p>
+        <p>For continuous live updates, paste a free FlyItalyADSB key (get one by email at
+          <a href="https://flyitalyadsb.com/data/api/#api-key" target="_blank" rel="noopener noreferrer">flyitalyadsb.com/data/api</a>).
+          The key is saved only in this browser. It is never written into this page or the repository.</p>
+        <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key here">
+        <div class="row">
+          <span id="setupState"></span>
+          <button id="keyRemove" type="button">Remove key</button>
+          <button id="keyClose" type="button">Close</button>
+          <button id="keySave" type="button" class="primary">Save</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -446,17 +496,19 @@
     const LANDED_RETENTION_MAX_SPEED_KT = 220;
 
     // FLIGHT DATA FEED
-    // The free ADS-B feeds no longer allow direct browser (CORS) access, so the
-    // page needs a small proxy. Deploy the PROXY WORKER SOURCE block at the
-    // bottom of this file as a free Cloudflare Worker and paste its URL here:
-    //   const FEED_PROXY_URL = "https://flights-proxy.yourname.workers.dev";
-    // You can also test one without editing: flights.html?proxy=<worker url>
-    const FEED_PROXY_URL = "";
-
-    // A tick is skipped while the previous fetch is still running, so the
-    // timeout can safely be longer than the update interval.
-    const UPDATE_MS = 2500;
-    const FETCH_TIMEOUT_MS = 5000;
+    // This page talks straight to the feed from the browser. No proxy, no server,
+    // and no key stored in this file.
+    //   FREE MODE (no key):  avioadsb.org, keyless, about 100 requests per day.
+    //   LIVE MODE (key):     flyitalyadsb.com free key (30 requests/min, 300,000/month).
+    // The key is typed into the page (KEY chip, top right) and kept only in that
+    // browser's local storage. For a screen with no keyboard, open the page once as
+    //   flights.html#key=YOURKEY   (the part after # is never sent to any server)
+    //
+    // LIVE: 3000 ms uses the monthly quota in about 250 viewing hours.
+    // For a screen that is on 24 hours a day, use 9000.
+    const KEYED_UPDATE_MS = 3000;
+    const FREE_UPDATE_MS  = 11000;   // free feed allows 1 request per 10 s
+    const FETCH_TIMEOUT_MS = 6000;
     const STALE_AIRCRAFT_MS = 32000;
 
     const MAX_LABELED_AIRCRAFT = 8;
@@ -471,12 +523,6 @@
     const LABEL_SCREEN_PADDING_PX = 7;
     const LABEL_OFFSET_Y_PX = 15;
 
-    const ADSBDB_ENABLE = true;
-    const ADSBDB_HEX_TTL_MS = 24 * 60 * 60 * 1000;
-    const ADSBDB_CALLSIGN_TTL_MS = 20 * 60 * 1000;
-    const ADSBDB_MAX_QUEUE = 4;
-
-    // Logos served by airhex CDN — ICAO code, no key needed, onerror shows fallback.
     const USE_LOCAL_AIRLINE_LOGOS = false;
     const LOCAL_AIRLINE_LOGO_DIR = "airline-logos";
     const LOCAL_AIRLINE_LOGO_EXT = "png";
@@ -518,12 +564,6 @@
     };
 
     const aircraftState      = new Map();
-    const hexCache           = new Map();
-    const callsignCache      = new Map();
-    const pendingHexKeys     = new Set();
-    const pendingCallsignKeys = new Set();
-    const enrichQueue        = [];
-    let enrichBusy           = false;
 
     /***********************************************************************
      * UTILS
@@ -860,14 +900,8 @@
      * LABELS
      **********************************************************************/
     function logoMarkup(entry) {
-      const airline = airlineCodeFromCallsign(entry.n.callsign);
-      const safe = esc(airline).slice(0, 3);
-      // Use IATA code from enrichment → Google Flights CDN (reliable, no key, public)
-      const iata = entry.routeInfo && entry.routeInfo.airlineIata && entry.routeInfo.airlineIata !== "n/a"
-        ? entry.routeInfo.airlineIata : null;
-      if (!iata) return `<div class="mini-logo-slot"><div class="mini-fallback">${safe}</div></div>`;
-      const url = `https://www.gstatic.com/flights/airline_logos/70px/${encodeURIComponent(iata)}.png`;
-      return `<div class="mini-logo-slot"><img alt="" src="${url}" referrerpolicy="no-referrer" onload="this.style.display='block';this.nextElementSibling.style.display='none'" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="mini-fallback">${safe}</div></div>`;
+      const safe = esc(airlineCodeFromCallsign(entry.n.callsign)).slice(0, 3);
+      return `<div class="mini-logo-slot"><div class="mini-fallback" style="display:grid">${safe}</div></div>`;
     }
 
     function ensureLabel(entry) {
@@ -885,8 +919,8 @@
       const n = entry.n;
       const airlineName = airlineNameText(entry);
       const model       = aircraftModelText(entry);
-      const route       = compactRouteText(entry);
-      const detailParts = [airlineName !== "n/a" ? airlineName : "", model !== "n/a" ? model : "", route].filter(Boolean);
+      const reg         = registrationText(entry);
+      const detailParts = [airlineName !== "n/a" ? airlineName : "", model !== "n/a" ? model : "", reg].filter(Boolean);
 
       const kind     = entry.lastKind || aircraftClass(n.raw, entry.aircraftInfo);
       const wake     = wakeCategory(kind);
@@ -914,7 +948,7 @@
 
       return `${tapeFill}
         <div class="label-top">${logoMarkup(entry)}<div class="label-call">${esc(n.callsign)}</div><div class="label-state">${motionText(n.motion)}</div>${wakeBadge}</div>
-        <div class="label-sub">${esc(detailParts.join(" · ") || "details loading")}</div>
+        <div class="label-sub">${esc(detailParts.join(" · ") || "no details broadcast")}</div>
         <div class="label-metrics"><span>ALT ${esc(fmtAltShort(n.altFt))} ft</span><span>SPD ${esc(fmtSpeedShort(n.speedKt))}</span><span>${n.distMi.toFixed(1)} mi</span></div>
         ${squawkHtml}`;
     }
@@ -1053,137 +1087,53 @@
         const age = nowMs - entry.lastSeenTs;
         const el   = entry.marker && entry.marker.getElement();
         const wrap = el && el.querySelector(".plane-wrap");
-        if (wrap) wrap.classList.toggle("stale", age > UPDATE_MS * 5);
+        if (wrap) wrap.classList.toggle("stale", age > currentIntervalMs() * 5);
         if (entry.n && entry.n.retainedGround) {
           const retainedAge = nowMs - (entry.retainedGroundSince || entry.lastSeenTs || nowMs);
           if (retainedAge > RETAIN_RECENT_GROUND_MS) removeAircraftEntry(hex, entry);
-        } else if (age > STALE_AIRCRAFT_MS) {
+        } else if (age > Math.max(STALE_AIRCRAFT_MS, currentIntervalMs() * 3)) {
           removeAircraftEntry(hex, entry);
         }
       }
     }
 
     /***********************************************************************
-     * ENRICHMENT
+     * PLANE INFORMATION
+     * Everything comes from the position feed itself (registration, type,
+     * owner) plus this built-in airline table. No lookup services.
      **********************************************************************/
-    function getCached(cache, key, ttlMs) {
-      const v = cache.get(key);
-      if (!v) return undefined;
-      if (Date.now() - v.ts > ttlMs) { cache.delete(key); return undefined; }
-      return v.data;
-    }
-
-    function setCached(cache, key, data) { cache.set(key, { ts: Date.now(), data }); }
-
-    function enqueueEnrich(key, pendingSet, job) {
-      if (pendingSet.has(key) || enrichQueue.length >= ADSBDB_MAX_QUEUE) return;
-      pendingSet.add(key);
-      enrichQueue.push(async () => {
-        try { await job(); } finally { pendingSet.delete(key); }
-      });
-      runEnrichQueue();
-    }
-
-    async function runEnrichQueue() {
-      if (enrichBusy) return;
-      enrichBusy = true;
-      while (enrichQueue.length) {
-        const job = enrichQueue.shift();
-        try { await job(); } catch (_) {}
-        await new Promise(r => setTimeout(r, 300));
-      }
-      enrichBusy = false;
-    }
-
-    async function fetchJson(url, timeoutMs = 2000) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
-        // 404 = "unknown aircraft/callsign": return null so the caller caches the miss
-        // instead of re-requesting it on every tick.
-        if (res.status === 404) return null;
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } finally { clearTimeout(timer); }
-    }
-
-    function parseAdsbdbAircraft(payload) {
-      const ac = payload && payload.response && payload.response.aircraft;
-      if (!ac) return null;
-      return { icaoType: safeText(ac.icao_type), type: safeText(ac.type), manufacturer: safeText(ac.manufacturer), registration: safeText(ac.registration) };
-    }
-
-    function parseAdsbdbCallsign(payload) {
-      const fr = payload && payload.response && payload.response.flightroute;
-      if (!fr) return null;
-      const airline = fr.airline || {}, origin = fr.origin || {}, dest = fr.destination || {};
-      return {
-        airlineName: safeText(airline.name), airlineIcao: safeText(airline.icao), airlineIata: safeText(airline.iata),
-        originIata: safeText(origin.iata_code), originIcao: safeText(origin.icao_code),
-        destIata: safeText(dest.iata_code), destIcao: safeText(dest.icao_code)
-      };
-    }
+    const AIRLINES = {
+      AAL:"American", DAL:"Delta", UAL:"United", SWA:"Southwest", JBU:"JetBlue", NKS:"Spirit",
+      FFT:"Frontier", AAY:"Allegiant", ASA:"Alaska", SCX:"Sun Country", MXY:"Breeze", VXP:"Avelo",
+      ENY:"Envoy", RPA:"Republic", SKW:"SkyWest", EDV:"Endeavor", JIA:"PSA", PDT:"Piedmont",
+      SIL:"Silver Airways", BHS:"Bahamasair", WST:"Western Air", CAY:"Cayman Airways", BWA:"Caribbean Airlines",
+      ACA:"Air Canada", ROU:"Air Canada Rouge", WJA:"WestJet", TSC:"Air Transat", POE:"Porter", FLE:"Flair", SWG:"Sunwing",
+      AVA:"Avianca", CMP:"Copa", AMX:"Aeromexico", VOI:"Volaris", VIV:"Viva", AZU:"Azul", DWI:"Arajet", LAN:"LATAM",
+      BAW:"British Airways", VIR:"Virgin Atlantic", DLH:"Lufthansa", AFR:"Air France", KLM:"KLM", EIN:"Aer Lingus",
+      NBT:"Norse Atlantic", UAE:"Emirates", ELY:"El Al", THY:"Turkish",
+      FDX:"FedEx", UPS:"UPS", GTI:"Atlas Air", ABX:"ABX Air", ATN:"Air Transport Intl", AJT:"Amerijet",
+      EJA:"NetJets", LXJ:"Flexjet", VJA:"Vista America", JTL:"Jet Linx", XOJ:"XO", TWY:"Sunset Aviation"
+    };
 
     function aircraftModelText(entry) {
-      const info = entry && entry.aircraftInfo;
-      const raw  = entry && entry.n && entry.n.raw ? entry.n.raw : {};
-      if (info) {
-        const make = info.manufacturer !== "n/a" ? info.manufacturer : "";
-        const type = info.type !== "n/a" ? info.type : "";
-        const icao = info.icaoType !== "n/a" ? info.icaoType : "";
-        return [make, type].filter(Boolean).join(" ") || icao || safeText(raw.desc || raw.t);
-      }
+      const raw = entry && entry.n && entry.n.raw ? entry.n.raw : {};
       return safeText(raw.desc || raw.t);
     }
 
     function airlineNameText(entry) {
-      const route = entry && entry.routeInfo;
-      if (route && route.airlineName && route.airlineName !== "n/a") return route.airlineName;
       const raw = entry && entry.n && entry.n.raw ? entry.n.raw : {};
-      return safeText(raw.airline || raw.operator || raw.owner);
+      const cs = entry && entry.n ? safeText(entry.n.callsign) : "n/a";
+      const m = cs.match(/^([A-Z]{3})\d/);
+      if (m && AIRLINES[m[1]]) return AIRLINES[m[1]];
+      return safeText(raw.ownOp);
     }
 
-    function compactRouteText(entry) {
-      const route = entry && entry.routeInfo;
-      if (!route) return "";
-      const o = route.originIata !== "n/a" ? route.originIata : route.originIcao;
-      const d = route.destIata   !== "n/a" ? route.destIata   : route.destIcao;
-      if (!o || !d || o === "n/a" || d === "n/a") return "";
-      return `${o}→${d}`;
-    }
-
-    function requestEnrichment(entry) {
-      if (!ADSBDB_ENABLE || !entry || !entry.n) return;
-      const hx = entry.n.hex;
-      if (hx !== "N/A" && entry.aircraftInfo === null) {
-        const cached = getCached(hexCache, hx, ADSBDB_HEX_TTL_MS);
-        if (cached !== undefined) {
-          entry.aircraftInfo = cached;
-        } else {
-          enqueueEnrich(hx, pendingHexKeys, async () => {
-            const data = parseAdsbdbAircraft(await fetchJson(`https://api.adsbdb.com/v0/aircraft/${encodeURIComponent(hx)}`));
-            setCached(hexCache, hx, data);
-            entry.aircraftInfo = data;
-            entry.iconDirty = true;
-            scheduleVisualUpdate();
-          });
-        }
-      }
-      const cs = safeText(entry.n.callsign).toUpperCase();
-      if (cs !== "N/A" && entry.routeInfo === null) {
-        const cached = getCached(callsignCache, cs, ADSBDB_CALLSIGN_TTL_MS);
-        if (cached !== undefined) {
-          entry.routeInfo = cached;
-        } else {
-          enqueueEnrich(cs, pendingCallsignKeys, async () => {
-            const data = parseAdsbdbCallsign(await fetchJson(`https://api.adsbdb.com/v0/callsign/${encodeURIComponent(cs)}`));
-            setCached(callsignCache, cs, data);
-            entry.routeInfo = data;
-            scheduleVisualUpdate();
-          });
-        }
-      }
+    // Registration (tail number), hidden when it is the same as the callsign.
+    function registrationText(entry) {
+      const raw = entry && entry.n && entry.n.raw ? entry.n.raw : {};
+      const r = safeText(raw.r).toUpperCase();
+      if (r === "N/A" || r.replace(/-/g, "") === safeText(entry.n.callsign).replace(/-/g, "")) return "";
+      return r;
     }
 
     /***********************************************************************
@@ -1265,7 +1215,6 @@
       } else if (entry.velocityLine) {
         entry.velocityLine.setLatLngs([]);
       }
-      requestEnrichment(entry);
       return entry;
     }
 
@@ -1301,7 +1250,7 @@
     let lastTickerUpdate = 0;
 
     function updateTicker() {
-      if (feedFailStreak >= 2) return; // keep the FEED DOWN message visible
+      if (feedFailStreak >= 2) return; // keep the feed message visible
       const now = Date.now();
       if (now - lastTickerUpdate < 30000) return;
       lastTickerUpdate = now;
@@ -1326,6 +1275,7 @@
       }
 
       parts.push(`${airborne} aircraft in range`);
+      if (!getKey()) parts.push(`<span class="thi">FREE MODE</span> ${freeRemaining === null ? "" : freeRemaining + " refreshes left today · "}click KEY for live updates`);
       arriving.forEach(s  => parts.push(s));
       departing.forEach(s => parts.push(s));
       parts.push(`Radius ${SEARCH_RADIUS_NM}nm`);
@@ -1354,69 +1304,108 @@
     /***********************************************************************
      * API LOOP
      **********************************************************************/
-    // Proxy from ?proxy=<url> overrides FEED_PROXY_URL (handy for testing).
-    function feedProxyUrl() {
-      let p = FEED_PROXY_URL;
-      try {
-        const q = new URLSearchParams(location.search).get("proxy");
-        if (q) p = q;
-      } catch (_) {}
-      return safeText(p) === "n/a" ? "" : p.replace(/\/+$/, "");
+    // ---- key: lives only in this browser, never in the file ----
+    const KEY_STORE = "flights.feedKey";
+    let memoryKey = "";   // used when local storage is unavailable
+
+    function getKey() {
+      try { return (localStorage.getItem(KEY_STORE) || "").trim(); } catch (_) { return memoryKey; }
+    }
+    function setKey(k) {
+      k = String(k || "").trim();
+      memoryKey = k;
+      try { k ? localStorage.setItem(KEY_STORE, k) : localStorage.removeItem(KEY_STORE); } catch (_) {}
+      feedPausedUntil = 0; feedFailStreak = 0; lastTickerUpdate = 0; feedProblem = "";
+      refreshKeyChip();
     }
 
-    // All sources return the same readsb style JSON ({ ac: [...] }).
-    // The direct feeds are kept as fallbacks in case one turns CORS back on.
-    function feedSources() {
+    // flights.html#key=XXXX saves the key, then removes it from the address bar.
+    (function keyFromHash() {
+      const m = location.hash.match(/[#&]key=([^&]+)/);
+      if (!m) return;
+      memoryKey = decodeURIComponent(m[1]).trim();
+      try { localStorage.setItem(KEY_STORE, memoryKey); } catch (_) {}
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {}
+    })();
+
+    function currentIntervalMs() { return getKey() ? KEYED_UPDATE_MS : FREE_UPDATE_MS; }
+
+    // Both feeds return readsb style JSON: { ac: [ {hex, flight, r, t, lat, lon, alt_baro, gs, track, ...} ] }
+    function feedRequest() {
       const lat = encodeURIComponent(FETCH_LAT), lon = encodeURIComponent(FETCH_LON), r = encodeURIComponent(SEARCH_RADIUS_NM);
-      const list = [];
-      const proxy = feedProxyUrl();
-      if (proxy) list.push({ name: "proxy", url: () => `${proxy}/point/${lat}/${lon}/${r}` });
-      list.push({ name: "airplanes.live", url: () => `https://api.airplanes.live/v2/point/${lat}/${lon}/${r}?t=${Date.now()}` });
-      list.push({ name: "adsb.lol",       url: () => `https://api.adsb.lol/v2/point/${lat}/${lon}/${r}` });
-      list.push({ name: "adsb.fi",        url: () => `https://opendata.adsb.fi/api/v3/lat/${lat}/lon/${lon}/dist/${r}` });
-      return list;
+      const key = getKey();
+      if (key) return { name: "flyitalyadsb", keyed: true,
+        url: `https://api.flyitalyadsb.com/api/aircraft/v2/lat/${lat}/lon/${lon}/dist/${r}/`,
+        headers: { "X-Api-Key": key } };
+      return { name: "avioadsb", keyed: false, url: `https://avioadsb.org/v1/point/${lat}/${lon}/${r}`, headers: {} };
     }
 
-    const FEED_SOURCES = feedSources();
-    let feedIndex = 0;          // sticks to the last source that worked
     let feedFailStreak = 0;
+    let feedPausedUntil = 0;     // set when the feed says "slow down" (HTTP 429)
+    let feedProblem = "";        // text shown in the ticker while the feed is failing
+    let freeRemaining = null;    // free mode: requests left today, from the feed's headers
 
-    // Try the current source first, then the rest, and return the first good payload.
     async function fetchFeed() {
-      let lastErr = null;
-      for (let i = 0; i < FEED_SOURCES.length; i++) {
-        const idx = (feedIndex + i) % FEED_SOURCES.length;
-        const src = FEED_SOURCES[idx];
-        try {
-          const res = await fetchWithTimeout(src.url(), FETCH_TIMEOUT_MS);
-          if (!res.ok) throw new Error(`${src.name} HTTP ${res.status}`);
-          const data = await res.json();
-          if (!data || !(Array.isArray(data.ac) || Array.isArray(data.aircraft) || Array.isArray(data))) {
-            throw new Error(`${src.name} bad payload`);
-          }
-          if (idx !== feedIndex) console.info(`[flights] feed source: ${src.name}`);
-          feedIndex = idx;
-          return data;
-        } catch (e) {
-          lastErr = e;
-          console.warn(`[flights] ${src.name} failed:`, e && (e.name === "AbortError" ? "timeout" : e.message));
-        }
+      const req = feedRequest();
+      const res = await fetchWithTimeout(req.url, FETCH_TIMEOUT_MS, req.headers);
+
+      if (!req.keyed) {
+        const left = Number(res.headers.get("X-RateLimit-Remaining"));
+        if (res.headers.get("X-RateLimit-Remaining") !== null && Number.isFinite(left)) freeRemaining = left;
       }
-      throw lastErr || new Error("no feed sources");
+
+      if (res.status === 429) {
+        const retry = Number(res.headers.get("Retry-After")) || 60;
+        feedPausedUntil = Date.now() + Math.min(Math.max(retry, 10), 900) * 1000;
+        feedProblem = req.keyed
+          ? "key quota reached, waiting to retry"
+          : "free daily limit reached (100 refreshes), click KEY to add a free key for live updates";
+        const e = new Error("quota"); e.quota = true; throw e;
+      }
+      if (req.keyed && (res.status === 401 || res.status === 403)) {
+        feedProblem = "key rejected by the feed, click KEY to check it";
+        feedPausedUntil = Date.now() + 60000;   // do not hammer the feed with a bad key
+        const e = new Error("bad key"); e.quota = true; throw e;
+      }
+      if (!res.ok) throw new Error(`${req.name} HTTP ${res.status}`);
+
+      const data = await res.json();
+      if (!data || !(Array.isArray(data.ac) || Array.isArray(data.aircraft))) throw new Error(`${req.name} bad payload`);
+      return data;
     }
 
     function showFeedProblem() {
-      const hint = feedProxyUrl()
-        ? "proxy not responding, check the Worker URL"
-        : "browser access blocked, set FEED_PROXY_URL (Worker code is at the bottom of this page's source)";
-      tickerEl.innerHTML = `<span class="tarr">FEED DOWN</span>&nbsp;&nbsp;·&nbsp;&nbsp;${esc(hint)}`;
+      const text = feedProblem || "cannot reach the flight feed, retrying";
+      tickerEl.innerHTML = `<span class="tarr">FEED</span>&nbsp;&nbsp;·&nbsp;&nbsp;${esc(text)}`;
     }
 
-    async function fetchWithTimeout(url, timeoutMs) {
+    // ---- key panel ----
+    const setupEl = document.getElementById("setup");
+    const keyInput = document.getElementById("keyInput");
+    const keyChipText = document.getElementById("keyChipText");
+    const setupState = document.getElementById("setupState");
+
+    function refreshKeyChip() {
+      const has = !!getKey();
+      keyChipText.textContent = has ? "LIVE" : "FREE";
+      setupState.textContent = has ? "key saved in this browser" : "no key saved";
+    }
+    function openSetup()  { keyInput.value = ""; refreshKeyChip(); setupEl.classList.add("open"); keyInput.focus(); }
+    function closeSetup() { setupEl.classList.remove("open"); }
+
+    document.getElementById("keyChip").addEventListener("click", openSetup);
+    document.getElementById("keyClose").addEventListener("click", closeSetup);
+    document.getElementById("keySave").addEventListener("click", () => { if (keyInput.value.trim()) setKey(keyInput.value); closeSetup(); kick(); });
+    document.getElementById("keyRemove").addEventListener("click", () => { setKey(""); closeSetup(); kick(); });
+    keyInput.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("keySave").click(); if (e.key === "Escape") closeSetup(); });
+    setupEl.addEventListener("click", e => { if (e.target === setupEl) closeSetup(); });
+    refreshKeyChip();
+
+    async function fetchWithTimeout(url, timeoutMs, headers) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        return await fetch(url, { cache: "no-store", signal: controller.signal });
+        return await fetch(url, { cache: "no-store", signal: controller.signal, headers: headers || {} });
       } finally { clearTimeout(timer); }
     }
 
@@ -1429,6 +1418,13 @@
 
     async function tick() {
       if (appState.inFlight) return;
+      if (Date.now() < feedPausedUntil) {   // feed asked us to wait: do not spend requests
+        appState.lastStatus = "WAIT";
+        pruneStale(Date.now());
+        showFeedProblem();
+        scheduleVisualUpdate();
+        return;
+      }
       appState.inFlight = true;
       appState.lastStatus = "UPD";
       updateStatus("warn", "UPD");
@@ -1456,12 +1452,15 @@
         pruneStale(nowMs);
         appState.lastOkMs = Date.now();
         appState.lastStatus = "OK";
-        if (feedFailStreak >= 2) lastTickerUpdate = 0; // replace the FEED DOWN message right away
+        if (feedFailStreak >= 2) lastTickerUpdate = 0; // replace the feed message right away
         feedFailStreak = 0;
+        feedProblem = "";
       } catch (e) {
-        appState.lastStatus = e && e.name === "AbortError" ? "SLOW" : "ERR";
+        appState.lastStatus = e && e.name === "AbortError" ? "SLOW" : (e && e.quota ? "WAIT" : "ERR");
         pruneStale(nowMs);
-        if (++feedFailStreak >= 2) showFeedProblem();
+        if (e && e.quota) feedFailStreak = Math.max(feedFailStreak, 2);
+        if (++feedFailStreak >= 2) { if (!(e && e.quota)) feedProblem = ""; showFeedProblem(); }
+        console.warn("[flights] feed:", e && (e.name === "AbortError" ? "timeout" : e.message));
       } finally {
         scheduleVisualUpdate();
         appState.inFlight = false;
@@ -1476,96 +1475,21 @@
     }, 220);
 
     updateStatus("warn", "START");
-    tick();
-    setInterval(tick, UPDATE_MS);
+
+    // Self-scheduling loop: the interval depends on the mode (free or live key),
+    // and nothing is requested while the tab is hidden, to save the daily quota.
+    let loopTimer = null;
+    async function loop() {
+      const ms = currentIntervalMs();
+      document.documentElement.style.setProperty("--moveMs", `${Math.round(ms * 0.96)}ms`);
+      if (!document.hidden) await tick();
+      loopTimer = setTimeout(loop, ms);
+    }
+    function kick() { clearTimeout(loopTimer); loop(); }   // restart now (after a key change)
+    loop();
 
     // FIX 2 (cont): use statusKind() so ERR consistently shows the "bad" CSS class.
     setInterval(() => updateStatus(statusKind(appState.lastStatus), appState.lastStatus), 1000);
-  </script>
-
-  <!--
-    PROXY WORKER SOURCE (not executed by this page).
-    Kept inside this file so the page has no dependency on other files.
-    Deploy it as a Cloudflare Worker; steps are in the header below.
-  -->
-  <script type="text/plain" id="proxy-worker-source">
-/* ---------------------------------------------------------------- */
-/*
- * Flight feed proxy for this page (Cloudflare Worker, free plan is enough).
- *
- * Why: the free ADS-B feeds (adsb.lol, adsb.fi, airplanes.live) no longer send
- * CORS headers, so a page on GitHub Pages cannot read them directly. This Worker
- * fetches the feed server side and adds the CORS header.
- *
- * Deploy (about 2 minutes). Copy everything between the dashed lines:
- *   1. https://dash.cloudflare.com -> Workers & Pages -> Create -> Create Worker
- *   2. Name it (for example "flights-proxy"), click Deploy, then "Edit code"
- *   3. Replace the code with this whole file, click Deploy
- *   4. Copy the URL, e.g. https://flights-proxy.<you>.workers.dev
- *   5. Put it in FEED_PROXY_URL in this page's settings (or open flights.html?proxy=<url>)
- *
- * Only one request shape is accepted, so it cannot be used as an open proxy:
- *   GET /point/<lat>/<lon>/<radiusNm>
- */
-
-const NUM = "(-?\\d{1,3}(?:\\.\\d+)?)";
-const POINT_RE = new RegExp(`^/point/${NUM}/${NUM}/${NUM}/?$`);
-const UPSTREAM_TIMEOUT_MS = 4000;
-
-function upstreams(lat, lon, r) {
-  return [
-    ["adsb.lol",        `https://api.adsb.lol/v2/point/${lat}/${lon}/${r}`],
-    ["adsb.fi",         `https://opendata.adsb.fi/api/v3/lat/${lat}/lon/${lon}/dist/${r}`],
-    ["airplanes.live",  `https://api.airplanes.live/v2/point/${lat}/${lon}/${r}`],
-  ];
-}
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "*",
-  "Access-Control-Expose-Headers": "X-Feed-Source",
-};
-
-function json(body, status, extra = {}) {
-  return new Response(typeof body === "string" ? body : JSON.stringify(body), {
-    status,
-    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store", ...extra },
-  });
-}
-
-export default {
-  async fetch(request) {
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
-    if (request.method !== "GET") return json({ error: "GET only" }, 405);
-
-    const m = new URL(request.url).pathname.match(POINT_RE);
-    if (!m) return json({ error: "Use /point/<lat>/<lon>/<radiusNm>" }, 400);
-
-    const lat = Number(m[1]), lon = Number(m[2]);
-    const r = Math.min(Math.max(Number(m[3]), 0.1), 250);
-    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return json({ error: "Bad coordinates" }, 400);
-
-    const errors = [];
-    for (const [name, url] of upstreams(lat, lon, r)) {
-      try {
-        const res = await fetch(url, {
-          headers: { "Accept": "application/json", "User-Agent": "flights-wallboard-proxy/1.0" },
-          signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-        });
-        if (!res.ok) { errors.push(`${name}: HTTP ${res.status}`); continue; }
-        const text = await res.text();
-        const data = JSON.parse(text);
-        if (!data || !Array.isArray(data.ac || data.aircraft)) { errors.push(`${name}: bad payload`); continue; }
-        return json(text, 200, { "X-Feed-Source": name });
-      } catch (e) {
-        errors.push(`${name}: ${e && e.name === "TimeoutError" ? "timeout" : (e && e.message) || "error"}`);
-      }
-    }
-    return json({ error: "All upstream feeds failed", details: errors }, 502);
-  },
-};
-/* ---------------------------------------------------------------- */
   </script>
 </body>
 </html>
