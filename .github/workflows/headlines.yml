@@ -11,7 +11,7 @@ on:
   push:
     branches: [main]
     paths:
-      - headlines.html
+      - headlines-feeds.json
       - .github/scripts/fetch_headlines.py
       - .github/workflows/headlines.yml
 
@@ -32,7 +32,8 @@ jobs:
       - name: Fetch feeds
         run: |
           mkdir out
-          python3 .github/scripts/fetch_headlines.py headlines.html out/headlines.json
+          python3 .github/scripts/fetch_headlines.py headlines-feeds.json out/headlines.json \
+            "https://raw.githubusercontent.com/${{ github.repository }}/headlines-data/headlines.json"
 
       - name: Publish to headlines-data branch
         run: |

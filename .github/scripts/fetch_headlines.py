@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Fetch the news feeds listed in headlines.html and write them to one JSON file.
 
-headlines.html cannot read most news feeds directly from a browser (the feeds do not
-allow cross-site requests), so the "Update headlines" workflow runs this script on a
-schedule and publishes the result, which the page then loads.
+A browser cannot read most news feeds directly (the feeds do not allow cross-site
+requests), so the "Update headlines" workflow runs this script on a schedule and
+publishes the result, which headlines.html then loads.
 
-The feed list has a single source of truth: the FEEDS array in headlines.html.
+The feed list is headlines-feeds.json. If a feed fails, its headlines from the previously
+published file are kept, so a temporary outage does not remove a source from the ticker.
 
-Usage: fetch_headlines.py <path to headlines.html> <output json path>
+Usage: fetch_headlines.py <headlines-feeds.json> <output json path> [url of previous output]
 """
 import gzip
 import json
@@ -25,11 +26,20 @@ USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
 
 
-def read_feeds(html_path):
-    text = open(html_path, encoding="utf-8").read()
-    block = text[text.index("const FEEDS = ["):]
-    block = block[:block.index("];")]
-    return re.findall(r'\{\s*name:\s*"([^"]+)",\s*url:\s*"([^"]+)"\s*\}', block)
+def read_feeds(path):
+    with open(path, encoding="utf-8") as f:
+        return [(feed["name"], feed["url"]) for feed in json.load(f)["feeds"]]
+
+
+def previous_items(url):
+    """Headlines from the last published file, grouped by source ({} if there is none)."""
+    by_source = {}
+    try:
+        for item in json.loads(download(url)).get("items", []):
+            by_source.setdefault(item["source"], []).append(item)
+    except Exception as exc:
+        print("No previous file to fall back on:", str(exc)[:80])
+    return by_source
 
 
 def download(url):
@@ -100,15 +110,20 @@ def parse(data, source, strip_suffix):
 
 
 def main():
-    html_path, out_path = sys.argv[1], sys.argv[2]
+    feeds_path, out_path = sys.argv[1], sys.argv[2]
+    previous = previous_items(sys.argv[3]) if len(sys.argv) > 3 else {}
     all_items, status = [], {}
-    for name, url in read_feeds(html_path):
+    for name, url in read_feeds(feeds_path):
         try:
             items = parse(download(url), name, "news.google.com/rss/search" in url)
+            if not items:
+                raise ValueError("feed returned no headlines")
             status[name] = len(items)
-            all_items.extend(items)
         except Exception as exc:  # one bad feed must not stop the others
-            status[name] = "error: " + str(exc)[:120]
+            # Keep that source's last known headlines so it does not vanish from the ticker.
+            items = [dict(i, ts=to_epoch(i.get("pubDate"))) for i in previous.get(name, [])]
+            status[name] = f"error: {str(exc)[:100]} (kept {len(items)} previous)"
+        all_items.extend(items)
         print(f"{name:20} {status[name]}")
 
     if not all_items:

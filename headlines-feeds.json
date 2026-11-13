@@ -1,0 +1,49 @@
+{
+  "_comment": "News feeds shown in headlines.html. The 'Update headlines' workflow reads this list about every 15 minutes. Add, remove or reorder entries here; nothing else needs editing.",
+  "feeds": [
+    {
+      "name": "Google News",
+      "url": "https://news.google.com/rss"
+    },
+    {
+      "name": "Political Wire",
+      "url": "https://politicalwire.com/feed/"
+    },
+    {
+      "name": "BBC",
+      "url": "https://feeds.bbci.co.uk/news/rss.xml"
+    },
+    {
+      "name": "NBC News",
+      "url": "https://feeds.nbcnews.com/nbcnews/public/news"
+    },
+    {
+      "name": "YWN",
+      "url": "https://www.theyeshivaworld.com/feed"
+    },
+    {
+      "name": "Middle East Eye",
+      "url": "https://www.middleeasteye.net/rss"
+    },
+    {
+      "name": "Jpost",
+      "url": "https://www.jpost.com/rss/rssfeedsfrontpage.aspx"
+    },
+    {
+      "name": "Times of Israel",
+      "url": "https://news.google.com/rss/search?q=site:timesofisrael.com+when:1d&hl=en-US&gl=US&ceid=US:en"
+    },
+    {
+      "name": "IRNA",
+      "url": "https://en.irna.ir/rss"
+    },
+    {
+      "name": "WSVN",
+      "url": "https://wsvn.com/feed/"
+    },
+    {
+      "name": "AP",
+      "url": "https://news.google.com/rss/search?q=site:apnews.com+when:1d&hl=en-US&gl=US&ceid=US:en"
+    }
+  ]
+}
