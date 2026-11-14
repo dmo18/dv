@@ -1,0 +1,546 @@
+{
+ "generated": 1794684475,
+ "feeds": {
+  "Google News": 8,
+  "Political Wire": 8,
+  "BBC": 8,
+  "NBC News": 8,
+  "YWN": 8,
+  "Middle East Eye": 8,
+  "Jpost": 8,
+  "Times of Israel": 8,
+  "IRNA": 8,
+  "WSVN": 8,
+  "AP": 8
+ },
+ "items": [
+  {
+   "title": "Eisenkot slams Netanyahu's unity government call as 'political spin,' says negotiations scheduled",
+   "link": "https://www.jpost.com/israel-election-2026/article-914878",
+   "pubDate": "Sat, 14 Nov 2026 20:28:44 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "Thousands of US flights canceled, delayed as air travel system recovers from shutdown",
+   "link": "https://www.jpost.com/international/article-914875",
+   "pubDate": "Sat, 14 Nov 2026 19:41:17 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "Netanyahu: Unity government is answer to MKs who walked out during 'Hatikvah'",
+   "link": "https://www.jpost.com/israel-election-2026/article-914874",
+   "pubDate": "Sat, 14 Nov 2026 19:39:04 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "US has floated Ukraine ceding Donbas for Nato membership, Zelensky says",
+   "link": "https://www.bbc.co.uk/news/articles/cwvg2l312ylqo?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 19:21:10 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Iraq’s PM sacks officials over oil smuggling in stronghold of Iran-backed terror group",
+   "link": "https://news.google.com/rss/articles/CBMiywFBVV95cUxPVERfSTZlWWg4anlIdnMtZzE0a1V1QzM1Y25PbjRfVHlPcEN4MmlXbEk0RmpvaWFVRHl3U1VaWDh2SnZTNUxwekw1T1EzWUtCWEFyblRfR1lPbThWREVnNUNqOVRNdmRjdWZxUVZsM1NzUlZ4R1B4MmxnTHBVN0lYWDVTQjdrRDlSaXl2UWo4MEM4a0ZMbUtuTjAzakk1NTl2RmtUN2V6bHJxTVVETl9udEFlby1sNnY5VUVhenBxUGNnMjBlOGlLb3pVVQ?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 19:16:35 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "US Embassy in Riyadh warns Americans in Middle East after latest Houthi attack on Saudi Arabia",
+   "link": "https://www.jpost.com/middle-east/article-914872",
+   "pubDate": "Sat, 14 Nov 2026 19:15:44 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "RAF Abu Dhabi live results, round-by-round updates for today's Khamzat Chimaev vs. Chris Weidman card - Yahoo Sports",
+   "link": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxQUktQc2hlMlphaWxwMU5rVGp5UWs1V0NsUU9CeDBBRGlaeEJuSnZ6bEhJTms0Ujh1SlhUbUNBM2RZaEhMVm1RLTJpZzhuMGZybDlZQU96MW5LOV8wMjVyWDRaNmpvSTVPX0sta2hyYVZPd3RLUUZmaFRLejZtNWVCeXZ6b2NIb0VIWGNBTnRwRU9VdTU3MEtyVVJlYmJFSUJPdktPV2NBOU5zOGdtUUpnQklpT0E5MWR3V3VJQ014NkJSYktLVFA5dVJJUUtYeGgyUUxYWFVNbVJGRHpqV3pmUk9SOHVxdkJj?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 19:15:16 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "Copper wire upgrade caused nationwide flight suspension, US transport secretary says",
+   "link": "https://www.bbc.co.uk/news/articles/c6wy9lynq4qno?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 19:12:25 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Thousands of Flights Are Canceled After Friday’s Nationwide Ground Stop: Live Updates - The New York Times",
+   "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxOeTRaYmRMM2tYYnJxcUpmYjNRQXpXdzd4Sjl0ZVNXNkRFWTBmTjJQUEFlVTdvWGNrN2FsVnotSnJXZ0RQbE13c1FjLWV6algtb3FmWTI1MGdqZ1d5Q1JFY3A0WnU1U2U1ZnFBRnFXQTVkRGY1eFBrSmZPSGlrd2RLdzA5NA?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 19:11:55 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "The News Feed",
+   "link": "https://news.google.com/rss/articles/CBMiUEFVX3lxTE10eVRkXzEybTE0Q3ZpUVExa1JYc2tVc3poY25XaW85VTNBQ3JDQzl2WTFxaWZ1VWhIOFFVaVcxQjYzemoxU1ZCZUVTbkFfY1dI?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 19:03:38 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "Two-year-old briefly disappears at Ben Gurion Airport; climbed onto baggage conveyor belt en route to sorting and loading",
+   "link": "https://news.google.com/rss/articles/CBMi-gFBVV95cUxQRzdzZjd2bDl0Ui1rNVlxQVExY0t5bGVxLTZycTdfNGxDRTdPdW1wMmNReUYtTGlYMENFWHBGazhod1U5Sy1Ea19oSW95Mk45V25GQXhVMmh0amZzVGRKUU5XVTliNzIwVjVycmdDWTUtZzk2WnJEMkY5SlM4bXVTVm52aDhzYVY1dnYzZFNfOHFQSjJiRUpaRlhOMnNRZy0zWGJWX1NmUUMwOW1UVEFrdmVVaE0tak00Q1ZoMldfWEZQTHpEcmt0S0EteVV0cExhQVNITkh2dEREZVBKZEZhRzQ3QVlkUHJyY3BqVzRKcGlhVnAtSUdyeE1n?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 19:03:30 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "2026 Ohio Midterm Election Results",
+   "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTFBoRXFabEpDYThvalh6ektrQXRqYldZRzNvMzFBRTFrZDlablN2aTRvWkdoQi1QdUx2Z0ZMTUVxQ3BFUk1XUFA3LTNGOWtfS1l0N2Nhd25TZlZkZzRiZEE1a0JwV0lNN2M?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:59:27 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "Bompastor's risks pay off as Chelsea go top of WSL",
+   "link": "https://www.bbc.co.uk/sport/football/articles/cmvg25w18q9qo?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 18:55:34 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Jacob's Well in Turkey: The beginning of the Bible's first love story reopens to tourists",
+   "link": "https://www.jpost.com/travel/article-914870",
+   "pubDate": "Sat, 14 Nov 2026 18:53:56 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "Los Angeles, CA Mayor Nonpartisan Runoff Election Election Live Results 2026",
+   "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNb1A3LU02UEMzODJVNUMwNVpGTkxzYjF3VW0xYi1WUlByTHN4ZmhjR0M0QnotWUt4c3ZXWnJ2dHcxVENGWHd3V0pVNEVCZWRMNzJmaUoyREhSUjFiLXQzcGtVbHN5QVhYemZ1ZU5mdUxYeTNteHFPbGVDRXh5UzZnZWJWQUE4RDg?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:52:46 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "How Mississippi's new senator won in Trump's heartland and what he will do next",
+   "link": "https://www.bbc.co.uk/news/videos/crpdwve24398o?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 18:51:30 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Shin Bet pressed Joint List activists for info on rival Ra'am party during election fraud probe -- report",
+   "link": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxQa1BSV29ibFlQdTFtOVhmRENBM1BfWVBnbkQ0Zk95SjlBQnI4a2s5dzJxbTBRdXctYm5YeE1tVlc3dnBiY1lNeDJiNjlJZEpWaGhsZ0hscFhBRk1iWEVVWkNZb2J6SEp3SlZvZFpBQ2VGaFlobUZHYUdSM25MUnJQZDdWYlJQSlJKc2JJbFU5SVVXTzJpTUNUT1drWUJ6UFE2Z193VThpdVFJQ1FhdU4xOV82eGpsUktncDRPc2twbmEwZERsbTBwbVBrSnNRS0IyMktvdmVxZk5ZckgwazhhRw?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:49:44 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "Can Netanyahu learn from Theodore Roosevelt and step aside to save Likud? - opinion",
+   "link": "https://www.jpost.com/opinion/article-914869",
+   "pubDate": "Sat, 14 Nov 2026 18:47:56 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "Port of New Orleans sues tanker owners for over $1M after cruise ship crash - WWLTV.com",
+   "link": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxOdHhOSHEwdDUzX1RxRHJNRkFOMU5LczlMZXdzTV9LSF9kVWoyU1c2Y3dGQ2QydGRVdG1NVXBaTGlOM0RuV2lnUFA4dDkxTW5pQ2xKR3pqSjFGRjlfdDJuNVB4SW81R3d1R0dXVUZTQlhTMjNCNjB0Mk9Hb3p4bWNqTE9waVNkZ3VnODJlV2RlWWdXdmo4dExDVjRQcGxLZmtvWUdxRG50bXIwVDdRSWhGMXR2M1VXQjlxSkpHeUJVLWZWdnFMWmJqNFpZMUhQcFFoek5PM042QUExZGs?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:45:00 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "2026 California Midterm Election Results",
+   "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE9Ha0poay11emY4V2pvcHFiV3pLbXNXWFVvd1o2bkZWOHRKNHIwSFg1Z1RuQjRaNWhLeTIwZTF2Vmx4OHMtaER3bFJmWjZjMHhpT3VUQ0lvRzVBUjRodlBrOW40MEVxNkl0TkVZLWdGTQ?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:36:22 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "Joseph scores record-equalling five tries as England rout Japan",
+   "link": "https://www.bbc.co.uk/sport/rugby-union/articles/cmvg208nlw04o?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 18:31:30 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "The Times of Israël - Les informations sur Israël, le Moyen Orient et le monde Juif",
+   "link": "https://news.google.com/rss/articles/CBMiQ0FVX3lxTE50Q1EzVTQzRHUzRTRQNGlCSEtLQzg1MWpUdWhHdVNJbF9sY0lzVFRQeGxqNzI3VHFPazBXajhvVEFvODg?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:30:36 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "Joe Jonas & Tatiana Gabriela Split After Year of Dating - TMZ",
+   "link": "https://news.google.com/rss/articles/CBMickFVX3lxTFBrUGIzY2NGZXd6YmlIWFhiY0pZZ0NULUw0MjBRRFhwckl0SkRjUUlBZUNiOWFIWHhUdXU0LVFUVnUwTE56RE9MSjhac0o2ZFpMNjAzY1R1aEpJOEIwSEoxV2VzNG9SX2RiUmk0NEowSVdjQQ?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:28:57 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "Italy fines Meta €805m over accessing users' photos",
+   "link": "https://www.bbc.co.uk/news/articles/cwn83gxemk35o?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 18:28:06 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Hundreds of “Rocky” fans set Guinness World Record in Philadelphia",
+   "link": "https://wsvn.com/entertainment/rocky-fans-set-guinness-record/",
+   "pubDate": "Sat, 14 Nov 2026 18:28:01 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "Le Tissier stars as Man Utd beat Crystal Palace to extend unbeaten run",
+   "link": "https://www.bbc.co.uk/sport/football/videos/cqglrkk7gr1xo?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 18:27:23 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Hamas calls for urgent repairs to Gaza’s sewage and drainage systems",
+   "link": "https://www.middleeasteye.net/live-blog/live-blog-update/hamas-calls-urgent-repairs-gazas-sewage-and-drainage-systems",
+   "pubDate": "Sat, 14 Nov 2026 18:20:45 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Philippines wins first Eurovision Song Contest Asia",
+   "link": "https://www.bbc.co.uk/news/articles/cqrlgnx9dx6eo?at_medium=RSS&at_campaign=rss",
+   "pubDate": "Sat, 14 Nov 2026 18:17:58 GMT",
+   "source": "BBC"
+  },
+  {
+   "title": "Several Palestinians reportedly injured in pair of West Bank settler attacks",
+   "link": "https://news.google.com/rss/articles/CBMivwFBVV95cUxNUGhDb3pPd25jWFhBOWNUU0NnWUV3YlM3dGhEVVJYSEVPWkU1Y1UzLVNfLWFsZDdlelJoTUE3TThOUjNJNkhtamZyd2FnRzhVWW5yVjR6SDUxY0Y0emRhRWJOMnhDRzYybFN4R08wTUV4dHVEMTR6bno5dnVQTzB0cmt2ci1HaDNkakNSMGZNNWZ3SjFtclhaNVM0Mm04MEZIdXZueEg5WTFXNWQ0Z0Y3MWZZdFNmUzJLOUFaUml2OA?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:15:52 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "Jews 'don't feel safe' three years after October 7, Germany’s new antisemitism czar tells 'Post'",
+   "link": "https://www.jpost.com/diaspora/antisemitism/article-914763",
+   "pubDate": "Sat, 14 Nov 2026 18:14:21 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "Italy fines Meta $887 million over Android users' data access - Reuters",
+   "link": "https://news.google.com/rss/articles/CBMiowFBVV95cUxQSVFmcHRvNGEzVXRKbU5Kc0JhSDV4R2o0bnpXSUJMZnRMc1E2ckNCRzBaWDhzY2xObHVtNmtiWmdoX3g4NlVsYkc1bzFDbVB0T016LWczNHJ6bGx2ZXlQeDZPUGNjeXJPaWZ3Wm5DdU9za21PMXFlZVVDckh5Q1I0QnROcElOTnA2bGMzczBMbFJweW1ISkkwWUgzNXJpTU95N0NR?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:12:05 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "US air travel schedule should recover from ground stop by the end of Sunday, FAA says",
+   "link": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxPQzlDRHBLSTNHTHRtbnpudnNXdXZpYnpEQ1hhLVNrU3ZRM0xRNm9NcUx2NjRIVFVOQVJKWXZGZzZCZ0hTcEdjd1ppTkFIelBlc282aU05SS1YYU45WTNwRUx1RzBCX3hwNW9Ed20wQ1JmQ3hHVmFSUktDSjM1eklkYTFPN3FkWUR0V1pUSjRIMHk3MjJjX0VrSm8zaFJ6a2paSnRwNzVrQlZpZw?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:11:00 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "Brazil investigates strife between Israeli tourists and pro-Palestinian residents",
+   "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxPdlcyelhIMGlYSWhpSzV6NHRySGpzZmRoWnJFaG84S2lhblpISU5iUEZHZkFWTXIyOXF1ZXBzbUo0QWVPU1dRd0tyRXp3OHFZaG1tNWY2Q0hSaUIyeHpKaXBGdFRxM3c4bkF1ZVAtX1U2b1cwVkZUakN1Y1hPMkRBX2oyN0lNV3h2RFg0ZWJXdlNKeEtSX0JLQnZMTV9saXVWdkM0NEpyS0FybHcydFRiWHVR0gG3AUFVX3lxTE53czlJajBSVTkwN21yeG1xUWdNcm9laVhRZVdwMVl6SjJWQlUtQVJ3VXItZUkzek16N1UxN1l5QlNBdFVDZXBEUnVqR1ZaQ2p5VlNnYnl0UTZoQTZfTEtxcllURnRCNElZTUxfSjF5YVdIRHlMOTVYbVRBSmxFcVB6cnhiUTdZM2lON0hCazNDd1RvV2xFLVM2anlnNnNRUGpkaTBFckFvRUNfY3pmWlNDcThSVUNvNA?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:08:34 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "The Daily Edition",
+   "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFAwamlIVnpjWlhpd1FuQ2VSTUctdUF2VEFYa0F0X2hyMVdHT3RQYUZqZlRYUUpHUERCSnZTendBalMtWEZpRl94VUJDcEw4RnY3ZDZzYkMxQmlUelNC?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 18:02:49 GMT",
+   "source": "Times of Israel"
+  },
+  {
+   "title": "Netanyahu buys time as haredi parties weigh Eisenkot coalition, but lacks alternative - analysis",
+   "link": "https://www.jpost.com/israel-election-2026/article-914868",
+   "pubDate": "Sat, 14 Nov 2026 17:58:24 GMT",
+   "source": "Jpost"
+  },
+  {
+   "title": "2026 U.S. Senate Election Results",
+   "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE1ycUhlZzZ2V1lhd2pzVExlRFNUOVV5M0N6VHB5a2FuNFU2NDNaV0dSTV9hUVZTZHZCeVRjeWRWMnh0NUVIRW1vbmhfNFRsSVRqSWIwM21iUmMxTE4zYzhocm81ajd4U0x2R0R0Q1Bn?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 17:57:24 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "What to know about flights after the US nationwide ground stop",
+   "link": "https://news.google.com/rss/articles/CBMimgFBVV95cUxOaF96ME41YXAwZ1N4NUJ3dDMwVkRlQi1QSzhhRWFBWk9iYWpNQ1daSzZlcGFOSnBoejRfZnZhSHJzMXdjQU95ZnNmYUMtQXdaWEwwQTdFT2M3UU9pbGdhR3BmeHVfTHRfX2RYWU5lLS1hUF9LSFRzdW5ETlpxQS0yazJWbWh5M3lOYk1iTWJxaTFrYmJ5NG5rZXpn?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 17:53:00 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "Meta fined $887 million in Italy over Android gallery photos and videos on Facebook",
+   "link": "https://news.google.com/rss/articles/CBMimwFBVV95cUxORms5Nll1SEJfLUZ4NDNEVzQ0X085M0J1a0kzQlkyTFZ1d3pQYnNLbU1la1BrcVJxM0I3XzU1cXR2YmtYZkhSQjFQT0puUjVvY01mQTFrTW9PeDZ1bmNieTZkZnhaNHdjQV9fanpMVDZmR3h3TlFBZHNhcGVhY1lmcjBHcjFlQjM2ODlWdzRSMjJWNW5Yc2V2Qm5vZw?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 17:53:00 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "New prostate cancer guidelines urge men to start screening at specific age - Fox News",
+   "link": "https://news.google.com/rss/articles/CBMioAFBVV95cUxNM05QOGoyNzlBa1AtSmZjZFhjZEQ4b0t0TVN0UFowb19Pd19xSHdjM3FicE9yZ1V2MlpmY3NjOF84Ty1FbENwQUE5UEJzZ2lCdWZVS2hrdkFIbXJKSzVjMkVlYTJWV1pNZG9COW9NbUZmY1dWcXk5ZUFqcnBTUXpQcmJLWDVKQkNRSUsxMXoyc2pyeHBfcEJJVXNxeWhiQmp10gGmAUFVX3lxTE5DaVY2Z2dQVVlENklySFVvN21IdWJUNkkwOGJfLXpSWUVkaXJvaEVPWU5zLWZjdGpqOHBvRmZhT1dISmU1VmRMdlVlbDliSDV1OF9NMFRkVDkwSUhZdWNwYThtN2lqTU9KUVAybVhyR1BrMXBIY29NelFyU1RrMFgzWjJnVzVtRmRhWUR2S2YxQTlEb0JZbGxKZllMMnkyZUlOVXhhc1E?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 17:48:19 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "Houthis report 72 Saudi-led coalition air strikes across Yemen",
+   "link": "https://www.middleeasteye.net/live-blog/live-blog-update/houthis-report-72-saudi-led-coalition-air-strikes-across-yemen",
+   "pubDate": "Sat, 14 Nov 2026 17:44:46 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Pope laments violence enveloping Peru as he ministers in his former diocese",
+   "link": "https://wsvn.com/news/us-world/pope-leo-prays-peru-violence/",
+   "pubDate": "Sat, 14 Nov 2026 17:39:40 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "Nvidia board urged to consider 'potential return of Jensen Huang' by two major investors - CNBC",
+   "link": "https://news.google.com/rss/articles/CBMijwFBVV95cUxOa01uZk9qV2Rxd1NnaGlxbGpwNlRMMUJUMzZDXzJDcDhDQ1hidlFqOHo5Qm5ZTXBSUXdFQzJDd21LVmwzOTJOT20zUG9kVmRZS09LbkZ6RkxyUW9DVUJ1VE1aaWpZc1ZqdmVNUk1ORUI5dmVMZjhWS0dJaDAxN2NCQlp0Mmh3UHBueWRuOGc1UdIBlAFBVV95cUxOcHpRUE1XYktjaFk5RmZuVXpfeThGVVE2Y1N3cnZOenVXQkVYejdldFVubGtCMk5JZkU5SVhTcUt6Q0pBVnVrNExoY2p5Qk9kWUJ0eks4Wk4xMlNsb0RleEF1Qmo3VDlXSE8wTkg3Vk1CR3M5LWYtNTVsRmRzWFVPUVg1OVdhSVpaRXRpTXBBZXB6Ujhr?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 17:35:51 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "With shifting Iran rhetoric following US elections, Trump leaves Mideast in limbo about path ahead",
+   "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxPOElJSFBrTXp0cHBzTy1LMFh6T1lRM0NPNU9UMUNUaUNnc1pMNVdFQmdlQ2pjNFdGRjJFSGdwbzNnWDJSV1NMdEJ0MUVYS3d0N182Vjd3UzhyQlNzWGhvOW5PZzNIOVBmOGc2QlhFRmZGQmtncVFPa0lqOGNSVWxJRUstTnJGaGZod1BYTURWYkgwUXdT?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 17:29:00 GMT",
+   "source": "AP"
+  },
+  {
+   "title": "Saudi Arabia executes former child protester Jawad Qureiris",
+   "link": "https://www.middleeasteye.net/news/saudi-arabia-executes-former-child-protester-jawad-qureiris",
+   "pubDate": "Sat, 14 Nov 2026 17:16:18 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "He was drafted as an NFL team’s future. It arrives now.",
+   "link": "https://www.nbcnews.com/sports/nfl/fernando-mendoza-las-vegas-raiders-seattle-seahawks-kirk-cousins-rcna608889",
+   "pubDate": "Sat, 14 Nov 2026 17:04:00 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "He was drafted as an NFL team’s future. It arrives now.",
+   "link": "https://www.nbcnews.com/sports/nfl/fernando-mendoza-las-vegas-raiders-seattle-seahawks-kirk-cousins-rcna608889",
+   "pubDate": "Sat, 14 Nov 2026 17:04:00 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "FAA ground stop throws college football into chaos, while the NFL is safe",
+   "link": "https://www.nbcnews.com/sports/college-football/faa-ground-stop-college-football-nfl-nba-nhl-rcna609309",
+   "pubDate": "Sat, 14 Nov 2026 16:42:41 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "FAA ground stop throws college football into chaos, while the NFL is safe",
+   "link": "https://www.nbcnews.com/sports/college-football/faa-ground-stop-college-football-nfl-nba-nhl-rcna609309",
+   "pubDate": "Sat, 14 Nov 2026 16:42:41 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "‘Loss of confidence’: US Navy fires commanders of warships deployed against Iran",
+   "link": "https://www.middleeasteye.net/news/loss-confidence-us-navy-fires-commanders-warships-deployed-against-iran",
+   "pubDate": "Sat, 14 Nov 2026 16:34:57 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Iran welcomes India’s diplomatic efforts to promote regional peace: Envoy",
+   "link": "https://en.irna.ir/news/86321679/Iran-welcomes-India-s-diplomatic-efforts-to-promote-regional",
+   "pubDate": "Sat, 14 Nov 2026 16:34:52 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "At the Supreme Court, Trump aims to cut the power of judges again - Yahoo",
+   "link": "https://news.google.com/rss/articles/CBMikgFBVV95cUxNVHgxNHVrME82enZxYXhlV09rNEI2ZGNGc200MHZxODZXdnhvcnVqaTlxeEp5Tk1FRFVTWmV6S1FudG9GRWlBRjY1Q002ekpjTHB6a2MyWXk3ZDI0dFdkYTlGbUtIbWNCLWpIbkRsVkV4TE1oYmNOMGZzU3YwRHRoRXFpTjJEZmd6d2JuREcxb0dndw?oc=5",
+   "pubDate": "Sat, 14 Nov 2026 16:33:58 GMT",
+   "source": "Google News"
+  },
+  {
+   "title": "Yemen’s armed forces say they struck Saudi-backed forces in Lahj",
+   "link": "https://en.irna.ir/news/86321693/Yemen-s-armed-forces-say-they-struck-Saudi-backed-forces-in-Lahj",
+   "pubDate": "Sat, 14 Nov 2026 16:24:28 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "Ayatollah Khamenei’s martyrdom strengthened national unity: VP Aref",
+   "link": "https://en.irna.ir/news/86321650/Ayatollah-Khamenei-s-martyrdom-strengthened-national-unity-VP",
+   "pubDate": "Sat, 14 Nov 2026 16:05:55 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "Extra Bonus Quote of the Day",
+   "link": "https://politicalwire.com/2026/11/14/extra-bonus-quote-of-the-day-1097/",
+   "pubDate": "Sat, 14 Nov 2026 15:53:36 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "The Other Big Flip Democrats Pulled Off in Texas",
+   "link": "https://politicalwire.com/2026/11/14/the-other-big-flip-democrats-pulled-off-in-texas/",
+   "pubDate": "Sat, 14 Nov 2026 15:52:06 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "Pete Hegseth’s Pentagon Feels Under Siege",
+   "link": "https://politicalwire.com/2026/11/14/pete-hegseths-pentagon-feels-under-siege/",
+   "pubDate": "Sat, 14 Nov 2026 15:47:40 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "Mary Peltola Likely to Win Alaska Senate Race",
+   "link": "https://politicalwire.com/2026/11/14/mary-peltola-likely-to-win-alaska-senate-race/",
+   "pubDate": "Sat, 14 Nov 2026 15:46:06 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "Trump Family Businesses Top Upcoming Investigations",
+   "link": "https://politicalwire.com/2026/11/14/trump-family-businesses-top-upcoming-investigations/",
+   "pubDate": "Sat, 14 Nov 2026 15:28:50 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "Can Chuck Schumer Survive a Leadership Fight?",
+   "link": "https://politicalwire.com/2026/11/14/can-chuck-schumer-survive-a-leadership-fight/",
+   "pubDate": "Sat, 14 Nov 2026 15:27:27 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "Gillibrand Is Dreaming of a Democratic Supermajority",
+   "link": "https://politicalwire.com/2026/11/14/gillibrand-is-dreaming-of-a-democratic-supermajority/",
+   "pubDate": "Sat, 14 Nov 2026 15:26:25 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "US floated idea of Ukraine swapping land for NATO membership, Zelensky says",
+   "link": "https://wsvn.com/news/us-world/us-floated-idea-of-ukraine-swapping-land-for-nato-membership-zelensky-says/",
+   "pubDate": "Sat, 14 Nov 2026 15:19:22 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "After 26 years, the US has lost its measles elimination status",
+   "link": "https://wsvn.com/news/us-world/after-26-years-the-us-has-lost-its-measles-elimination-status/",
+   "pubDate": "Sat, 14 Nov 2026 15:00:44 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "18 Muslim-majority countries condemn Israeli attack on Gaza’s Nasser hospital",
+   "link": "https://en.irna.ir/news/86321649/18-Muslim-majority-countries-condemn-Israeli-attack-on-Gaza-s",
+   "pubDate": "Sat, 14 Nov 2026 14:57:01 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "Three Israelis emerge as possible successors to Nvidia chief Jensen Huang, local media says",
+   "link": "https://www.middleeasteye.net/news/three-israelis-emerge-possible-successors-nvidia-chief-jensen-huang-local-media-says",
+   "pubDate": "Sat, 14 Nov 2026 14:47:58 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Microsoft says services fully restored after hourslong global outage",
+   "link": "https://wsvn.com/news/us-world/microsoft-says-services-fully-restored-after-hourslong-global-outage/",
+   "pubDate": "Sat, 14 Nov 2026 14:43:03 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "NASA’s Voyager 1 closes in on a light-day in interstellar space for a new distance record",
+   "link": "https://wsvn.com/news/us-world/nasa-voyager-milestone-interstellar/",
+   "pubDate": "Sat, 14 Nov 2026 14:29:54 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "1 dead, 1 hospitalized after crash between motorcycle and car in Fort Lauderdale",
+   "link": "https://wsvn.com/news/local/broward/fort-lauderdale-fatal-car-motorcycle-crash/",
+   "pubDate": "Sat, 14 Nov 2026 14:21:11 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "Trump, Xi and Putin plan an unprecedented joint meeting on the sidelines of APEC, White House says",
+   "link": "https://wsvn.com/news/us-world/trump-xi-putin-shenzhen-summit/",
+   "pubDate": "Sat, 14 Nov 2026 13:57:22 +0000",
+   "source": "WSVN"
+  },
+  {
+   "title": "Diplomats from 18 Muslim-majority countries condemn Israeli strike on Nasser hospital",
+   "link": "https://www.middleeasteye.net/live-blog/live-blog-update/diplomats-18-muslim-majority-countries-condemn-israeli-strike-nasser",
+   "pubDate": "Sat, 14 Nov 2026 13:16:37 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Iran seeks fair treatment on nuclear rights, sovereignty over Strait of Hormuz: VP",
+   "link": "https://en.irna.ir/news/86321499/Iran-seeks-fair-treatment-on-nuclear-rights-sovereignty-over",
+   "pubDate": "Sat, 14 Nov 2026 13:11:00 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "IRGC downs 17th US MQ-1 drone over Qeshm Island",
+   "link": "https://en.irna.ir/news/86321541/IRGC-downs-17th-US-MQ-1-drone-over-Qeshm-Island",
+   "pubDate": "Sat, 14 Nov 2026 13:08:58 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "Bonus Quote of the Day",
+   "link": "https://politicalwire.com/2026/11/14/bonus-quote-of-the-day-2465/",
+   "pubDate": "Sat, 14 Nov 2026 13:03:00 +0000",
+   "source": "Political Wire"
+  },
+  {
+   "title": "Iran says it intercepted US MQ-1 Predator drone over Qeshm Island",
+   "link": "https://www.middleeasteye.net/live-blog/live-blog-update/iran-said-it-intercepted-us-mq-1-predator-drone-over-qeshm-island",
+   "pubDate": "Sat, 14 Nov 2026 12:33:51 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Oil tanker on fire in Strait of Hormuz: Iran's navy",
+   "link": "https://www.middleeasteye.net/live-blog/live-blog-update/oil-tanker-fire-strait-hormuz-iran-navy",
+   "pubDate": "Sat, 14 Nov 2026 12:27:12 +0000",
+   "source": "Middle East Eye"
+  },
+  {
+   "title": "Russia’s St. Petersburg ready to expand industrial, trade ties with Iran",
+   "link": "https://en.irna.ir/news/86321337/Russia-s-St-Petersburg-ready-to-expand-industrial-trade-ties",
+   "pubDate": "Sat, 14 Nov 2026 12:14:49 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "Headache sufferers get relief with this neck roller that’s only $23 this weekend",
+   "link": "https://www.nbcnews.com/select/shopping/chirp-neck-wheel-deal-of-the-day-rcna609280",
+   "pubDate": "Sat, 14 Nov 2026 12:00:00 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "Another violating tanker catches fire east of Strait of Hormuz",
+   "link": "https://en.irna.ir/news/86321481/Another-violating-tanker-catches-fire-east-of-Strait-of-Hormuz",
+   "pubDate": "Sat, 14 Nov 2026 11:40:30 GMT",
+   "source": "IRNA"
+  },
+  {
+   "title": "Device deemed ‘credible threat’ triggers evacuation around ethanol plant in Peoria, Illinois",
+   "link": "https://www.nbcnews.com/news/us-news/evacuation-order-ethanol-plant-peoria-illinois-suspicious-device-rcna609287",
+   "pubDate": "Sat, 14 Nov 2026 10:25:02 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "Device deemed ‘credible threat’ triggers evacuation around ethanol plant in Peoria, Illinois",
+   "link": "https://www.nbcnews.com/news/us-news/evacuation-order-ethanol-plant-peoria-illinois-suspicious-device-rcna609287",
+   "pubDate": "Sat, 14 Nov 2026 10:25:02 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "A seismic shakeup at Nvidia, and a Senate flip for the ages: The news quiz",
+   "link": "https://www.nbcnews.com/news/news-quiz/nvidia-news-quiz-rcna609023",
+   "pubDate": "Sat, 14 Nov 2026 10:15:00 GMT",
+   "source": "NBC News"
+  },
+  {
+   "title": "FAA OUTAGE: Nationwide Ground Stop Halts Departures Across The Country",
+   "link": "https://www.theyeshivaworld.com/news/liveblogs/live-blog/2623093/faa-outage-nationwide-ground-stop-halts-departures-across-the-country.html",
+   "pubDate": "Fri, 13 Nov 2026 21:08:15 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "BREAKING: Nationwide Ground Stop Halts Departures Amid Air Traffic Control Outages",
+   "link": "https://www.theyeshivaworld.com/news/liveblogs/live-blog/2623090/breaking-nationwide-ground-stop-halts-departures-amid-air-traffic-control-outages.html",
+   "pubDate": "Fri, 13 Nov 2026 21:01:08 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "RIVER RESCUE: Rescuers Pull People From Frigid Mississippi After Tanker Collision Capsizes Cruise Ship",
+   "link": "https://www.theyeshivaworld.com/news/liveblogs/live-blog/2623087/river-rescue-rescuers-pull-people-from-frigid-mississippi-after-tanker-collision-capsizes-cruise-ship.html",
+   "pubDate": "Fri, 13 Nov 2026 20:56:50 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "DRAMATIC VIDEO: River Cruise Ship Capsizes In New Orleans With Passengers Aboard",
+   "link": "https://www.theyeshivaworld.com/news/liveblogs/live-blog/2623084/dramatic-video-river-cruise-ship-capsizes-in-new-orleans-with-passengers-aboard.html",
+   "pubDate": "Fri, 13 Nov 2026 20:56:20 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "BREAKING: Tanker Strikes Docked Cruise Ship In New Orleans; 12 Pulled From Water",
+   "link": "https://www.theyeshivaworld.com/news/liveblogs/live-blog/2623081/breaking-tanker-strikes-docked-cruise-ship-in-new-orleans-12-pulled-from-water.html",
+   "pubDate": "Fri, 13 Nov 2026 20:55:43 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "Hundreds Gather in Airmont to Lay Cornerstone for Future Home of Munktacher Yeshivos {PHOTOS}",
+   "link": "https://www.theyeshivaworld.com/news/general/2622724/hundreds-gather-in-airmont-to-lay-cornerstone-for-future-home-of-munktacher-yeshivos-photos.html",
+   "pubDate": "Fri, 13 Nov 2026 18:30:06 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "CHEERING FOR THE KILLERS: Arab From Yafia Charged After Glorifying Sinwar And Celebrating Death Of Two IDF Soldiers",
+   "link": "https://www.theyeshivaworld.com/news/israel-news/2622843/cheering-for-the-killers-arab-from-yafia-charged-after-glorifying-sinwar-and-celebrating-death-of-two-idf-soldiers.html",
+   "pubDate": "Fri, 13 Nov 2026 18:00:02 +0000",
+   "source": "YWN"
+  },
+  {
+   "title": "GUNNING FOR 2028: Pence Signals White House Comeback, Says Voters Rejected Trump’s Brand Of Republicanism",
+   "link": "https://www.theyeshivaworld.com/news/general/2622846/gunning-for-2028-pence-signals-white-house-comeback-says-voters-rejected-trumps-brand-of-republicanism.html",
+   "pubDate": "Fri, 13 Nov 2026 17:30:01 +0000",
+   "source": "YWN"
+  }
+ ]
+}
