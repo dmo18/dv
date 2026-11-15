@@ -1,0 +1,55 @@
+name: Check streams
+
+# Once a day, checks every stream used by the wallboard and the encoder.
+# If any is not playing, it opens (or updates) one issue listing them, which GitHub
+# emails to the repository owner. When everything plays again, it closes that issue.
+
+on:
+  schedule:
+    - cron: "43 11 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/scripts/check_streams.py
+      - .github/workflows/stream-check.yml
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: stream-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TITLE: "Wallboard: streams not playing"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check every stream
+        id: check
+        run: |
+          python3 .github/scripts/check_streams.py wallboard.html encoder.html report.md | tee out.txt
+          echo "dead=$(grep -oE '^DEAD=[0-9]+' out.txt | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open, update or close the issue
+        run: |
+          number=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number,title \
+                   --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          if [ "${{ steps.check.outputs.dead }}" != "0" ]; then
+            if [ -n "$number" ]; then
+              gh issue edit "$number" --body-file report.md
+            else
+              gh issue create --title "$TITLE" --body-file report.md
+            fi
+          elif [ -n "$number" ]; then
+            gh issue close "$number" --comment "All streams are playing again."
+          fi
