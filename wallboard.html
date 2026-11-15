@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v16</title>
+<title>Wallboard v17</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v17  2026-11-15  Channel label on every tile. Tiles that cannot play show a "No signal" card
+                   instead of going black (player.html Rev5). ABC 10 falls back to CNN when
+                   it is off air. LiveNOW, Global News and Al Jazeera now use
+                   addresses with several quality levels, so quality matches the tile size.
+                   Closed captions are shown, large and clear, on every tile whose stream carries
+                   them (found while playing, so they can take a minute or two to appear).
   v16  2026-11-13  No change to the board itself; bumped so running screens reload and pick up
                    the redesigned headlines strip (Headlines Rev12).
   v15  2026-11-13  Replaced the Sky News tile with Fox News.
@@ -58,6 +64,21 @@ html, body {
   min-height: 0;
 }
 
+/* Label for tiles that do not use player.html (player.html draws its own, in the same style) */
+.tile { position: relative; }
+.tileLabel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.35em 0.7em;
+  font: 600 clamp(10px, 1.07vw, 22px) Arial, Helvetica, sans-serif;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom-right-radius: 0.4em;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
 .tile iframe {
   width: 100%;
   height: 100%;
@@ -68,25 +89,35 @@ html, body {
 </style>
 
 <script>
-  // Builds a player.html link. The stream address is encoded here, so paste it in plain form.
-  const player = (id, stream) =>
-    "player.html?ID=" + id + "&src=" + encodeURIComponent(stream) + "&fit=contain&muted=1&reload=60";
+  // Builds a player.html link: player(ID, label shown on the tile, stream address, options).
+  // Paste stream addresses in plain form; they are encoded here.
+  // Options: { alt: backup stream used when the main one will not play, altLabel: its label }.
+  // Use a stream's "master" address where one exists, so the player can match quality to tile size.
+  const player = (id, label, stream, opts = {}) => {
+    const q = new URLSearchParams({ ID: id, label, src: stream });
+    if (opts.alt) { q.set("alt", opts.alt); q.set("altlabel", opts.altLabel || label); }
+    q.set("fit", "contain"); q.set("muted", "1"); q.set("reload", "60");
+    return "player.html?" + q.toString();
+  };
 
   // One entry per tile. Links are relative, so the board works from whatever address it is served at.
+  // Fox News is only available at low resolution (240p): keep it in a small tile.
+  // ABC 10 is an event feed that goes dark between events, so it has CNN as its backup.
+  // ABC 10 stays on its fixed 720p address: its lower quality level has black borders baked in.
   const TILES = {
-    BBC:       player("BBCNews", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
+    BBC:       player("BBCNews", "BBC News", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
     WSVN:      "wsvn.html",
-    LIVENOW:   player("Livenowfox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8"),
+    LIVENOW:   player("Livenowfox", "LiveNOW Fox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8"),
 
-    IL13:      player("IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
-    I24:       player("i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
-    RT:        player("RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
-    FOXNEWS:   player("FoxNews", "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8"),
+    IL13:      player("IL13", "IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
+    I24:       player("i24", "i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
+    RT:        player("RT", "RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
+    FOXNEWS:   player("FoxNews", "Fox News", "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8"),
 
-    ABC10:     player("ABC10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8"),
-    ABCLIVE:   player("ABCNewsLive", "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8"),
-    GLOBAL:    player("GlobalNews", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8"),
-    ALJAZEERA: player("AlJazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/03.m3u8")
+    ABC10:     player("ABC10", "ABC 10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", { alt: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", altLabel: "CNN" }),
+    ABCLIVE:   player("ABCNewsLive", "ABC News Live", "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8"),
+    GLOBAL:    player("GlobalNews", "Global News", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8"),
+    ALJAZEERA: player("AlJazeera", "Al Jazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8")
   };
 
   window.addEventListener("DOMContentLoaded", () => {
@@ -120,7 +151,7 @@ html, body {
   </div>
 
   <div class="tile" style="grid-row:3; grid-column:1 / span 4;"><iframe data-tile="BBC"></iframe></div>
-  <div class="tile" style="grid-row:3; grid-column:5 / span 4;"><iframe data-tile="WSVN"></iframe></div>
+  <div class="tile" style="grid-row:3; grid-column:5 / span 4;"><iframe data-tile="WSVN"></iframe><div class="tileLabel">WSVN 7News</div></div>
   <div class="tile" style="grid-row:3; grid-column:9 / span 4;"><iframe data-tile="LIVENOW"></iframe></div>
 
   <div class="tile" style="grid-row:4; grid-column:1 / span 3;"><iframe data-tile="IL13"></iframe></div>

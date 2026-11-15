@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev4</title>
+<title>Universal Player Rev6</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -62,6 +62,21 @@ Optional:
           0 = disable periodic reload
           60 = reload this tile every 60 minutes (helps long-run stability)
 
+  ID      short name for the stream (no spaces). Not shown on screen.
+
+  label   channel name to show in the corner of the tile and on the "No signal" card,
+          e.g. label=BBC%20News. Leave it out for no label.
+
+  alt     URL-encoded backup .m3u8 stream. Used when the main stream will not play.
+          While the backup is showing, the main stream is checked every few minutes and
+          the tile switches back when it returns.
+
+  altlabel  channel name to show while the backup stream is playing.
+
+  cc      1 | 0
+          1 = show closed captions whenever the stream provides them (default)
+          0 = never show captions
+
 Examples
 --------
 Example 1: Simple tile, keep full frame (no crop)
@@ -94,8 +109,21 @@ Notes / Troubleshooting
 - Autoplay usually requires muted=1.
 - If you see black bars:
   - Prefer fixing tile aspect ratio in wallboard, OR use fit=cover.
-- If a stream fails in Video.js, this page automatically tries Clappr.
-  If it also fails in Clappr, the tile will reload the whole page after a short delay.
+- If a stream fails in Video.js, this page automatically tries Clappr, then the backup
+  stream (alt=) if one was given. If nothing plays, the tile shows a "No signal" card with
+  the channel name and keeps retrying; the card disappears as soon as video is moving again.
+- Picture quality is matched to the size of the tile: a small tile does not download
+  1080p video it cannot show. This needs a stream address that offers several quality
+  levels (a "master" playlist); an address locked to one quality level cannot be reduced.
+
+Revision log (newest first)
+---------------------------
+Rev6  2026-11-15  Closed captions: shown whenever a stream provides them (WebVTT or CEA-608/708,
+                  found while playing), large white text on a dark box. cc=0 turns them off.
+Rev5  2026-11-15  "No signal" card instead of a black tile; backup stream (alt=); channel
+                  label (label=); quality matched to tile size in both players; one
+                  watchdog that judges health by whether the picture is actually moving.
+Rev4              Version as moved from the previous repository.
 
 Versioning
 ----------
@@ -116,7 +144,7 @@ html, body {
   overflow: hidden;
 }
 
-#vjs, #clappr {
+#vjsHost, #vjs, #clappr {
   position: fixed;
   inset: 0;
   width: 100%;
@@ -138,7 +166,64 @@ html, body {
   background: #000;
 }
 
+/* Channel label, top-left of the tile */
+#label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  display: none;
+  padding: 0.35em 0.7em;
+  font: 600 clamp(10px, 3.2vw, 22px) Arial, Helvetica, sans-serif;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom-right-radius: 0.4em;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+/* "No signal" card, shown instead of a black tile */
+#offline {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  background: #101418;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  pointer-events: none;
+}
+#offline .name { font-size: clamp(14px, 7vw, 48px); font-weight: 700; }
+#offline .msg  { font-size: clamp(10px, 3.6vw, 24px); color: #9aa7b4; }
+
+/* Closed captions: drawn by this page (not by Video.js), as one box centred near the bottom
+   of the tile. The text size follows the tile width, so it stays readable in small tiles. */
+#captions {
+  position: fixed;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: none;
+  width: max-content;
+  max-width: 94%;
+  box-sizing: border-box;
+  padding: 0.15em 0.55em;
+  font: 600 clamp(12px, 4.2vw, 42px)/1.3 Arial, Helvetica, sans-serif;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 0.3em;
+  text-align: center;
+  pointer-events: none;
+}
+
 /* Kiosk: hide Video.js UI */
+.vjs-text-track-display,   /* captions are drawn by this page instead, see #captions */
 .vjs-control-bar,
 .vjs-big-play-button,
 .vjs-loading-spinner,
@@ -155,8 +240,11 @@ html, body {
 </head>
 
 <body>
-<video id="vjs" class="video-js" autoplay playsinline muted preload="auto"></video>
+<div id="vjsHost"></div>
 <div id="clappr"></div>
+<div id="offline"><div class="name"></div><div class="msg">No signal. Retrying.</div></div>
+<div id="label"></div>
+<div id="captions"></div>
 
 <script>
 function param(name, def) {
@@ -173,57 +261,149 @@ if (!src) {
   throw new Error("Missing src");
 }
 
+const alt = param("alt", "");
+const label = param("label", "");
+const altLabel = param("altlabel", "") || label;
+
 const fit = (param("fit", "contain") || "contain").toLowerCase();
 document.documentElement.style.setProperty("--fit", fit === "cover" ? "cover" : "contain");
 
 const muted = param("muted", "1") !== "0";
 const reloadMin = parseInt(param("reload", "0"), 10) || 0;
 
-let using = "vjs";
+/* -----------------------------
+   Timing
+   ----------------------------- */
+const CHECK_MS = 3000;            /* how often the watchdog looks at the picture */
+const CARD_AFTER_MS = 12000;      /* no moving picture for this long: show the card */
+const GIVE_UP_MS = 25000;         /* no moving picture for this long: try the next option */
+const REST_MS = 60000;            /* every option failed: wait this long, then start over */
+const PRIMARY_PROBE_MS = 3 * 60 * 1000;  /* while on the backup, how often to check the main stream */
+
+/* What to try, in order. Each option is a stream plus the player to play it with. */
+/* With a backup, it is tried second, so a dead main stream is covered after one failed try. */
+const ATTEMPTS = alt
+  ? [{ url: src, engine: "vjs", isAlt: false }, { url: alt, engine: "vjs", isAlt: true },
+     { url: src, engine: "clappr", isAlt: false }, { url: alt, engine: "clappr", isAlt: true }]
+  : [{ url: src, engine: "vjs", isAlt: false }, { url: src, engine: "clappr", isAlt: false }];
+
+let attempt = 0;
 let vjsPlayer = null;
 let clapprPlayer = null;
+let lastTime = null;
+let lastProgressAt = Date.now();
+let resting = false;
+let returnedByProbe = false;
+let probeStrikes = 0;
 
-function hardReloadSoon(ms) {
-  setTimeout(() => location.reload(), ms);
+const labelEl = document.getElementById("label");
+const offlineEl = document.getElementById("offline");
+
+function setLabel(text) {
+  labelEl.textContent = text;
+  labelEl.style.display = text ? "block" : "none";
+}
+function setCard(on) {
+  offlineEl.querySelector(".name").textContent = label;
+  offlineEl.style.display = on ? "flex" : "none";
+  if (on) setLabel("");
 }
 
-function showVjs() {
-  using = "vjs";
-  document.getElementById("vjs").style.display = "block";
-  document.getElementById("clappr").style.display = "none";
-}
-
-function showClappr() {
-  using = "clappr";
-  document.getElementById("vjs").style.display = "none";
-  document.getElementById("clappr").style.display = "block";
-}
-
-function destroyVjs() {
-  try {
-    if (vjsPlayer) {
-      vjsPlayer.dispose();
-      vjsPlayer = null;
-    }
-  } catch (e) {}
-}
-
-function destroyClappr() {
-  try {
-    if (clapprPlayer) {
-      clapprPlayer.destroy();
-      clapprPlayer = null;
-    }
-  } catch (e) {}
+function destroyPlayers() {
+  try { if (vjsPlayer) vjsPlayer.dispose(); } catch (e) {}
+  vjsPlayer = null;
+  try { if (clapprPlayer) clapprPlayer.destroy(); } catch (e) {}
+  clapprPlayer = null;
+  document.getElementById("vjsHost").innerHTML = "";
   document.getElementById("clappr").innerHTML = "";
+  captionTrack = null;
+  drawCaptions();
 }
 
-function startClappr() {
-  destroyVjs();
-  showClappr();
+function startVjs(url) {
+  document.getElementById("clappr").style.display = "none";
+
+  /* Video.js removes its <video> element when disposed, so make a fresh one each time. */
+  const v = document.createElement("video");
+  v.id = "vjs";
+  v.className = "video-js";
+  v.muted = muted;
+  v.autoplay = true;
+  v.playsInline = true;
+  document.getElementById("vjsHost").appendChild(v);
+
+  vjsPlayer = videojs(v, {
+    autoplay: true,
+    muted: muted,
+    controls: false,
+    liveui: true,
+    preload: "auto",
+    /* match quality to the tile size, counting the screen's pixel density */
+    html5: { vhs: { limitRenditionByPlayerDimensions: true, useDevicePixelRatio: true } },
+    sources: [{ src: url, type: "application/x-mpegURL" }]
+  });
+  vjsPlayer.on("error", () => nextAttempt("player error"));
+  setupCaptions(vjsPlayer);
+}
+
+/* Closed captions (Video.js).
+   Many news streams carry captions either as a WebVTT track or inside the video (CEA-608/708).
+   The player finds them once they start arriving, which can take a minute or two, so this keeps
+   watching for new tracks. One caption track is followed (English preferred) and its text is
+   drawn into #captions: one box, all current lines, always at the bottom of the tile. */
+const captionsOn = param("cc", "1") !== "0";
+const captionsEl = document.getElementById("captions");
+let captionTrack = null;
+
+function captionRank(t) {
+  const name = String(t.id || t.label || "");
+  let rank = t.kind === "subtitles" ? 0 : /^CC1$/i.test(name) ? 1 : /708|SERVICE1/i.test(name) ? 2 : 3;
+  if (t.language && !/^(en|und)/i.test(t.language)) rank += 10;   /* other languages last */
+  return rank;
+}
+
+/* cue text can contain WebVTT markup and entities: reduce it to plain text */
+function plainText(html) {
+  return (new DOMParser().parseFromString(html, "text/html").body.textContent || "").trim();
+}
+
+function drawCaptions() {
+  let text = "";
+  if (captionTrack && captionsOn) {
+    const cues = Array.from(captionTrack.activeCues || []);
+    /* 608 captions carry a row number; keep the lines in screen order */
+    cues.sort((a, b) => (typeof a.line === "number" && typeof b.line === "number" ? a.line - b.line : 0) || a.startTime - b.startTime);
+    text = cues.map((c) => plainText(c.text)).filter(Boolean).join(" ");
+  }
+  captionsEl.textContent = text;
+  captionsEl.style.display = text ? "block" : "none";
+}
+
+function followCaptionTrack(player) {
+  const tracks = Array.from(player.textTracks()).filter((t) => t.kind === "captions" || t.kind === "subtitles");
+  tracks.sort((a, b) => captionRank(a) - captionRank(b));
+  const best = tracks[0] || null;
+  if (best === captionTrack) return;
+  if (captionTrack) captionTrack.removeEventListener("cuechange", drawCaptions);
+  captionTrack = best;
+  /* "hidden": the cues still arrive and fire events, but Video.js does not draw them itself */
+  tracks.forEach((t) => { t.mode = t === best && captionsOn ? "hidden" : "disabled"; });
+  if (best) best.addEventListener("cuechange", drawCaptions);
+  drawCaptions();
+}
+
+function setupCaptions(player) {
+  captionTrack = null;
+  drawCaptions();
+  player.textTracks().addEventListener("addtrack", () => followCaptionTrack(player));
+  followCaptionTrack(player);
+}
+
+function startClappr(url) {
+  document.getElementById("clappr").style.display = "block";
 
   clapprPlayer = new Clappr.Player({
-    source: src,
+    source: url,
     parentId: "#clappr",
     autoPlay: true,
     mute: muted,
@@ -231,65 +411,113 @@ function startClappr() {
     loop: true,
     width: "100%",
     height: "100%",
-    playback: { playInline: true }
+    /* match quality to the tile size */
+    playback: { playInline: true, hlsjsConfig: { capLevelToPlayerSize: true } }
   });
-
   if (clapprPlayer && clapprPlayer.on) {
-    clapprPlayer.on(Clappr.Events.PLAYER_ERROR, () => hardReloadSoon(3000));
+    clapprPlayer.on(Clappr.Events.PLAYER_ERROR, () => nextAttempt("player error"));
   }
 }
 
-function startVjs() {
-  destroyClappr();
-  showVjs();
-
-  try { document.getElementById("vjs").muted = muted; } catch (e) {}
-
-  vjsPlayer = videojs("vjs", {
-    autoplay: true,
-    muted: muted,
-    controls: false,
-    liveui: true,
-    preload: "auto",
-    sources: [{ src, type: "application/x-mpegURL" }]
-  });
-
-  let triedFallback = false;
-
-  function fallbackToClapprSoon(ms) {
-    if (triedFallback) return;
-    triedFallback = true;
-    setTimeout(() => startClappr(), ms);
+function start() {
+  resting = false;
+  destroyPlayers();
+  lastTime = null;
+  lastProgressAt = Date.now();
+  const a = ATTEMPTS[attempt];
+  try {
+    if (a.engine === "vjs") startVjs(a.url); else startClappr(a.url);
+  } catch (e) {
+    nextAttempt("could not start");
   }
+}
 
-  vjsPlayer.on("error", () => fallbackToClapprSoon(500));
-  vjsPlayer.on("stalled", () => fallbackToClapprSoon(1500));
-
-  // Detect stuck playback: if time does not advance across checks, fallback
-  let lastTime = null;
-  let unchangedCount = 0;
-
-  setInterval(() => {
-    if (!vjsPlayer || using !== "vjs") return;
-    const t = vjsPlayer.currentTime();
-    if (typeof t !== "number" || isNaN(t)) return;
-
-    if (lastTime === null) {
-      lastTime = t;
+/* Move on to the next option. After the last one, show the card, rest, and start over. */
+let switching = false;
+function nextAttempt(why) {
+  if (switching || resting) return;
+  switching = true;
+  setTimeout(() => {
+    switching = false;
+    attempt += 1;
+    if (returnedByProbe && attempt < ATTEMPTS.length && ATTEMPTS[attempt].isAlt) {
+      /* the main stream looked alive but would not play: count it, and stop asking after two */
+      probeStrikes += 1;
+      returnedByProbe = false;
+    }
+    if (attempt >= ATTEMPTS.length) {
+      attempt = 0;
+      resting = true;
+      destroyPlayers();
+      setCard(true);
+      setTimeout(start, REST_MS);
       return;
     }
-
-    if (t === lastTime) {
-      unchangedCount += 1;
-      if (unchangedCount >= 2) fallbackToClapprSoon(500);
-    } else {
-      unchangedCount = 0;
-      lastTime = t;
-    }
-  }, 15000);
+    start();
+  }, 500);
 }
 
-startVjs();
+/* Watchdog: the only test of health is whether the picture is actually moving. */
+function currentVideo() {
+  return Array.from(document.querySelectorAll("video")).find((v) => v.readyState >= 2) || null;
+}
+
+setInterval(() => {
+  if (resting) return;
+  const v = currentVideo();
+  const t = v ? v.currentTime : null;
+  const now = Date.now();
+
+  if (t !== null && lastTime !== null && t !== lastTime) {
+    /* picture is moving */
+    lastProgressAt = now;
+    setCard(false);
+    setLabel(ATTEMPTS[attempt].isAlt ? altLabel : label);
+    if (!ATTEMPTS[attempt].isAlt) returnedByProbe = false;
+  }
+  lastTime = t;
+
+  const idle = now - lastProgressAt;
+  /* Hold the card back while a backup is still waiting for its first try. */
+  const backupUntried = alt && !ATTEMPTS.slice(0, attempt + 1).some((a) => a.isAlt);
+  if (idle > CARD_AFTER_MS && !backupUntried) setCard(true);
+  if (idle > GIVE_UP_MS) nextAttempt("no moving picture");
+}, CHECK_MS);
+
+/* While the backup is showing, quietly check whether the main stream is back.
+   It counts as back when its playlist lists video segments. */
+async function primaryIsBack() {
+  const get = async (u) => {
+    const r = await fetch(u, { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.text();
+  };
+  try {
+    let text = await get(src);
+    if (!text.includes("#EXTINF")) {
+      const variant = text.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("#"));
+      if (!variant) return false;
+      text = await get(new URL(variant, src).href);
+    }
+    return text.includes("#EXTINF");
+  } catch (e) {
+    return false;
+  }
+}
+
+if (alt) {
+  setInterval(async () => {
+    if (!ATTEMPTS[attempt].isAlt && !resting) return;   /* already on the main stream */
+    if (probeStrikes >= 2) return;                      /* wait for the periodic reload instead */
+    if (await primaryIsBack()) {
+      returnedByProbe = true;
+      attempt = 0;
+      start();
+    }
+  }, PRIMARY_PROBE_MS);
+}
+
+start();
 
 if (reloadMin > 0) {
   setTimeout(() => location.reload(), reloadMin * 60 * 1000);
