@@ -43,6 +43,13 @@ Updated 2026-11-16.
   deadlock the handler (fix known, the runner sends them seconds apart), a run shorter than the 10 minute lead
   starts its successor at second 0, headlines.yml still uses unpinned checkout@v4.
 
+- Milestone 1 merged 2026-11-16 (new ticker, relay, price script, player Rev8, encoder Rev17, wallboard v19).
+  Restore point before the merge: main at baef2bd6b1ffb6564fafe30cfa615a5b6d2be81c (wallboard v18).
+- Ticker Rev4 review (Opus) passed: no regression vs Rev3. Fixed before merge: live crypto now starts even when
+  ticker.json is missing or broken. Open for a later revision: a flood of thousands of messages per second drops frames
+  (real stream is about 1 per second), a coin missing from ticker.json gets no chart until the hourly refresh,
+  phone text is small, a price near 1e-300 shows 0.00.
+
 ## Known issues
 See docs/TAKEOVER.md.
 
