@@ -30,6 +30,11 @@ Updated 2026-11-16.
   a few leftovers (unused argument, duplicate class add, comment says "more than" but code uses ">="),
   non-JSON saved copy not removed. Not needed: text size at 48 and 108 px (the final bar is 32px).
 
+- Price script Rev4 (task 1) passed the final independent Fable check (7 findings fixed, no regressions, live run
+  24 of 24). Low items left for a later revision: redirects can bypass the Yahoo request cap and hop limit, a socket
+  can stay open after a slow connect (harmless, the relay uses a child process), a symbols file with no usable
+  items exits 1 not 2, and on a failed Yahoo batch EUR/USD, gold and silver should be fetched ahead of stocks.
+
 ## Known issues
 See docs/TAKEOVER.md.
 
