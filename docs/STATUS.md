@@ -1,15 +1,17 @@
 # Status
 
-Updated 2026-11-16.
+Updated 2026-11-17.
 
 ## Done
 - Moved from old repo, Pages live, links repointed.
-- Streams repaired, daily stream check, ABC 10 backup, labels, No signal card, quality cap.
-- Headlines redesigned (no timeouts), feed list in headlines-feeds.json.
-- Captions on streams that carry them, 26% smaller, transparent box.
+- Streams repaired, daily stream check, ABC 10 backup, labels, No signal card, quality cap, captions (26% smaller).
+- Headlines redesigned (no timeouts, now refreshed every 15 minutes by the Data relay), sized for a 40 px bar.
+- Milestone 1: new ticker (no third-party widget), price script, Data relay, player Rev8, encoder Rev17 (25 streams).
+- Milestone 2: 18-tile wall v20 on an exact 1920x1080 grid, older pages pinned to Clappr 0.4.7.
+- Milestone 3 (in this change): freshness alarm in the daily check, docs rewritten.
 
 ## In progress
-- Takeover audit finished. Plan for 1080p layout and new ticker awaiting approval.
+- Soak test of the live wall (30 minutes, headless) and the photo check on the wall PC (needs the user, see README).
 
 ## Decisions
 - Stock data: Stooq now blocks bots. Candidate source is Yahoo chart endpoint (no key). Crypto live from Coinbase.

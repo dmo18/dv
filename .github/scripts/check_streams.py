@@ -11,16 +11,28 @@ It writes a Markdown report and prints the number of dead streams on the last li
 ("DEAD=<n>"). Event feeds that are normally off air between events are reported but
 not counted as dead.
 
+It also checks how old the data files published by the "Data relay" are (prices on branch ticker-data,
+headlines on branch headlines-data). A file older than 60 minutes, unreadable, or dated in the future
+is reported in the same report and counted in DEAD, so the same issue opens.
+
 Also enforces the standing rule: every stream address used on the wall (main and backup, exact
 string) must also be saved in encoder.html. Missing ones are listed and counted in DEAD, and the
 script exits with status 1.
 
 Changelog:
+  2026-11-16  Freshness alarm: prices.json and headlines.json older than 60 minutes are reported and counted.
+              Also reports wall tiles it could not read (written differently from the expected pattern),
+              and the summary now separates not playing, missing from encoder.html and stale data.
+              New options: --ticker-url, --headlines-url, --max-age-min, --data-only (data check only).
   2026-11-16  Reads the new wallboard tile list (player(...) calls with an options object in any key
               order: alt, altLabel, cc). Fails when a wall address is missing from encoder.html.
 
 Usage: check_streams.py <wallboard.html> <encoder.html> <report.md>
+         [--ticker-url URL] [--headlines-url URL] [--max-age-min 60] [--data-only]
 """
+import argparse
+import json
+import os
 import re
 import sys
 import time
@@ -36,8 +48,12 @@ USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 EVENT_FEED_MARKERS = ("abcn-live-",)
 
 
+UNREAD_TILES = 0   # wall tiles written in a form the pattern below could not read (set by collect)
+
+
 def collect(wallboard_path, encoder_path):
     """Return [(where, name, url)] with one row per distinct address."""
+    global UNREAD_TILES
     rows, seen = [], set()
 
     def add(where, name, url):
@@ -50,6 +66,7 @@ def collect(wallboard_path, encoder_path):
     wall = re.sub(r"<!--.*?-->|/\*.*?\*/", "", wall, flags=re.S)
     wall = re.sub(r"(?m)^\s*//.*$", "", wall)
     call = re.compile(r'player\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"(https?://[^"]+)"\s*(?:,\s*\{([^}]*)\})?\s*\)')
+    UNREAD_TILES = max(0, len(re.findall(r"\bplayer\(", wall)) - len(call.findall(wall)))
     for m in call.finditer(wall):
         opts = m.group(4) or ""
         alt = re.search(r'\balt\s*:\s*"([^"]+)"', opts)
@@ -119,8 +136,56 @@ def check(url):
         return "dead", str(exc)[:90], None
 
 
+def data_freshness(sources, max_age_s):
+    """sources: [(label, url)]. Return [(label, problem)] for every file that is stale or unreadable."""
+    problems = []
+    for label, url in sources:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache"})
+            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as res:
+                doc = json.loads(res.read(4_000_000).decode("utf-8", "replace"))
+            gen = doc.get("generated") if isinstance(doc, dict) else None
+            if isinstance(gen, bool) or not isinstance(gen, (int, float)) or gen <= 0:
+                problems.append((label, "file has no valid time stamp"))
+                continue
+            age = time.time() - gen
+            if age < -600:
+                problems.append((label, "time stamp is in the future"))
+            elif age > max_age_s:
+                hours = age / 3600
+                problems.append((label, f"last updated {hours:.1f} hours ago" if hours >= 1 else f"last updated {int(age / 60)} minutes ago"))
+        except Exception as exc:
+            problems.append((label, f"could not be read: {str(exc)[:80]}"))
+    return problems
+
+
 def main():
-    wallboard_path, encoder_path, report_path = sys.argv[1:4]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("wallboard")
+    ap.add_argument("encoder")
+    ap.add_argument("report")
+    repo = os.environ.get("GITHUB_REPOSITORY") or "dmo18/dv"
+    ap.add_argument("--ticker-url", default=f"https://raw.githubusercontent.com/{repo}/ticker-data/ticker.json")
+    ap.add_argument("--headlines-url", default=f"https://raw.githubusercontent.com/{repo}/headlines-data/headlines.json")
+    ap.add_argument("--max-age-min", type=float, default=60)
+    ap.add_argument("--data-only", action="store_true", help="only check the data files (for tests)")
+    args = ap.parse_args()
+    wallboard_path, encoder_path, report_path = args.wallboard, args.encoder, args.report
+
+    stale = data_freshness([("Prices file (ticker-data)", args.ticker_url),
+                            ("Headlines file (headlines-data)", args.headlines_url)], args.max_age_min * 60)
+    data_lines = []
+    if stale:
+        data_lines = ["### Data not fresh", "", "The Data relay should refresh these every few minutes. "
+                      "If this stays, check the Actions tab: run the \"Data relay\" workflow by hand.", "",
+                      "| File | Problem |", "|---|---|"] + [f"| {l} | {p} |" for l, p in stale] + [""]
+    if args.data_only:
+        text = "\n".join(data_lines) if data_lines else "Data files are fresh.\n"
+        open(report_path, "w", encoding="utf-8").write(text + "\n")
+        print(text)
+        print(f"DATA_PROBLEMS={len(stale)}")
+        sys.exit(1 if stale else 0)
+
     rows = collect(wallboard_path, encoder_path)
     saved = encoder_urls(encoder_path)
     unsaved = [r for r in rows if r[0].startswith("Wallboard") and r[2] not in saved]
@@ -142,16 +207,24 @@ def main():
         event = any(k in url for k in EVENT_FEED_MARKERS)
         results.append((where, name, url, state, detail, event))
 
-    dead = [r for r in results if r[3] != "ok" and not r[5]]
-    # Standing rule: a wall address missing from the encoder counts as a failure.
-    for w, n, u in unsaved:
-        dead.append((w, n, u, "dead", "address is not saved in encoder.html", False))
+    not_playing = [r for r in results if r[3] != "ok" and not r[5]]
     off_air = [r for r in results if r[3] != "ok" and r[5]]
+    playing = len(results) - len(not_playing) - len(off_air)
+    # Standing rule: a wall address missing from the encoder counts as a failure.
+    missing = [(w, n, u, "dead", "address is not saved in encoder.html", False) for w, n, u in unsaved]
+    dead = not_playing + missing
+    problems = len(dead) + len(stale) + (1 if UNREAD_TILES else 0)
 
-    lines = [f"Checked {len(results)} streams: {len(results) - len(dead) - len(off_air)} playing, "
-             f"{len(dead)} not playing, {len(off_air)} event feeds off air.", ""]
+    lines = [f"Checked {len(results)} streams: {playing} playing, {len(not_playing)} not playing, "
+             f"{len(missing)} wall addresses missing from encoder.html, {len(off_air)} event feeds off air. "
+             f"Data files stale: {len(stale)}.", ""]
+    if UNREAD_TILES:
+        lines += ["### Wall tiles not recognised", "",
+                  f"{UNREAD_TILES} tile(s) in wallboard.html are written in a form this check cannot read "
+                  "(for example a variable or single quotes instead of a plain \"address\"). They are not being checked.", ""]
+    lines += data_lines
     if dead:
-        lines += ["### Not playing", "", "| Used in | Channel | Problem |", "|---|---|---|"]
+        lines += ["### Not playing or not saved", "", "| Used in | Channel | Problem |", "|---|---|---|"]
         lines += [f"| {w} | {n} | {d or s} |" for w, n, _, s, d, _ in dead]
         lines.append("")
     if off_air:
@@ -165,9 +238,10 @@ def main():
     report = "\n".join(lines) + "\n"
     open(report_path, "w", encoding="utf-8").write(report)
     print(report)
-    print(f"WALL_STREAMS={sum(1 for r in rows if r[0].startswith('Wallboard'))} NOT_IN_ENCODER={len(unsaved)}")
-    print(f"DEAD={len(dead)}")
-    if unsaved:
+    print(f"WALL_STREAMS={sum(1 for r in rows if r[0].startswith('Wallboard'))} NOT_IN_ENCODER={len(unsaved)} "
+          f"UNREAD_TILES={UNREAD_TILES} STALE_DATA={len(stale)}")
+    print(f"DEAD={problems}")
+    if unsaved or stale or UNREAD_TILES:
         sys.exit(1)
 
 

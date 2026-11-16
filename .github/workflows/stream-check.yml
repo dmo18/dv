@@ -1,8 +1,13 @@
 name: Check streams
 
-# Once a day, checks every stream used by the wallboard and the encoder.
-# If any is not playing, it opens (or updates) one issue listing them, which GitHub
-# emails to the repository owner. When everything plays again, it closes that issue.
+# stream-check.yml Rev 2
+# - Rev 2 2026-11-16: also checks that the prices and headlines files published by the Data relay are
+#   fresh (under 60 minutes old); checkout pinned to a commit; issue title now covers streams and data.
+# - Rev 1: streams only.
+#
+# Once a day, checks every stream used by the wallboard and the encoder, and that the data files the
+# wall reads (prices and headlines) are fresh. If anything is wrong it opens (or updates) one issue
+# listing it, which GitHub emails to the repository owner. When everything is fine again, it closes it.
 
 on:
   schedule:
@@ -29,9 +34,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TITLE: "Wallboard: streams not playing"
+      TITLE: "Wallboard: streams or data need attention"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check every stream
         id: check
