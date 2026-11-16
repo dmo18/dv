@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v19</title>
+<title>Wallboard v20</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v20  2026-11-16  18 tiles (3 large + 15 small) on an exact 1920x1080 grid: ticker bar 32 px,
+                   headlines bar 40 px, row 1 three tiles of 640x360, rows 2 to 4 five tiles of 384x216.
+                   On other screens the wall scales as one 16:9 stage (see GEOMETRY below). New feeds:
+                   CNN, CBS News, Bloomberg, TRT World, Scripps News, DW, Fox Weather. Staggered start
+                   (one small tile every 0.7 s) and staggered hourly reload (tile n reloads at 60 + 2n
+                   minutes). Captions only on the 3 large tiles unless a tile has cc: true. Optional
+                   decode cap MAX_LIVE (off) and a check view, wallboard.html?diag=1.
   v19  2026-11-16  No change to the board itself; bumped so running screens reload. The ticker slot now
                    shows the new live ticker (Ticker Rev4: live crypto prices, stocks from the data file).
   v18  2026-11-16  Closed captions 26% smaller with a mostly transparent background (player.html Rev7).
@@ -27,6 +34,21 @@
   v12  2026-11-12  Repointed all tile and frame URLs from the old
                    solutionssquad.github.io/shulboard site to dmo18.github.io/dv.
   v11              Version as moved from the previous repository (earlier history not recorded).
+
+  HOW TO EDIT
+    - Tiles: the TILES list in the script. Order = screen order (3 in row 1, then 5 per row).
+    - MAX_LIVE (top of the script): 18 = every tile plays. A lower number (for example 14) keeps the
+      3 large tiles playing and lets the other tiles take turns: resting tiles show a name card, and the
+      set rotates every 2 minutes so every small tile gets airtime.
+    - Check view: add ?diag=1 to the address. Shows quality, dropped frames and stall time on each tile
+      and a total in the top right corner.
+    - Test-only: ?debug=1 also accepts rot=SECONDS (rotation period) and maxlive=N. Without debug=1
+      these are ignored.
+
+  GEOMETRY
+    One unit u = stage width / 1920 (exactly 1 px on a 1920 wide screen). The stage is as large as
+    fits (u = the smaller of width/1920 and height/1080), centred, black around it. Spare screen height
+    goes to the two bars (ticker up to 48 u, headlines up to 72 u).
 -->
 
 <style>
@@ -39,42 +61,54 @@ html, body {
 }
 
 :root{
-  --vh: 100dvh;
-
-  --r2h: calc(100vw * 9 / 48);
-  --r3h: calc(100vw * 9 / 64);
-  --r4h: calc(100vw * 9 / 64);
-
-  --r1rem: calc(var(--vh) - var(--r2h) - var(--r3h) - var(--r4h));
-  --r1ah: calc(var(--r1rem) * 0.60);
-  --r1bh: calc(var(--r1rem) * 0.40);
+  /* u = one design pixel. 1920 wide screen: exactly 1px. */
+  --u: min(calc(100vw / 1920), calc(100dvh / 1080));
+  --spare: calc(100dvh - var(--u) * 1080);
+  --extra: min(var(--spare), calc(var(--u) * 48));
+  --tk: calc(var(--u) * 32 + var(--extra) / 3);
+  --hl: calc(var(--u) * 40 + var(--extra) * 2 / 3);
 }
 
-.grid{
-  width: 100vw;
-  height: var(--vh);
-  display: grid;
-  grid-template-rows: var(--r1ah) var(--r1bh) var(--r2h) var(--r3h) var(--r4h);
-  grid-template-columns: repeat(12, 1fr);
-  gap: 0;
+.wall{
+  position: absolute;
+  width: calc(var(--u) * 1920);
+  height: calc(var(--u) * 1080 + var(--extra));
+  left: calc((100vw - var(--u) * 1920) / 2);
+  top: calc((100dvh - var(--u) * 1080 - var(--extra)) / 2);
   background: #000;
+  overflow: hidden;
 }
+.bar{ width: 100%; overflow: hidden; background: #000; }
+#tk{ height: var(--tk); }
+#hl{ height: var(--hl); }
+.row{ display: flex; width: 100%; }
+.row.big{ height: calc(var(--u) * 360); }
+.row.small{ height: calc(var(--u) * 216); }
 
 .tile {
+  position: relative;
+  flex: none;
   overflow: hidden;
   background: #000;
-  min-width: 0;
-  min-height: 0;
+}
+.big .tile{ width: calc(var(--u) * 640); height: calc(var(--u) * 360); }
+.small .tile{ width: calc(var(--u) * 384); height: calc(var(--u) * 216); }
+
+.tile iframe, .bar iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
 }
 
 /* Label for tiles that do not use player.html (player.html draws its own, in the same style) */
-.tile { position: relative; }
 .tileLabel {
   position: absolute;
   top: 0;
   left: 0;
   padding: 0.35em 0.7em;
-  font: 600 clamp(10px, 1.07vw, 22px) Arial, Helvetica, sans-serif;
+  font: 600 calc(var(--u) * 20.5) Arial, Helvetica, sans-serif;
   color: #fff;
   background: rgba(0, 0, 0, 0.6);
   border-bottom-right-radius: 0.4em;
@@ -82,51 +116,266 @@ html, body {
   pointer-events: none;
 }
 
-.tile iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-  background: #000;
+/* Name card for a tile that is resting (MAX_LIVE cap). Drawn here, no network. */
+.card {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #0b0d12;
+  color: #cfd6e4;
+  font: 600 calc(var(--u) * 26) Arial, Helvetica, sans-serif;
+  letter-spacing: 0.02em;
+}
+.tile.rest .card { display: flex; }
+
+/* Check view (?diag=1) */
+.diag {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  max-width: 100%;
+  padding: 0.2em 0.5em;
+  box-sizing: border-box;
+  font: 600 calc(var(--u) * 12) / 1.25 Consolas, "Courier New", monospace;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+  border-top-right-radius: 0.4em;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  z-index: 30;
+}
+#diagTotal {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 0.25em 0.6em;
+  font: 700 calc(var(--u) * 14) Consolas, "Courier New", monospace;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.8);
+  border-bottom-left-radius: 0.4em;
+  pointer-events: none;
+  z-index: 40;
 }
 </style>
 
 <script>
-  // Builds a player.html link: player(ID, label shown on the tile, stream address, options).
-  // Paste stream addresses in plain form; they are encoded here.
-  // Options: { alt: backup stream used when the main one will not play, altLabel: its label }.
+  // ---------- Settings (plain values, edit here) ----------
+  // Decode cap. 18 = all tiles play (cap off). A lower number keeps the first 3 tiles
+  // (row 1) always playing and rotates the other tiles every 2 minutes, see HOW TO EDIT above.
+  const MAX_LIVE = 18;
+  const ROTATE_SECONDS = 120;       // how long a set of small tiles rests
+  const STAGGER_SECONDS = 0.7;      // one small tile starts every 0.7 s
+  const LARGE_COUNT = 3;            // tiles 0, 1, 2 are the large tiles of row 1
+  const ROW_SIZES = [3, 5, 5, 5];   // tiles per row, in TILES order
+  const BASE_RELOAD_MINUTES = 60;   // tile n reloads every 60 + 2n minutes
+
+  // Builds a tile that plays a stream in player.html: player(ID, label, stream address, options).
+  // Paste stream addresses in plain form; they are encoded when the tile loads.
+  // Options: { alt: backup stream used when the main one will not play, altLabel: its label,
+  //            cc: true to show closed captions on a small tile (large tiles always show them) }.
   // Use a stream's "master" address where one exists, so the player can match quality to tile size.
-  const player = (id, label, stream, opts = {}) => {
-    const q = new URLSearchParams({ ID: id, label, src: stream });
-    if (opts.alt) { q.set("alt", opts.alt); q.set("altlabel", opts.altLabel || label); }
-    q.set("fit", "contain"); q.set("muted", "1"); q.set("reload", "60");
+  const player = (id, label, stream, opts = {}) => ({ kind: "player", id, label, stream, opts });
+  // A tile that shows one of our own pages.
+  const page = (label, url) => ({ kind: "page", label, url });
+
+  // Link for tile number n (n counts from 0 in TILES order). Links are relative, so the board
+  // works from whatever address it is served at.
+  const tileUrl = (t, n) => {
+    if (t.kind === "page") return t.url;
+    const q = new URLSearchParams({ ID: t.id, label: t.label, src: t.stream });
+    if (t.opts.alt) { q.set("alt", t.opts.alt); q.set("altlabel", t.opts.altLabel || t.label); }
+    q.set("fit", "contain"); q.set("muted", "1");
+    q.set("reload", String(BASE_RELOAD_MINUTES + 2 * n));
+    q.set("cc", (n < LARGE_COUNT || t.opts.cc) ? "1" : "0");
     return "player.html?" + q.toString();
   };
 
-  // One entry per tile. Links are relative, so the board works from whatever address it is served at.
+  // One entry per tile, in screen order: row 1 (3 large), then rows 2 to 4 (5 small each).
   // Fox News is only available at low resolution (240p): keep it in a small tile.
   // ABC 10 is an event feed that goes dark between events, so it has CNN as its backup.
   // ABC 10 stays on its fixed 720p address: its lower quality level has black borders baked in.
-  const TILES = {
-    BBC:       player("BBCNews", "BBC News", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
-    WSVN:      "wsvn.html",
-    LIVENOW:   player("Livenowfox", "LiveNOW Fox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8"),
+  const TILES = [
+    player("BBCNews", "BBC News", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
+    page("WSVN 7News", "wsvn.html"),
+    player("Livenowfox", "LiveNOW Fox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8"),
 
-    IL13:      player("IL13", "IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
-    I24:       player("i24", "i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
-    RT:        player("RT", "RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
-    FOXNEWS:   player("FoxNews", "Fox News", "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8"),
+    player("CNN", "CNN", "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8"),
+    player("FoxNews", "Fox News", "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8"),
+    player("ABCNewsLive", "ABC News Live", "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8"),
+    player("CBSNews", "CBS News", "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8"),
+    player("Bloomberg", "Bloomberg", "https://www.bloomberg.com/media-manifest/streams/us.m3u8"),
 
-    ABC10:     player("ABC10", "ABC 10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", { alt: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", altLabel: "CNN" }),
-    ABCLIVE:   player("ABCNewsLive", "ABC News Live", "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8"),
-    GLOBAL:    player("GlobalNews", "Global News", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8"),
-    ALJAZEERA: player("AlJazeera", "Al Jazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8")
+    player("IL13", "IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
+    player("i24", "i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
+    player("TRTWorld", "TRT World", "https://tv-trtworld.medya.trt.com.tr/master.m3u8"),
+    player("AlJazeera", "Al Jazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8"),
+    player("RT", "RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
+
+    player("ABC10", "ABC 10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", { alt: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", altLabel: "CNN" }),
+    player("GlobalNews", "Global News", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8"),
+    player("ScrippsNews", "Scripps News", "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8"),
+    player("DW", "DW", "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8"),
+    player("FoxWeather", "Fox Weather", "https://247wlive.foxweather.com/stream/index.m3u8")
+  ];
+
+  // ---------- Page parameters ----------
+  const params = new URLSearchParams(location.search);
+  const DIAG = params.get("diag") === "1";
+  const DEBUG = params.get("debug") === "1";   // test only: unlocks rot= and maxlive=
+  const numParam = (k) => { const v = Number(params.get(k)); return Number.isFinite(v) && v > 0 ? v : null; };
+  const maxLive = (DEBUG && numParam("maxlive")) || MAX_LIVE;
+  const rotateMs = ((DEBUG && numParam("rot")) || ROTATE_SECONDS) * 1000;
+
+  const N = TILES.length;
+  const SMALL = N - LARGE_COUNT;
+  const restCount = Math.max(0, Math.min(SMALL, N - maxLive));   // small tiles resting at any time
+
+  const frames = [];   // iframe per tile
+  const cells = [];    // tile element per tile
+  const live = [];     // true while the tile holds a stream
+  const loadTimes = []; // seconds since page start at which each tile began loading (for checks)
+  const T0 = performance.now();
+
+  // Which small tiles (0 based among the small ones) rest during rotation step k: round robin.
+  const restingAt = (k) => {
+    const s = new Set();
+    for (let i = 0; i < restCount; i++) s.add((k * restCount + i) % SMALL);
+    return s;
   };
 
+  const startTile = (n) => {
+    live[n] = true;
+    cells[n].classList.remove("rest");
+    frames[n].src = frames[n].getAttribute("data-url");
+    loadTimes[n] = Math.round((performance.now() - T0)) / 1000;
+    window.__loadTimes = loadTimes;
+    if (healthOf[n]) healthOf[n] = null;
+  };
+  const restTile = (n) => {
+    live[n] = false;
+    cells[n].classList.add("rest");
+    frames[n].src = "about:blank";
+    healthOf[n] = null;
+  };
+
+  let step = 0;
+  const applyStep = (k) => {
+    const resting = restingAt(k);
+    let order = 0;
+    for (let n = 0; n < N; n++) {
+      const wantLive = n < LARGE_COUNT || !resting.has(n - LARGE_COUNT);
+      if (wantLive === !!live[n]) continue;
+      if (!wantLive) { restTile(n); continue; }
+      const delay = n < LARGE_COUNT ? 0 : (++order) * STAGGER_SECONDS * 1000;
+      live[n] = true;   // claimed now so a quick next step cannot double start it
+      cells[n].classList.remove("rest");
+      setTimeout(() => { if (live[n]) startTile(n); }, delay);
+    }
+  };
+
+  // ---------- Check view data (player.html sends "tilehealth" once every 5 s) ----------
+  const STATES = ["starting", "playing", "stalled", "nosignal", "resting"];
+  const healthOf = new Array(N).fill(null);
+  const numIn = (v, lo, hi) => typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
+  const DROP_IGNORE_MS = 10000;
+  const overlays = [];
+  let totalEl = null;
+
+  const onHealth = (ev) => {
+    if (!DIAG || ev.origin !== location.origin) return;
+    const n = frames.findIndex((f) => f.contentWindow && f.contentWindow === ev.source);
+    if (n < 0 || !live[n]) return;
+    const d = ev.data;
+    if (!d || typeof d !== "object" || d.type !== "tilehealth") return;
+    if (!STATES.includes(d.state)) return;
+    if (!numIn(d.w, 0, 16384) || !numIn(d.h, 0, 16384)) return;
+    if (!numIn(d.dropped, 0, 100)) return;
+    if (d.sinceStall !== null && !numIn(d.sinceStall, 0, 31536000)) return;
+    const prev = healthOf[n];
+    const now = Date.now();
+    healthOf[n] = {
+      state: d.state, w: Math.round(d.w), h: Math.round(d.h), dropped: d.dropped, sinceStall: d.sinceStall, at: now,
+      playingSince: d.state === "playing" ? (prev && prev.playingSince ? prev.playingSince : now) : 0
+    };
+    renderDiag();
+  };
+
+  const renderDiag = () => {
+    if (!DIAG) return;
+    let playing = 0, sum = 0, cnt = 0;
+    for (let n = 0; n < N; n++) {
+      const h = healthOf[n];
+      let text;
+      if (!live[n]) text = "resting (card)";
+      else if (!h) text = "waiting for data";
+      else {
+        const settled = h.state === "playing" && Date.now() - h.playingSince >= DROP_IGNORE_MS;
+        if (h.state === "playing") playing++;
+        if (settled) { sum += h.dropped; cnt++; }
+        text = (h.w + "x" + h.h) + " | drop " + (settled ? h.dropped.toFixed(1) + "%" : "--") +
+               " | stall " + (h.sinceStall === null ? "none" : h.sinceStall + "s") + " | " + h.state;
+      }
+      overlays[n].textContent = text;
+    }
+    totalEl.textContent = "playing " + playing + "/" + N + " | avg drop " + (cnt ? (sum / cnt).toFixed(1) + "%" : "--");
+  };
+
+  // ---------- Build the wall ----------
   window.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("iframe[data-tile]").forEach((f) => {
-      f.src = TILES[f.getAttribute("data-tile")] || "about:blank";
+    document.getElementById("tkFrame").src = "ticker.html";
+    document.getElementById("hlFrame").src = "headlines.html";
+    const wall = document.getElementById("wall");
+    let n = 0;
+    ROW_SIZES.forEach((count, r) => {
+      const row = document.createElement("div");
+      row.className = "row " + (r === 0 ? "big" : "small");
+      for (let i = 0; i < count; i++, n++) {
+        const t = TILES[n];
+        const cell = document.createElement("div");
+        cell.className = "tile";
+        const f = document.createElement("iframe");
+        f.setAttribute("data-tile", String(n));
+        f.setAttribute("data-url", tileUrl(t, n));
+        f.setAttribute("title", t.label);
+        cell.appendChild(f);
+        if (t.kind === "page") {
+          const lab = document.createElement("div");
+          lab.className = "tileLabel";
+          lab.textContent = t.label;
+          cell.appendChild(lab);
+        }
+        const card = document.createElement("div");
+        card.className = "card";
+        card.textContent = t.label;
+        cell.appendChild(card);
+        if (DIAG) {
+          const o = document.createElement("div");
+          o.className = "diag";
+          o.textContent = "waiting for data";
+          cell.appendChild(o);
+          overlays[n] = o;
+        }
+        row.appendChild(cell);
+        frames[n] = f; cells[n] = cell; live[n] = false;
+      }
+      wall.appendChild(row);
     });
+    if (DIAG) {
+      totalEl = document.createElement("div");
+      totalEl.id = "diagTotal";
+      totalEl.textContent = "playing 0/" + N;
+      document.body.appendChild(totalEl);
+      window.addEventListener("message", onHealth);
+      setInterval(renderDiag, 2000);
+    }
+    applyStep(0);
+    // First start: row 1 at once, then one small tile every STAGGER_SECONDS (done in applyStep).
+    if (restCount > 0) setInterval(() => { step++; applyStep(step); }, rotateMs);
+    window.__wall = { N, SMALL, restCount, maxLive, rotateMs, frames, live, loadTimes };
   });
 
   // Self-update: every 5 minutes, fetch this page fresh and reload if its title version changed.
@@ -144,28 +393,9 @@ html, body {
 </head>
 
 <body>
-<div class="grid">
-  <div class="tile" style="grid-row:1; grid-column:1 / span 12;">
-    <iframe src="ticker.html"></iframe>
-  </div>
-
-  <div class="tile" style="grid-row:2; grid-column:1 / span 12;">
-    <iframe src="headlines.html"></iframe>
-  </div>
-
-  <div class="tile" style="grid-row:3; grid-column:1 / span 4;"><iframe data-tile="BBC"></iframe></div>
-  <div class="tile" style="grid-row:3; grid-column:5 / span 4;"><iframe data-tile="WSVN"></iframe><div class="tileLabel">WSVN 7News</div></div>
-  <div class="tile" style="grid-row:3; grid-column:9 / span 4;"><iframe data-tile="LIVENOW"></iframe></div>
-
-  <div class="tile" style="grid-row:4; grid-column:1 / span 3;"><iframe data-tile="IL13"></iframe></div>
-  <div class="tile" style="grid-row:4; grid-column:4 / span 3;"><iframe data-tile="I24"></iframe></div>
-  <div class="tile" style="grid-row:4; grid-column:7 / span 3;"><iframe data-tile="RT"></iframe></div>
-  <div class="tile" style="grid-row:4; grid-column:10 / span 3;"><iframe data-tile="FOXNEWS"></iframe></div>
-
-  <div class="tile" style="grid-row:5; grid-column:1 / span 3;"><iframe data-tile="ABC10"></iframe></div>
-  <div class="tile" style="grid-row:5; grid-column:4 / span 3;"><iframe data-tile="ABCLIVE"></iframe></div>
-  <div class="tile" style="grid-row:5; grid-column:7 / span 3;"><iframe data-tile="GLOBAL"></iframe></div>
-  <div class="tile" style="grid-row:5; grid-column:10 / span 3;"><iframe data-tile="ALJAZEERA"></iframe></div>
+<div class="wall" id="wall">
+  <div class="bar" id="tk"><iframe id="tkFrame"></iframe></div>
+  <div class="bar" id="hl"><iframe id="hlFrame"></iframe></div>
 </div>
 </body>
 </html>
