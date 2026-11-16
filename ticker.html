@@ -3,112 +3,817 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Kiosk Ticker--+</title>
+<title>Ticker Rev4</title>
+<!--
+  VERSION: bump the Rev number in the <title> above on every change to this file,
+  and add a line here (newest first).
 
+  Rev4  2026-11-16  Live crypto: the page now listens to Coinbase's public price stream (6 coins from
+                    ticker-symbols.json), takes the 24 hour open and the day chart from Coinbase at start
+                    and hourly, and falls back to ticker.json while the stream is down (reconnects with
+                    waits of 2 s growing to 60 s). The newer time wins when both have a coin. Fixes from
+                    the Rev3 review: a PC clock that runs behind no longer blanks the ticker (future times
+                    are clamped to now, absurd ones still rejected), a backward clock jump is handled,
+                    prices below 1/11 of the previous close are dropped, items fit a 390px phone, a bigger
+                    "closed" mark, a little less slack between price and percent, small leftovers.
+                     Live crypto now starts as soon as the symbol list is read, even when ticker.json is missing,
+                     broken or unreachable (review follow-up).
+  Rev3  2026-11-16  Redo of the Rev2 rewrite after review. Rejects times more than 10 minutes in the
+                    future and out-of-range numbers, item by item, in new data and in the saved copy
+                    (a bad saved copy is removed). Each request gives up after 20 seconds, polling
+                    can no longer stop or stack. Pinned block is tighter so the 108px bar shows
+                    bigger text. Fixed width arrow and percent slot, clearer "closed" mark and group
+                    names, cleaner first offline start. Long lists trimmed to 60, at most 3 pinned.
+  Rev2  2026-11-16  Rewritten. No more TradingView widget: no outside script, font or image.
+                    Prices come from ticker.json (published by the data relay), the symbol list
+                    from ticker-symbols.json. Starts at once from the copy saved in the browser,
+                    refreshes in the background (same design as headlines Rev12). Smooth
+                    graphics-side scroll, pinned indexes on the left, tiny day charts, change
+                    flash, closed and stale states. All sizes follow the page height.
+  Rev1              Version as moved from the previous repository (TradingView widget).
+-->
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: #000;
-    overflow: hidden;
-  }
+:root{
+  --u: 32px;                 /* one unit, set from the page height by the script */
+  --up: #34d27b;
+  --dn: #ff5a5f;
+  --fl: #8a8f98;
+  --nm: #9aa0a6;
+  --amber: #ffb020;
+}
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  background: #000; color: #fff; overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+}
+.bar { position: relative; width: 100%; height: 100%; display: flex; align-items: center; background: #000; }
 
-  :root{
-    --zone-height: 110px;
+/* Left fixed block */
+.left { flex: 0 0 auto; display: flex; align-items: center; height: 100%; padding-left: calc(var(--u) * .25);
+        padding-right: calc(var(--u) * .25); position: relative; z-index: 3; background: #000; white-space: nowrap; }
+.left .it { margin-right: calc(var(--u) * .4); padding: 0 calc(var(--u) * .1); }
+.left .nmc, .left .pr { margin-right: calc(var(--u) * .2); }
+.chip { flex: 0 0 auto; font-size: calc(var(--u) * .34); line-height: 1; color: var(--nm); font-weight: 600;
+        border: 1px solid #333; border-radius: calc(var(--u) * .3); padding: calc(var(--u) * .12) calc(var(--u) * .35);
+        white-space: nowrap; }
+.chip.amber { color: var(--amber); border-color: var(--amber); }
 
-    /* Zoom control */
-    --scale: 1.6;     /* try 2.2 to 3.0 */
+/* Scrolling part */
+.track { position: relative; flex: 1 1 auto; min-width: 0; height: 100%; overflow: hidden; }
+.track::before, .track::after { content: ""; position: absolute; top: 0; bottom: 0; width: calc(var(--u) * 2);
+        z-index: 2; pointer-events: none; }
+.track::before { left: 0; background: linear-gradient(to right, #000, rgba(0,0,0,0)); }
+.track::after { right: 0; background: linear-gradient(to left, #000, rgba(0,0,0,0)); }
+.strip { position: absolute; left: 0; top: 0; height: 100%; display: flex; align-items: center; white-space: nowrap; will-change: transform; }
+.copy { display: flex; align-items: center; flex: 0 0 auto; }
 
-    /* Prevent side clipping by shrinking the effective viewport */
-    --safe-inset: 10px; /* try 80 to 160 */
-  }
+/* Group label with thin divider */
+.gd { flex: 0 0 auto; display: flex; align-items: center; margin: 0 calc(var(--u) * .9) 0 calc(var(--u) * .1); }
+.gd i { display: block; width: 1px; height: calc(var(--u) * .62); background: #4a4a4a; margin-right: calc(var(--u) * .45); }
+.gd b { font-size: calc(var(--u) * .34); font-weight: 700; color: #a3a8ae; text-transform: uppercase; letter-spacing: .06em; }
 
-  .zone {
-    width: 100vw;
-    height: var(--zone-height);
-    background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
+/* One item */
+.it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .9);
+      padding: 0 calc(var(--u) * .25); border-radius: calc(var(--u) * .3); white-space: nowrap; }
+.nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); }
+.nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
+.cl { position: absolute; left: 0; top: calc(100% - var(--u) * .04); font-size: calc(var(--u) * .31); font-weight: 700; line-height: .9; color: #d2d6da; visibility: hidden; letter-spacing: .05em; text-transform: uppercase; }
+.pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .22); }
+/* Change box has a fixed minimum width (arrow plus a 7ch percent slot), content right aligned,
+   so the arrow stays next to the number and a longer percent never moves a neighbour */
+.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(7ch + .87em);
+      font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
+.ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
+.pt { display: inline-block; text-align: right; }
+.sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
+.sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
+.dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
 
-  /* Inner frame is narrower than the full zone so edges never clip */
-  .frame {
-    width: calc(100vw - var(--safe-inset));
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* States */
+.it.closed { opacity: .72; }
+.it.closed .cl { visibility: visible; }
+.it.stale, .it.old { opacity: .5; }
+.it.stale .sp, .it.old .sp { visibility: hidden; }
+.it.old .ch { visibility: hidden; }
 
-  /* Scale centered, then compensate size so it still fits */
-  .scale {
-    transform: scale(var(--scale));
-    transform-origin: center center;
-  }
+/* Change flash: a soft glow that does not change the layout */
+@keyframes glowUp { 0% { background: rgba(52,210,123,.38); box-shadow: 0 0 calc(var(--u) * .5) rgba(52,210,123,.55); }
+                    100% { background: rgba(52,210,123,0); box-shadow: 0 0 0 rgba(52,210,123,0); } }
+@keyframes glowDn { 0% { background: rgba(255,90,95,.38); box-shadow: 0 0 calc(var(--u) * .5) rgba(255,90,95,.55); }
+                    100% { background: rgba(255,90,95,0); box-shadow: 0 0 0 rgba(255,90,95,0); } }
+.it.fu { animation: glowUp .8s ease-out 1; }
+.it.fd { animation: glowDn .8s ease-out 1; }
 
-  .scaleInner {
-    width: calc((100vw - var(--safe-inset)) / var(--scale));
-    height: calc(var(--zone-height) / var(--scale));
-  }
+/* Narrow screens (phone): indexes move into the scroll, left block is only the clock chip */
+.narrow-only { display: none; }
+body.narrow .narrow-only { display: flex; }
+body.narrow .left .it { display: none; }
+body:not(.narrow) .strip .it.pcl { display: none; }
+body.narrow .track::before, body.narrow .track::after { width: calc(var(--u) * .6); }
 
-  .tradingview-widget-container,
-  .tradingview-widget-container__widget {
-    width: 100%;
-    height: 100%;
-  }
+.msg { position: absolute; left: calc(var(--u) * .5); top: 0; bottom: 0; z-index: 4; display: none; align-items: center;
+       font-size: calc(var(--u) * .42); color: #8a8f98; white-space: nowrap; }
 </style>
 </head>
-
 <body>
-  <div class="zone">
-    <div class="frame">
-      <div class="scale">
-        <div class="scaleInner">
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-
-            <script src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-            {
-              "symbols": [
-				{ "proName": "NASDAQ:AAPL", "title": "AAPL" },
-				{ "proName": "NASDAQ:AMD", "title": "AMD" },
-				{ "proName": "NASDAQ:AMZN", "title": "Amazon" },
-				{ "proName": "NASDAQ:GOOGL", "title": "Alphabet" },
-				{ "proName": "NASDAQ:INTC", "title": "Intel" },
-				{ "proName": "NASDAQ:INTZ", "title": "Intrusion" },				  
-				{ "proName": "NASDAQ:META", "title": "Meta" },
-				{ "proName": "NASDAQ:MSFT", "title": "MSFT" },
-				{ "proName": "NASDAQ:NVDA", "title": "NVDA" },
-				{ "proName": "NASDAQ:TSLA", "title": "Tesla" },
-				{ "proName": "FX:EURUSD", "title": "EUR/USD" },
-				{ "proName": "TVC:GOLD", "title": "Gold" },
-				{ "proName": "TVC:SILVER", "title": "Silver" },
-				{ "proName": "TVC:USOIL", "title": "WTI Oil" },
-				{ "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
-				{ "proName": "BITSTAMP:ETHUSD", "title": "Ethereum" },
-				{ "proName": "BINANCE:ADAUSDT", "title": "Cardano" },
-				{ "proName": "BINANCE:DOGEUSDT", "title": "Dogecoin" },
-				{ "proName": "BINANCE:SOLUSDT", "title": "Solana" },
-				{ "proName": "BINANCE:XRPUSDT", "title": "XRP" },
-				{ "proName": "AMEX:DIA", "title": "Dow" },
-				{ "proName": "NASDAQ:QQQ", "title": "Nasdaq 100" },
-				{ "proName": "AMEX:SPY", "title": "S&P 500" },
-				{ "proName": "AMEX:EEM", "title": "Emerging Markets" }				
-              ],
-              "showSymbolLogo": true,
-              "isTransparent": true,
-              "displayMode": "compact",
-              "colorTheme": "dark",
-              "locale": "en"
-            }
-            </script>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="bar" id="bar">
+  <div class="left" id="left"><span class="chip" id="chip" aria-live="off" style="display:none">as of --:--</span></div>
+  <div class="track" id="track">
+    <div class="strip" id="strip"></div>
   </div>
+  <div class="msg" id="msg">Prices will appear when online</div>
+</div>
+
+<script>
+/* =========================================================
+   Ticker Rev4
+
+   Same design as headlines Rev12: the ticker never waits on the network.
+   - Symbols come from ticker-symbols.json, prices from ticker.json (published by the data relay).
+   - The last good copy is kept in the browser and drawn at once at start.
+   - New data is fetched in the background; the strip is never rebuilt while visible, prices are
+     changed in place. A changed symbol list is applied at the end of a pass.
+   - The scroll is a Web Animations transform animation (graphics side), not script driven.
+   - Crypto is also live from Coinbase's public stream; if that is down or unavailable, ticker.json
+     carries the coins as before.
+   ========================================================= */
+
+const SPEED = 50;                 /* CSS px per second, constant */
+const CHECK_SECONDS = 60;         /* look for new prices every minute */
+const RETRY_SECONDS = 30;         /* after a failed fetch */
+const STALE_MIN = 20;             /* open market, price older than this: stale */
+const OLD_HOURS = 24;             /* older than this: percent hidden */
+const MAX_ITEMS = 60;              /* longer symbol lists are cut to the first 60 valid items */
+const MAX_PINNED = 3;              /* only the first 3 pinned items go in the fixed left block */
+const MAX_POINTS = 80;
+const MAX_PRICE = 1e9;
+const MAX_RATIO = 11;              /* price 11 times the previous close or more (or 1/11 or less): rejected */
+const MIN_TIME = 946684800;        /* 2000-01-01: any earlier time is not plausible */
+const FUTURE_SECONDS = 7 * 86400;  /* times up to 7 days ahead are clamped to now, further ahead are rejected */
+const FETCH_TIMEOUT_MS = 20000;    /* each request gives up after 20 seconds */
+const STUCK_MS = 45000;            /* a poll older than this is treated as dead (page frozen meanwhile) */
+const MAX_NAME = 24;
+const U_MAX = 108;
+const NARROW_PX = 900;
+const CACHE_KEY = "ticker_cache_v1";
+const GROUPS = ["Indexes", "Stocks", "FX and commodities", "Crypto"];
+
+const $ = (id) => document.getElementById(id);
+const barEl = $("bar"), leftEl = $("left"), chipEl = $("chip"), trackEl = $("track"), stripEl = $("strip"), msgEl = $("msg");
+
+/* ---------- where things live ---------- */
+function publishedUrl() {
+  let owner = "dmo18", repo = "dv";
+  if (location.hostname.endsWith(".github.io")) {
+    owner = location.hostname.split(".")[0];
+    repo = location.pathname.split("/").filter(Boolean)[0] || repo;
+  }
+  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/ticker-data/ticker.json";
+}
+/* Test override: ?data=<relative path or same-origin URL>. Anything else is ignored. */
+function dataUrl() {
+  try {
+    const q = new URLSearchParams(location.search).get("data");
+    if (q) {
+      const u = new URL(q, location.href);
+      if (u.origin === location.origin) return u.href;
+    }
+  } catch (e) {}
+  return publishedUrl();
+}
+
+/* ---------- validation ---------- */
+const isNum = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
+const isPrice = (v) => isNum(v) && v < MAX_PRICE;
+/* a plausible epoch in seconds: after 2000 and not absurdly far ahead. A time a little ahead
+   (a PC clock that runs behind) is plausible too, it is clamped to now with clampNow. */
+const isTime = (v) => isNum(v) && v > MIN_TIME && v <= Date.now() / 1000 + FUTURE_SECONDS;
+const clampNow = (v) => Math.min(v, Date.now() / 1000);
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const isObj = (o) => o !== null && typeof o === "object" && !Array.isArray(o);
+
+/* Returns a list of {id,name,group,decimals,pinned,cb} (cb: Coinbase product id or "") or null. Keeps the first 60 valid items. */
+function validateSymbols(raw) {
+  if (!isObj(raw) || !Array.isArray(raw.items) || raw.items.length === 0) return null;
+  const out = [], seen = new Set();
+  let pins = 0;
+  for (const it of raw.items) {
+    if (out.length >= MAX_ITEMS) break;
+    if (!isObj(it) || typeof it.id !== "string" || !it.id || it.id.length > 40 || seen.has(it.id)) continue;
+    if (typeof it.name !== "string" || !it.name) continue;
+    if (GROUPS.indexOf(it.group) < 0) continue;
+    const dec = Number.isInteger(it.decimals) && it.decimals >= 0 && it.decimals <= 8 ? it.decimals : 2;
+    seen.add(it.id);
+    const pinned = it.pinned === true && pins < MAX_PINNED;
+    if (pinned) pins++;
+    const cb = it.source === "coinbase" && typeof it.symbol === "string" && /^[A-Z0-9]{2,10}-[A-Z]{3,5}$/.test(it.symbol) ? it.symbol : "";
+    out.push({ id: it.id, name: it.name.slice(0, MAX_NAME), group: it.group, decimals: dec, pinned, cb });
+  }
+  return out.length ? out : null;
+}
+
+/* One price entry. Returns a clean copy or null. s: an array, or undefined when absent.
+   t is clamped to now, rt keeps the time as received. */
+function validateEntry(e) {
+  if (!isObj(e) || !isPrice(e.p) || !isPrice(e.pc) || !isTime(e.t) || typeof e.open !== "boolean") return null;
+  if (e.p / e.pc >= MAX_RATIO || e.pc / e.p >= MAX_RATIO) return null;
+  let s;
+  if (e.s !== undefined && e.s !== null) {
+    if (!Array.isArray(e.s) || e.s.length > MAX_POINTS || !e.s.every(isPrice)) return null;
+    s = e.s.slice();
+  }
+  return { p: e.p, pc: e.pc, t: clampNow(e.t), rt: e.t, open: e.open, s };
+}
+
+/* Returns {generated (clamped to now), raw (as received), items: Map id -> entry} or null. Bad single items are skipped.
+   Only ids from the symbol list (at most 60) are looked at, extra keys are ignored. */
+function validateData(raw, ids) {
+  if (!isObj(raw) || !isTime(raw.generated) || !isObj(raw.items)) return null;
+  const items = new Map();
+  for (const id of ids) {
+    if (!has(raw.items, id)) continue;
+    const e = validateEntry(raw.items[id]);
+    if (e) items.set(id, e);
+  }
+  return items.size ? { generated: clampNow(raw.generated), raw: raw.generated, items } : null;
+}
+
+/* ---------- saved copy ---------- */
+function saveCache(list, generated, items) {
+  try {
+    const o = {};
+    items.forEach((e, id) => { o[id] = { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s }; });
+    const sy = list.map((s) => ({ id: s.id, name: s.name, group: s.group, decimals: s.decimals, pinned: s.pinned,
+                                  source: s.cb ? "coinbase" : "other", symbol: s.cb || undefined }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: { version: 1, items: sy }, data: { generated, items: o } }));
+  } catch (e) {}
+}
+function dropCache() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
+function loadCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); }
+  catch (e) { dropCache(); return null; }   /* not valid JSON: remove it */
+}
+
+/* ---------- formatting ---------- */
+const nfs = {};
+function fmtPrice(v, dec) {
+  const f = nfs[dec] || (nfs[dec] = new Intl.NumberFormat("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }));
+  return f.format(v);
+}
+function fmtStamp(sec) {
+  if (!isTime(sec)) return "--:--";
+  const d = new Date(clampNow(sec) * 1000), n = new Date();
+  if (!Number.isFinite(d.getTime())) return "--:--";
+  const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  if (d.toDateString() === n.toDateString()) return hm;
+  return d.toLocaleDateString("en-US", { weekday: "short" }) + " " + hm;
+}
+function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
+
+/* ---------- in-memory store and what is on screen ---------- */
+let symbols = [];                 /* validated symbol list (latest) */
+const store = new Map();          /* id -> {p, pc, t, open, s} */
+let feedGenerated = 0;            /* time of the newest file, clamped to now */
+let feedRaw = 0;                  /* the same time as received (to tell a new file from the same one again) */
+let feedSeen = 0;                 /* newest clamped time of a file that came from the network (order guard; the
+                                     saved copy never blocks a new file) */
+let lastClock = Date.now() / 1000;
+let shownSig = "";                /* structure currently drawn */
+let els = new Map();              /* id -> [views] */
+let copyCount = 2;
+let narrow = false;
+
+function classify(e) {
+  const now = Date.now() / 1000;
+  const age = Math.max(0, now - e.t), feedAge = Math.max(0, now - feedGenerated);
+  const old = e.open ? age > OLD_HOURS * 3600 : feedAge > OLD_HOURS * 3600;
+  const stale = !old && e.open && age > STALE_MIN * 60;
+  const closed = !old && !e.open;
+  return { old, stale, closed };
+}
+
+function paint(v, e) {
+  const pct = (e.p - e.pc) / e.pc * 100;
+  const r = Math.round(pct * 100) / 100;
+  const dir = r > 0 ? "up" : r < 0 ? "dn" : "fl";
+  setText(v.pr, fmtPrice(e.p, v.dec));
+  /* 100 percent or more is shown without decimals, so it fits the same 7ch slot */
+  setText(v.pt, (r > 0 ? "+" : "") + r.toFixed(Math.abs(r) >= 100 ? 0 : 2) + "%");
+  setText(v.ar, dir === "up" ? "▲" : dir === "dn" ? "▼" : "▶");
+  const c = v.root.classList;
+  c.toggle("up", dir === "up"); c.toggle("dn", dir === "dn"); c.toggle("fl", dir === "fl");
+  const st = classify(e);
+  c.toggle("old", st.old); c.toggle("stale", st.stale); c.toggle("closed", st.closed);
+  if (v.sp && v.lastS !== e.s) {
+    v.lastS = e.s;
+    const s = e.s, n = s.length;
+    if (n < 2) { v.sp.style.display = "none"; }
+    else {
+      v.sp.style.display = "";
+      let mn = Infinity, mx = -Infinity;
+      for (const x of s) { if (x < mn) mn = x; if (x > mx) mx = x; }
+      const span = mx - mn || 1;
+      let pts = "";
+      for (let i = 0; i < n; i++) pts += (i / (n - 1) * 44).toFixed(1) + "," + (13 - (s[i] - mn) / span * 12).toFixed(1) + " ";
+      v.poly.setAttribute("points", pts.trim());
+    }
+  }
+}
+
+function updateChip() {
+  let newest = 0, newestOpen = 0;
+  store.forEach((e, id) => { if (!els.has(id)) return; if (e.t > newest) newest = e.t; if (e.open && e.t > newestOpen) newestOpen = e.t; });
+  if (!newest) return;
+  const now = Date.now() / 1000;
+  const amber = (newestOpen > 0 && now - newestOpen > STALE_MIN * 60) || now - feedGenerated > OLD_HOURS * 3600;   /* newest* are clamped to now when stored */
+  setText(chipEl, "as of " + fmtStamp(newest));
+  chipEl.classList.toggle("amber", amber);
+}
+
+function flash(views, dir) {
+  const cls = dir === "up" ? "fu" : "fd";
+  for (const v of views) v.root.classList.remove("fu", "fd");
+  void barEl.offsetWidth;
+  for (const v of views) v.root.classList.add(cls);
+}
+
+/* If the PC clock jumped backward, times stored earlier would be "in the future" and nothing would
+   look stale or old again for a long time. Pull them back to now. */
+function watchClock() {
+  const now = Date.now() / 1000;
+  if (now < lastClock - 30) {
+    store.forEach((e) => { if (e.t > now) e.t = now; });
+    if (feedGenerated > now) feedGenerated = now;
+    if (feedSeen > now) feedSeen = now;
+    cbAppend.forEach((t, id) => { if (t > now) cbAppend.set(id, now); });
+  }
+  lastClock = now;
+}
+
+/* The single entry point for a price (file and live stream). src is "file" (default) or "ws".
+   Every value is checked here, so nothing unchecked can reach the screen.
+   When the stream and the file both have a coin, the one with the newer time wins.
+   Returns true when the price was taken, false when it was refused. */
+function applyPrice(id, d, src) {
+  src = src === "ws" ? "ws" : "file";
+  watchClock();
+  const v = validateEntry(d);
+  if (!v) return false;
+  const prev = store.get(id);
+  if (prev && v.t < prev.t && (src === "ws" || prev.src === "ws")) return false;
+  /* the same time as received again (a file read twice): keep the time first used, so a dead feed still ages */
+  const t = prev && prev.rt === v.rt && prev.src === src ? prev.t : v.t;
+  const e = { p: v.p, pc: v.pc, t, rt: v.rt, open: v.open, s: v.s || (prev && prev.s) || [], src };
+  store.set(id, e);
+  const views = els.get(id);
+  if (!views) return true;
+  for (const w of views) paint(w, e);
+  if (prev && prev.p !== e.p) flash(views, e.p > prev.p ? "up" : "dn");
+  updateChip();
+  return true;
+}
+
+/* Re-evaluate stale and closed states as time passes */
+function refreshStates() {
+  watchClock();
+  els.forEach((views, id) => {
+    const e = store.get(id);
+    if (!e) return;
+    const st = classify(e);
+    for (const v of views) {
+      const c = v.root.classList;
+      c.toggle("old", st.old); c.toggle("stale", st.stale); c.toggle("closed", st.closed);
+    }
+  });
+  updateChip();
+}
+
+/* ---------- building the strip ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
+  const root = document.createElement("span");
+  root.className = "it" + (kind === "clone" ? " pcl" : "");
+  root.dataset.id = sym.id;
+  const nmc = document.createElement("span"); nmc.className = "nmc";
+  const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = sym.name;
+  const cl = document.createElement("span"); cl.className = "cl"; cl.textContent = "closed";
+  nmc.appendChild(nm); nmc.appendChild(cl);
+  const pr = document.createElement("span"); pr.className = "pr";
+  /* reserve room for one more whole digit, and the comma that may come with it:
+     size of the smallest number with one more digit (271.30 -> "1,000.00").
+     Digits are 1ch each, commas and points are counted as half a digit. */
+  const ip = Math.floor(store.get(sym.id).p);
+  const txt = fmtPrice(Math.pow(10, ip >= 1 ? String(ip).length : 1), sym.decimals);
+  const digits = txt.replace(/[^0-9]/g, "").length;
+  pr.style.minWidth = (digits + (txt.length - digits) * 0.5) + "ch";
+  const ch = document.createElement("span"); ch.className = "ch";
+  const ar = document.createElement("span"); ar.className = "ar";
+  const pt = document.createElement("span"); pt.className = "pt";
+  ch.appendChild(ar); ch.appendChild(pt);
+  root.appendChild(nmc); root.appendChild(pr); root.appendChild(ch);
+  const v = { root, pr, pt, ar, dec: sym.decimals, sp: null, poly: null, lastS: null };
+  if (kind !== "pin") {
+    const sp = document.createElementNS(SVGNS, "svg");
+    sp.setAttribute("class", "sp"); sp.setAttribute("viewBox", "0 0 44 14"); sp.setAttribute("preserveAspectRatio", "none");
+    const poly = document.createElementNS(SVGNS, "polyline");
+    sp.appendChild(poly); root.appendChild(sp);
+    v.sp = sp; v.poly = poly;
+  }
+  return v;
+}
+
+function displayed() {   /* symbols that have a price */
+  return symbols.filter((s) => store.has(s.id));
+}
+function sigOf(list) {
+  return list.map((s) => [s.id, s.name, s.group, s.decimals, s.pinned ? 1 : 0].join("|")).join("~");
+}
+
+function addViews(id, v) { const a = els.get(id); if (a) a.push(v); else els.set(id, [v]); }
+
+/* Draws everything. Only called before the first pass, at the end of a pass, or on resize. */
+function buildStructure() {
+  const list = displayed();
+  shownSig = sigOf(list);
+  els = new Map();
+  /* prune prices of symbols no longer listed */
+  const keep = new Set(symbols.map((s) => s.id));
+  Array.from(store.keys()).forEach((k) => { if (!keep.has(k)) store.delete(k); });
+
+  while (leftEl.firstChild !== chipEl) leftEl.removeChild(leftEl.firstChild);
+  stripEl.textContent = "";
+  msgEl.style.display = list.length ? "none" : "flex";
+  if (!list.length) { chipEl.style.display = "none"; return; }   /* first offline start: only the message */
+  chipEl.style.display = "";
+
+  const pinned = list.filter((s) => s.pinned);
+  for (const s of pinned) { const v = makeItem(s, "pin"); leftEl.insertBefore(v.root, chipEl); addViews(s.id, v); }
+
+  for (let k = 0; k < copyCount; k++) {
+    const copy = document.createElement("div"); copy.className = "copy";
+    for (const g of GROUPS) {
+      const items = list.filter((s) => s.group === g);
+      if (!items.length) continue;
+      const allPinned = items.every((s) => s.pinned);
+      const gd = document.createElement("div"); gd.className = "gd" + (allPinned ? " narrow-only" : "");
+      gd.appendChild(document.createElement("i"));
+      const b = document.createElement("b"); b.textContent = g; gd.appendChild(b);
+      copy.appendChild(gd);
+      for (const s of items) {
+        const v = makeItem(s, s.pinned ? "clone" : "strip");
+        copy.appendChild(v.root); addViews(s.id, v);
+      }
+    }
+    stripEl.appendChild(copy);
+  }
+  els.forEach((views, id) => { const e = store.get(id); for (const v of views) paint(v, e); });
+  updateChip();
+}
+
+/* ---------- size and scroll ---------- */
+let anim = null, cycleMs = 0;
+
+function layout(offsetMs) {
+  const w = window.innerWidth, h = window.innerHeight;
+  narrow = w < NARROW_PX;
+  document.body.classList.toggle("narrow", narrow);
+  let u = Math.max(12, Math.min(h, U_MAX, narrow ? w / 11 : U_MAX));
+  document.documentElement.style.setProperty("--u", u + "px");
+  const lw = leftEl.getBoundingClientRect().width;
+  if (lw > w * 0.55) {
+    u = Math.max(10, u * (w * 0.55) / lw);
+    document.documentElement.style.setProperty("--u", u + "px");
+  }
+  /* Phone: the widest item must fit the clear part of the scroll area (the edge fades are .6 unit
+     each), so name, price and percent can be read together. Sizes are all in units, so scale. */
+  if (narrow) {
+    for (let k = 0; k < 4; k++) {
+      let ww = 0;
+      stripEl.querySelectorAll(".it").forEach((el) => { const x = el.getBoundingClientRect().width; if (x > ww) ww = x; });
+      const tw = trackEl.getBoundingClientRect().width;
+      if (!ww || ww + 1.2 * u <= tw) break;
+      u = Math.max(10, u * tw / (ww + 1.2 * u));
+      document.documentElement.style.setProperty("--u", u + "px");
+    }
+  }
+  startScroll(offsetMs || 0);
+}
+
+function startScroll(offsetMs) {
+  if (anim) { anim.cancel(); anim = null; }
+  const copy = stripEl.firstElementChild;
+  if (!copy) return;
+  let cw = copy.getBoundingClientRect().width;
+  if (cw < 10) return;
+  /* enough copies to cover the track while one scrolls out */
+  const need = Math.min(8, Math.max(2, Math.ceil(trackEl.getBoundingClientRect().width / cw) + 1));
+  if (need !== copyCount) { copyCount = need; buildStructure(); const c2 = stripEl.firstElementChild; if (!c2) return; cw = c2.getBoundingClientRect().width; }
+  cycleMs = cw / SPEED * 1000;
+  anim = stripEl.animate(
+    [{ transform: "translateX(0px)" }, { transform: "translateX(" + (-cw) + "px)" }],
+    { duration: cycleMs, iterations: Infinity, easing: "linear" }
+  );
+  if (offsetMs) anim.currentTime = offsetMs % cycleMs;
+  if (pendingSwap) scheduleSwap();
+}
+
+/* ---------- applying a changed symbol list at the end of a pass ---------- */
+let pendingSwap = false, swapTimer = 0;
+function scheduleSwap() {
+  clearTimeout(swapTimer);
+  if (!anim) { doSwap(); return; }
+  const t = Number(anim.currentTime) || 0;
+  const remaining = cycleMs - (t % cycleMs);
+  swapTimer = setTimeout(doSwap, remaining + 3);
+}
+function doSwap() {
+  if (!pendingSwap) return;
+  const t = anim ? Number(anim.currentTime) || 0 : 0;
+  const into = t % cycleMs;
+  if (anim && into > cycleMs / 2) { scheduleSwap(); return; }   /* fired early, wait for the boundary */
+  pendingSwap = false;
+  buildStructure();
+  layout(into);
+}
+
+/* ---------- taking in new data ---------- */
+/* Draws the strip if nothing is drawn yet, or plans a swap at the end of a pass if the list changed */
+function syncStructure() {
+  const sig = sigOf(displayed());
+  if (!shownSig && !els.size) {
+    if (sig) { buildStructure(); layout(0); }
+  } else if (sig !== shownSig) {
+    pendingSwap = true; scheduleSwap();
+  }
+}
+
+function ingest(symRaw, dataRaw) {
+  watchClock();
+  const sy = symRaw ? validateSymbols(symRaw) : null;
+  const list = sy || symbols;
+  if (!list.length) return false;
+  const dv = validateData(dataRaw, list.map((s) => s.id));
+  if (!dv) return false;
+  if (sy) { symbols = sy; liveSync(); }
+  /* the same file again keeps its time, so a feed that stopped still ages even if the PC clock is behind */
+  const gen = dv.raw === feedRaw ? feedGenerated : dv.generated;
+  if (gen < feedSeen) return true;                     /* older than the last file from the network: ignore */
+  const changed = gen > feedGenerated || !!sy;
+  feedGenerated = feedSeen = gen; feedRaw = dv.raw;
+  dv.items.forEach((e, id) => applyPrice(id, { p: e.p, pc: e.pc, t: e.rt, open: e.open, s: e.s }, "file"));
+  syncStructure();
+  if (changed) saveCache(symbols, feedGenerated, store);
+  return true;
+}
+
+/* ---------- background refresh ---------- */
+/* One poll at a time, one timer at a time. A request that never answers is aborted after
+   20 seconds. If the page was frozen or hidden for hours, a poll that looks stuck is replaced
+   and the single timer is reset, so polls never stack. */
+let fetching = false, pollTimer = 0, pollToken = 0, pollStarted = 0;
+async function getJson(url) {
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS) : 0;
+  try {
+    const res = await fetch(url, { cache: "no-store", signal: ctl ? ctl.signal : undefined });
+    if (!res.ok) throw new Error("http " + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function schedulePoll(sec) {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(checkForUpdate, sec * 1000);
+}
+async function checkForUpdate() {
+  if (fetching && Date.now() - pollStarted < STUCK_MS) return;
+  clearTimeout(pollTimer);
+  const my = ++pollToken;
+  fetching = true; pollStarted = Date.now();
+  let ok = false;
+  try {
+    let symRaw = null;
+    try { symRaw = await getJson("ticker-symbols.json"); } catch (e) { /* use what we have */ }
+    if (my !== pollToken) return;
+    /* The symbol list alone is enough to start the live crypto layer: it must not wait for ticker.json,
+       which can be missing, broken or unreachable (for example before the relay has published). */
+    const sy = symRaw ? validateSymbols(symRaw) : null;
+    if (sy) { symbols = sy; liveSync(); }
+    const dataRaw = await getJson(dataUrl());
+    if (my !== pollToken) return;
+    ok = ingest(symRaw, dataRaw);
+  } catch (e) {
+    /* offline, blocked, timed out or bad data: keep showing what we have */
+  } finally {
+    if (my === pollToken) {
+      fetching = false;
+      schedulePoll(ok ? CHECK_SECONDS : RETRY_SECONDS);
+    }
+  }
+}
+/* Back from hidden: look now if the last poll is long ago (the guard above prevents doubles) */
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - pollStarted > CHECK_SECONDS * 1000) checkForUpdate();
+});
+
+/* ---------- live crypto: Coinbase public stream plus Coinbase REST ---------- */
+/* The coins come from ticker-symbols.json (source "coinbase"). One socket at a time. Every message is
+   checked like file data and only ever reaches the screen through applyPrice (textContent). If the
+   stream is down or WebSocket does not exist, ticker.json carries the coins as before. */
+const WS_URL = "wss://ws-feed.exchange.coinbase.com";
+const REST_URL = "https://api.exchange.coinbase.com";
+const WS_MAX_CHARS = 4096;         /* a real message is about 600; anything bigger is ignored */
+const WS_SILENT_MS = 30000;        /* no message for 30 s while visible: half-open, reconnect */
+const WS_CONNECT_MS = 15000;       /* a connection that does not open in 15 s is dropped */
+const WS_WAIT_MIN = 2, WS_WAIT_MAX = 60;   /* reconnect waits in seconds: 2, 4, 8 ... 60 */
+const SERIES_STEP_S = 900;         /* a new chart point from live prices at most every 15 minutes */
+const REST_EVERY_MS = 3600000;     /* 24 hour open and day chart: at start and hourly */
+const REST_RETRY_MS = 300000;      /* after a failure: try again in 5 minutes */
+
+let cbMap = new Map();             /* Coinbase product id -> our item id */
+let cbSig = "";
+const cbOpen = new Map();          /* item id -> 24 hour open (previous close for the percent) */
+const cbAppend = new Map();        /* item id -> epoch seconds of the last chart point added */
+let ws = null, wsTimer = 0, wsTries = 0, wsLast = 0, wsStart = 0, wsWatchTimer = 0;
+let restTimer = 0, restBusy = false, restAgain = false;
+
+/* Coinbase sends numbers as plain decimal strings; anything else is not a number for us */
+const num = (v) => (typeof v === "string" && v.length <= 24 && /^\d+(\.\d+)?$/.test(v)) ? Number(v) : NaN;
+
+function dropSocket() {
+  const s = ws; ws = null;
+  if (s) { s.onopen = s.onmessage = s.onclose = s.onerror = null; try { s.close(); } catch (e) {} }
+}
+function wsDown() {
+  dropSocket();
+  clearTimeout(wsTimer);
+  if (!cbMap.size) return;
+  const wait = Math.min(WS_WAIT_MAX, WS_WAIT_MIN * Math.pow(2, wsTries));
+  wsTries++;
+  wsTimer = setTimeout(wsConnect, wait * 1000);
+}
+function wsConnect() {
+  clearTimeout(wsTimer); wsTimer = 0;
+  if (ws || !cbMap.size) return;
+  let s;
+  try { s = new WebSocket(WS_URL); } catch (e) { wsDown(); return; }
+  ws = s; wsStart = wsLast = performance.now();
+  s.onopen = () => {
+    if (ws !== s) return;
+    wsLast = performance.now();
+    try { s.send(JSON.stringify({ type: "subscribe", product_ids: Array.from(cbMap.keys()), channels: ["ticker_batch"] })); } catch (e) {}
+  };
+  s.onmessage = (ev) => { if (ws === s) onWsMessage(ev.data); };
+  s.onclose = s.onerror = () => { if (ws === s) wsDown(); };
+}
+function wsWatch() {
+  if (!ws) return;
+  const now = performance.now();
+  if (ws.readyState === 0) { if (now - wsStart > WS_CONNECT_MS) wsDown(); }
+  else if (!document.hidden && now - wsLast > WS_SILENT_MS) wsDown();
+}
+
+function wsGood() { wsTries = 0; wsLast = performance.now(); }
+function onWsMessage(d) {
+  if (typeof d !== "string" || d.length > WS_MAX_CHARS) return;
+  let m;
+  try { m = JSON.parse(d); } catch (e) { return; }
+  if (!isObj(m)) return;
+  if (m.type === "subscriptions") { wsGood(); return; }
+  if (m.type !== "ticker" || typeof m.product_id !== "string") return;
+  const id = cbMap.get(m.product_id);
+  if (!id) return;
+  const p = num(m.price);
+  const ts = typeof m.time === "string" && m.time.length <= 40 ? Date.parse(m.time) / 1000 : NaN;
+  if (!isPrice(p) || !isTime(ts)) return;
+  wsGood();
+  const prev = store.get(id);
+  const pc = cbOpen.get(id) || (prev && prev.pc);
+  if (!pc) return;
+  const hadView = els.has(id);
+  if (!applyPrice(id, { p, pc, t: ts, open: true }, "ws")) return;
+  if (!hadView) syncStructure();
+  addPoint(id, p);
+}
+
+/* new live prices extend the day chart, at most once per 15 minutes */
+function addPoint(id, p) {
+  const at = cbAppend.get(id);
+  const now = Date.now() / 1000;
+  const e = store.get(id);
+  if (at === undefined || !e || now - at < SERIES_STEP_S) return;
+  cbAppend.set(id, now);
+  setSeries(id, e.s.concat(p).slice(-MAX_POINTS));
+}
+function setSeries(id, s) {
+  const e = store.get(id);
+  if (!e) return;
+  e.s = s;
+  const views = els.get(id);
+  if (views) for (const v of views) paint(v, e);
+}
+
+/* REST: 24 hour open and the last 80 closes of 15 minute candles, same as the relay writes */
+async function restOne(prod, id) {
+  const q = encodeURIComponent(prod);
+  const st = await getJson(REST_URL + "/products/" + q + "/stats");
+  const open = isObj(st) ? num(st.open) : NaN;
+  if (isPrice(open)) {
+    cbOpen.set(id, open);
+    const e = store.get(id);
+    if (e && e.pc !== open) applyPrice(id, { p: e.p, pc: open, t: e.rt, open: e.open }, e.src);
+  }
+  const cs = await getJson(REST_URL + "/products/" + q + "/candles?granularity=900");
+  if (Array.isArray(cs)) {
+    const rows = [];
+    for (const r of cs.slice(0, 1000)) {
+      if (Array.isArray(r) && r.length >= 5 && isNum(r[0]) && isPrice(r[4])) rows.push([r[0], r[4]]);
+    }
+    rows.sort((a, b) => a[0] - b[0]);
+    const series = rows.slice(-MAX_POINTS).map((r) => r[1]);
+    if (series.length) { cbAppend.set(id, Date.now() / 1000); setSeries(id, series); }
+  }
+}
+async function restRun() {
+  clearTimeout(restTimer); restTimer = 0;
+  if (restBusy) { restAgain = true; return; }
+  restBusy = true; restAgain = false;
+  let ok = true;
+  try {
+    for (const [prod, id] of Array.from(cbMap)) {
+      if (cbMap.get(prod) !== id) continue;
+      try { await restOne(prod, id); } catch (e) { ok = false; }
+    }
+  } finally {
+    restBusy = false;
+    if (cbMap.size) restTimer = setTimeout(restRun, restAgain ? 0 : (ok ? REST_EVERY_MS : REST_RETRY_MS));
+  }
+}
+
+/* Called whenever the symbol list is set: follows ticker-symbols.json */
+function liveSync() {
+  if (typeof WebSocket !== "function") return;
+  const m = new Map();
+  for (const s of symbols) if (s.cb) m.set(s.cb, s.id);
+  const sig = Array.from(m).map((x) => x.join(">")).join("|");
+  if (sig === cbSig) return;
+  cbSig = sig; cbMap = m;
+  const ids = new Set(m.values());
+  Array.from(cbOpen.keys()).forEach((k) => { if (!ids.has(k)) cbOpen.delete(k); });
+  Array.from(cbAppend.keys()).forEach((k) => { if (!ids.has(k)) cbAppend.delete(k); });
+  dropSocket(); clearTimeout(wsTimer); wsTimer = 0;
+  if (!wsWatchTimer) wsWatchTimer = setInterval(wsWatch, 5000);
+  if (!m.size) { clearTimeout(restTimer); restTimer = 0; return; }
+  wsConnect();
+  restRun();
+}
+
+/* ---------- start ---------- */
+(function start() {
+  const c = loadCache();
+  let good = false;
+  if (c && isObj(c)) {
+    const sy = validateSymbols(c.symbols);
+    const dv = sy && isObj(c.data) ? validateData(c.data, sy.map((s) => s.id)) : null;
+    if (dv) {
+      good = true;
+      symbols = sy; feedGenerated = dv.generated; feedRaw = dv.raw;
+      dv.items.forEach((e, id) => store.set(id, { p: e.p, pc: e.pc, t: e.t, rt: e.rt, open: e.open, s: e.s || [], src: "file" }));
+      buildStructure();
+    }
+  }
+  if (c !== null && !good) dropCache();   /* a saved copy that fails the checks is thrown away */
+  if (!els.size) { msgEl.style.display = "flex"; chipEl.style.display = "none"; }
+  layout();
+  liveSync();
+  checkForUpdate();
+})();
+
+barEl.addEventListener("animationend", (ev) => { if (ev.target.classList) ev.target.classList.remove("fu", "fd"); });
+window.addEventListener("resize", () => layout(anim ? Number(anim.currentTime) || 0 : 0));
+setInterval(refreshStates, 30000);
+
+/* Self-update: every 5 minutes, reload if a newer Rev of this page has been published */
+const versionOf = (text) => (text.match(/<title>[^<]*\bRev(\d+)/i) || [])[1];
+const RUNNING_REV = versionOf("<title>" + document.title);
+let revChecking = false;
+setInterval(async () => {
+  if (revChecking) return;
+  revChecking = true;
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS) : 0;
+  try {
+    const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store", signal: ctl ? ctl.signal : undefined });
+    if (!r.ok) return;
+    const latest = versionOf(await r.text());
+    if (latest && RUNNING_REV && latest !== RUNNING_REV) location.reload();
+  } catch (e) { /* try again next time */ }
+  finally { clearTimeout(timer); revChecking = false; }
+}, 5 * 60 * 1000);
+</script>
 </body>
 </html>

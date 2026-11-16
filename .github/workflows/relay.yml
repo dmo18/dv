@@ -1,0 +1,120 @@
+name: Data relay
+
+# relay.yml Rev 2
+# Changelog:
+# - Rev 2: fixes after the review. Timing test inputs without chain_remaining
+#   now mean chain_remaining 0 (no successor, so a test chain cannot run on
+#   forever); the loop is started with exec so stop signals reach it; the
+#   script retries the successor start (3 attempts, one minute apart) and
+#   keeps the token off every command line (see relay_loop.py Rev 2).
+# - Rev 1: first version (plan task 2), with test inputs for a self-stopping
+#   successor chain (chain_remaining).
+#
+# One run stays alive for about 5.5 hours (.github/scripts/relay_loop.py).
+# Every 2 minutes it publishes ticker.json to the "ticker-data" branch, every
+# 15 minutes headlines.json to the "headlines-data" branch (each branch holds a
+# single commit that is replaced every time). When all markets are closed it
+# slows to every 15 minutes. 10 minutes before the end it starts its successor.
+# The concurrency group makes the successor wait until this run has ended, so
+# two relays never run at once. The schedule is only a safety net that restarts
+# the chain if it ever breaks. The inputs are for testing only.
+#
+# Test inputs: whole numbers only, checked here and again in relay_loop.py
+# (cycle_seconds 5-3600, run_minutes 1-340, headlines_every_seconds 10-7200,
+# chain_remaining 0-10). They reach the script only through env vars, never
+# pasted into a command line. A run started with test inputs starts its
+# successor with the same inputs and chain_remaining minus 1; at 0 no
+# successor is started, so a test chain always stops itself. A timing input
+# (cycle_seconds, run_minutes, headlines_every_seconds) without
+# chain_remaining counts as chain_remaining 0: no successor. A run without
+# test inputs (normal and schedule) starts its successor with no inputs.
+#
+# Decisions taken in task 2: the previous ticker.json and headlines.json are
+# loaded from the data branches at start; headline failures do not count
+# toward the 20 failure limit; no successor is started after a failure exit
+# or a stop signal (the schedule restarts the chain).
+
+on:
+  workflow_dispatch:
+    inputs:
+      cycle_seconds:
+        description: "Seconds between price fetches (test only, empty = 120)"
+        required: false
+        default: ""
+        type: string
+      run_minutes:
+        description: "Run length in minutes (test only, empty = 330)"
+        required: false
+        default: ""
+        type: string
+      headlines_every_seconds:
+        description: "Seconds between headline fetches (test only, empty = 900)"
+        required: false
+        default: ""
+        type: string
+      chain_remaining:
+        description: "Successors still to start in a test chain (test only, 0-10, empty = no limit)"
+        required: false
+        default: ""
+        type: string
+      successor:
+        description: "Start the next run before this one ends"
+        required: false
+        default: "yes"
+        type: choice
+        options: ["yes", "no"]
+  schedule:
+    - cron: "23 */5 * * *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: relay
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Run the relay
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_REPO: ${{ github.repository }}
+          IN_CYCLE: ${{ inputs.cycle_seconds }}
+          IN_RUN: ${{ inputs.run_minutes }}
+          IN_HEADLINES: ${{ inputs.headlines_every_seconds }}
+          IN_CHAIN: ${{ inputs.chain_remaining }}
+          IN_SUCCESSOR: ${{ inputs.successor }}
+        run: |
+          # Each test input must be empty or a whole number within its bounds.
+          check() {
+            if [ -n "$2" ]; then
+              if ! [[ "$2" =~ ^[0-9]{1,5}$ ]] || (( 10#$2 < $3 || 10#$2 > $4 )); then
+                echo "Bad input $1: whole number from $3 to $4 expected."
+                exit 1
+              fi
+            fi
+          }
+          check cycle_seconds "$IN_CYCLE" 5 3600
+          check run_minutes "$IN_RUN" 1 340
+          check headlines_every_seconds "$IN_HEADLINES" 10 7200
+          check chain_remaining "$IN_CHAIN" 0 10
+          # A timing input without a chain length: no successor (chain 0).
+          if [ -z "$IN_CHAIN" ] && [ -n "$IN_CYCLE$IN_RUN$IN_HEADLINES" ]; then
+            export IN_CHAIN=0
+          fi
+          # The script reads the checked values from the env vars itself.
+          args=(--workdir "$RUNNER_TEMP/relay" --inputs-from-env)
+          if [ "$IN_SUCCESSOR" != "no" ]; then
+            args+=(--successor-command "gh workflow run relay.yml --ref main")
+          fi
+          # exec: the runner's stop signals go straight to the loop.
+          exec python3 .github/scripts/relay_loop.py "${args[@]}"
