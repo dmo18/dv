@@ -9,8 +9,9 @@
   and add a line here (newest first).
 
   Rev13  2026-11-16  Text sizes now follow the bar height (about 62 percent for the headline,
-                     30 percent for the source). Source and time sit on one line beside the
-                     headline, so the bar works at 40 px and at 72 px.
+                     35 percent for the source, 32 percent for the time in a lighter grey).
+                     Source and time sit on one line beside the headline, so the bar works at
+                     40 px and at 72 px.
   Rev12  2026-11-13  Redesigned so the ticker never waits on the network: it starts from the last
                      headlines saved in the browser, fetches updates in the background and swaps
                      them in between passes. Removed all timeouts, relay services and the
@@ -29,8 +30,8 @@
      Every size below is a fraction of it, so the bar looks the same at 40 px or 72 px. */
   --H: 40px;
   --fontSize: calc(var(--H) * 0.62);
-  --sourceSize: calc(var(--H) * 0.3);
-  --timeSize: calc(var(--H) * 0.27);
+  --sourceSize: calc(var(--H) * 0.35);
+  --timeSize: calc(var(--H) * 0.32);
   --gap: calc(var(--H) * 0.42);
   --dotSize: calc(var(--H) * 0.11);
   --padX: calc(var(--H) * 0.2);
@@ -125,7 +126,7 @@ html, body {
 }
 
 .time {
-  color: #7f8a96;
+  color: #9aa5b1;
   font-weight: 650;
   font-size: var(--timeSize);
   line-height: 1;
