@@ -3,6 +3,8 @@
 
 Changelog:
 - Rev 1: first version (plan task 2). One process is one "Data relay" run.
+  Test inputs for the successor chain (--inputs-from-env, see below).
+  Publish decision taken by fetch_prices.should_write() (fetch_prices Rev 4).
 
 What it does, in a loop, for about 5.5 hours:
 - every 2 minutes: fetch prices (fetch_prices.run) and publish ticker.json
@@ -26,6 +28,24 @@ Safety:
   everything at once.
 - 20 price cycles failing in a row: exit 1.
 
+Decisions taken during task 2 (accepted by the coordinator):
+- At start the previous ticker.json and headlines.json are loaded from the
+  data branches, so kept values and held jumps carry over between runs.
+- Headline failures are logged but do not count toward the 20 failure limit
+  (only price cycles count).
+- No successor is started after a failure exit or a stop signal; the
+  workflow's safety-net schedule restarts the chain.
+
+Test inputs (--inputs-from-env, used by relay.yml): the env vars IN_CYCLE,
+IN_RUN, IN_HEADLINES and IN_CHAIN hold the workflow_dispatch inputs
+cycle_seconds, run_minutes, headlines_every_seconds and chain_remaining.
+Each must be empty or a whole number within bounds (5-3600, 1-340, 10-7200,
+0-10), otherwise exit 2. Without any of them the successor is started with
+no inputs (plan defaults). With some, the successor gets the same inputs as
+separate -f arguments (no shell), chain_remaining minus 1; when
+chain_remaining is 0 no successor is started. Inputs only change timings,
+never which branches are pushed or which files are read.
+
 Python standard library only.
 Exit codes: 0 normal end or stopped by signal, 1 too many failures,
 2 bad arguments or unusable work folder, 3 watchdog.
@@ -35,6 +55,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -236,17 +257,24 @@ def bootstrap_previous(cfg, hard_end):
 
 def fetch_child(module_path, symbols, out_path, prev_path, deadline):
     """Runs in a child process: fetch_prices.run() and an atomic write.
-    Exit 0 if at least one item is fresh, 1 otherwise (file untouched)."""
+    Exit 0 if fetch_prices.should_write(doc), 1 otherwise or on a bad
+    symbols file (file untouched)."""
     spec = importlib.util.spec_from_file_location("fetch_prices", module_path)
     fp = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(fp)
     prev = prev_path if prev_path and os.path.exists(prev_path) else None
-    doc = fp.run(symbols, prev, (), deadline=float(deadline))
+    try:
+        doc = fp.run(symbols, prev, (), deadline=float(deadline))
+    except fp.SymbolsError as e:
+        print("symbols file unusable: %s" % str(e)[:100])
+        return 1
     fresh = sum(1 for v in doc.get("sources", {}).values()
                 if not str(v).startswith(("error", "kept")))
     total = len(doc.get("items", {}))
-    if fresh == 0:
-        print("nothing fresh, %d items" % total)
+    # fetch_prices decides: a fresh item, or a jump marker "h" set, changed
+    # or cleared, is worth saving.
+    if not fp.should_write(doc):
+        print("nothing to save, %d items" % total)
         return 1
     data = json.dumps(doc, separators=(",", ":"), allow_nan=False).encode("utf-8")
     fd, tmp = tempfile.mkstemp(prefix=".ticker-", suffix=".tmp",
@@ -429,13 +457,13 @@ def main_loop(cfg):
         "successor %s" % (cfg.cycle_seconds, cfg.slow_cycle_seconds,
                           cfg.headlines_every_seconds, cfg.run_minutes,
                           "at -%g min" % cfg.successor_lead_minutes
-                          if cfg.successor_command else "off"))
+                          if cfg.successor else "off"))
     bootstrap_previous(cfg, hard_end)
     ids = non_crypto_ids(cfg.symbols)
     ticker_path = os.path.join(cfg.workdir, "ticker.json")
     heads = Headlines(cfg)
     next_price = next_head = t0
-    successor_done = not cfg.successor_command
+    successor_done = not cfg.successor
     slow = False
     fails = 0
     code = 0
@@ -444,7 +472,7 @@ def main_loop(cfg):
             now = time.monotonic()
             if not successor_done and now >= succ_at:
                 successor_done = True
-                rc, out = run_cmd(shlex.split(cfg.successor_command),
+                rc, out = run_cmd(cfg.successor,
                                   SUCCESSOR_TIMEOUT, hard_end)
                 log("successor started" if rc == 0 else
                     "successor failed: %s" % short(out))
@@ -493,6 +521,44 @@ def main_loop(cfg):
     return code
 
 
+# name -> (env var, min, max). Values are whole numbers only.
+TEST_INPUTS = {
+    "cycle_seconds": ("IN_CYCLE", 5, 3600),
+    "run_minutes": ("IN_RUN", 1, 340),
+    "headlines_every_seconds": ("IN_HEADLINES", 10, 7200),
+    "chain_remaining": ("IN_CHAIN", 0, 10),
+}
+
+
+def read_test_inputs(env):
+    """Validated test inputs from env, {name: int}. ValueError(name) if bad."""
+    got = {}
+    for name, (var, lo, hi) in TEST_INPUTS.items():
+        raw = env.get(var, "")
+        if raw == "":
+            continue
+        if not re.fullmatch(r"[0-9]{1,5}", raw) or not lo <= int(raw) <= hi:
+            raise ValueError(name)
+        got[name] = int(raw)
+    return got
+
+
+def successor_args(cfg):
+    """The successor command as an argument list, or None for no successor."""
+    if not cfg.successor_command:
+        return None
+    args = shlex.split(cfg.successor_command)
+    inputs = dict(cfg.test_inputs)
+    if "chain_remaining" in inputs:
+        if inputs["chain_remaining"] <= 0:
+            return None
+        inputs["chain_remaining"] -= 1
+    for name in TEST_INPUTS:
+        if name in inputs:
+            args += ["-f", "%s=%d" % (name, inputs[name])]
+    return args
+
+
 def parse(argv):
     a = argparse.ArgumentParser(description="Data relay loop (one run).")
     a.add_argument("--cycle-seconds", type=float, default=120)
@@ -509,7 +575,20 @@ def parse(argv):
     a.add_argument("--feeds", default=os.path.join(ROOT, "headlines-feeds.json"))
     a.add_argument("--prices-module", default=os.path.join(HERE, "fetch_prices.py"))
     a.add_argument("--headlines-script", default=os.path.join(HERE, "fetch_headlines.py"))
+    a.add_argument("--inputs-from-env", action="store_true",
+                   help="read validated test inputs from IN_CYCLE, IN_RUN, "
+                        "IN_HEADLINES, IN_CHAIN")
     cfg = a.parse_args(argv)
+    cfg.test_inputs = {}
+    if cfg.inputs_from_env:
+        try:
+            cfg.test_inputs = read_test_inputs(os.environ)
+        except ValueError as e:
+            a.error("bad test input %s (whole number within bounds expected)" % e)
+        for name in ("cycle_seconds", "run_minutes", "headlines_every_seconds"):
+            if name in cfg.test_inputs:
+                setattr(cfg, name, float(cfg.test_inputs[name]))
+    cfg.successor = successor_args(cfg) if cfg.successor_command else None
     for name in ("cycle_seconds", "headlines_every_seconds", "run_minutes",
                  "slow_cycle_seconds"):
         v = getattr(cfg, name)

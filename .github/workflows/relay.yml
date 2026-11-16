@@ -2,7 +2,8 @@ name: Data relay
 
 # relay.yml Rev 1
 # Changelog:
-# - Rev 1: first version (plan task 2).
+# - Rev 1: first version (plan task 2), with test inputs for a self-stopping
+#   successor chain (chain_remaining).
 #
 # One run stays alive for about 5.5 hours (.github/scripts/relay_loop.py).
 # Every 2 minutes it publishes ticker.json to the "ticker-data" branch, every
@@ -12,6 +13,19 @@ name: Data relay
 # The concurrency group makes the successor wait until this run has ended, so
 # two relays never run at once. The schedule is only a safety net that restarts
 # the chain if it ever breaks. The inputs are for testing only.
+#
+# Test inputs: whole numbers only, checked here and again in relay_loop.py
+# (cycle_seconds 5-3600, run_minutes 1-340, headlines_every_seconds 10-7200,
+# chain_remaining 0-10). They reach the script only through env vars, never
+# pasted into a command line. A run started with test inputs starts its
+# successor with the same inputs and chain_remaining minus 1; at 0 no
+# successor is started, so a test chain always stops itself. A run without
+# test inputs (normal and schedule) starts its successor with no inputs.
+#
+# Decisions taken in task 2: the previous ticker.json and headlines.json are
+# loaded from the data branches at start; headline failures do not count
+# toward the 20 failure limit; no successor is started after a failure exit
+# or a stop signal (the schedule restarts the chain).
 
 on:
   workflow_dispatch:
@@ -28,6 +42,11 @@ on:
         type: string
       headlines_every_seconds:
         description: "Seconds between headline fetches (test only, empty = 900)"
+        required: false
+        default: ""
+        type: string
+      chain_remaining:
+        description: "Successors still to start in a test chain (test only, 0-10, empty = no limit)"
         required: false
         default: ""
         type: string
@@ -65,12 +84,24 @@ jobs:
           IN_CYCLE: ${{ inputs.cycle_seconds }}
           IN_RUN: ${{ inputs.run_minutes }}
           IN_HEADLINES: ${{ inputs.headlines_every_seconds }}
+          IN_CHAIN: ${{ inputs.chain_remaining }}
           IN_SUCCESSOR: ${{ inputs.successor }}
         run: |
-          args=(--workdir "$RUNNER_TEMP/relay")
-          if [ -n "$IN_CYCLE" ]; then args+=(--cycle-seconds "$IN_CYCLE"); fi
-          if [ -n "$IN_RUN" ]; then args+=(--run-minutes "$IN_RUN"); fi
-          if [ -n "$IN_HEADLINES" ]; then args+=(--headlines-every-seconds "$IN_HEADLINES"); fi
+          # Each test input must be empty or a whole number within its bounds.
+          check() {
+            if [ -n "$2" ]; then
+              if ! [[ "$2" =~ ^[0-9]{1,5}$ ]] || (( 10#$2 < $3 || 10#$2 > $4 )); then
+                echo "Bad input $1: whole number from $3 to $4 expected."
+                exit 1
+              fi
+            fi
+          }
+          check cycle_seconds "$IN_CYCLE" 5 3600
+          check run_minutes "$IN_RUN" 1 340
+          check headlines_every_seconds "$IN_HEADLINES" 10 7200
+          check chain_remaining "$IN_CHAIN" 0 10
+          # The script reads the checked values from the env vars itself.
+          args=(--workdir "$RUNNER_TEMP/relay" --inputs-from-env)
           if [ "$IN_SUCCESSOR" != "no" ]; then
             args+=(--successor-command "gh workflow run relay.yml --ref main")
           fi

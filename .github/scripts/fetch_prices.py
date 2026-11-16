@@ -311,7 +311,7 @@ def _fetch(req, timeout, started):
         finally:
             _live.pop(threading.get_ident(), None)
 
-    th = threading.Thread(target=work, daemon=True)
+    th = threading.Thread(target=work, daemon=True, name="fetch-prices-request")
     th.start()
     th.join(timeout + 0.5)
     if th.is_alive():
