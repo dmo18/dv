@@ -164,8 +164,9 @@ def publish(cfg, branch, src_path, message, hard_end):
         raise ValueError("refusing to push branch %r" % branch)
     name = BRANCHES[branch]
     started = time.monotonic()
-    tmp = tempfile.mkdtemp(prefix="pub-", dir=cfg.workdir)
+    tmp = None
     try:
+        tmp = tempfile.mkdtemp(prefix="pub-", dir=cfg.workdir)
         shutil.copyfile(src_path, os.path.join(tmp, name))
         env = git_env()
         steps = [
@@ -186,13 +187,18 @@ def publish(cfg, branch, src_path, message, hard_end):
     except OSError as e:
         return False, time.monotonic() - started, "local file error: %s" % e.strerror
     finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 def bootstrap_previous(cfg, hard_end):
     """Copy the published ticker.json and headlines.json into the work folder,
     so held jumps and kept values carry over from the previous run."""
-    tmp = tempfile.mkdtemp(prefix="boot-", dir=cfg.workdir)
+    try:
+        tmp = tempfile.mkdtemp(prefix="boot-", dir=cfg.workdir)
+    except OSError as e:
+        log("previous files not loaded: %s" % e.strerror)
+        return
     try:
         env = git_env()
         rc, out = run_cmd(["git", "init", "-q"], 20, hard_end, env=env, cwd=tmp)
@@ -215,8 +221,12 @@ def bootstrap_previous(cfg, hard_end):
             except ValueError:
                 log("previous %s is not valid JSON, ignored" % name)
                 continue
-            with open(os.path.join(cfg.workdir, name), "w", encoding="utf-8") as f:
-                f.write(out)
+            try:
+                with open(os.path.join(cfg.workdir, name), "w", encoding="utf-8") as f:
+                    f.write(out)
+            except OSError as e:
+                log("previous %s not saved: %s" % (name, e.strerror))
+                continue
             log("previous %s loaded from %s" % (name, branch))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -438,14 +448,21 @@ def main_loop(cfg):
                                   SUCCESSOR_TIMEOUT, hard_end)
                 log("successor started" if rc == 0 else
                     "successor failed: %s" % short(out))
-            heads.poll(hard_end)
+            try:
+                heads.poll(hard_end)
+            except Exception as e:
+                heads.close()
+                log("headlines step error: %s" % type(e).__name__)
             if now >= end:
                 break
             if now >= next_head and not heads.proc:
                 heads.start()
                 next_head = next_slot(next_head, cfg.headlines_every_seconds, now)
             if now >= next_price:
-                ok, msg = price_cycle(cfg, hard_end, cfg.cycle_seconds)
+                try:
+                    ok, msg = price_cycle(cfg, hard_end, cfg.cycle_seconds)
+                except Exception as e:
+                    ok, msg = False, "ticker step error: %s" % type(e).__name__
                 if _stop.is_set() and not ok:
                     break
                 fails = 0 if ok else fails + 1

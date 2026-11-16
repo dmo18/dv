@@ -19,6 +19,11 @@ Updated 2026-11-16.
   clock chip stays on the left; percent hides only when an open market price is over 24 hours old.
 - Encoder rule: every wallboard stream (main and backup, exact address) must also be in encoder.html.
 
+- Player Rev8 (task 6) passed independent review (integrity hashes match, 5 state timelines, 13.5 min runs, no
+  growth in timers). Library failure never leaves a silent black tile. Low findings kept: each restart of a dead
+  stream leaks about 0.6 MB (old, bounded by reload=60, so never set reload=0); a very long label with no spaces runs
+  off the tile; first 10 s after a recovery can show a high dropped-frames number (the wall's check view ignores it).
+
 ## Known issues
 See docs/TAKEOVER.md.
 
