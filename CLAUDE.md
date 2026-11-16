@@ -16,6 +16,11 @@ Static HTML wallboard (no build, no packages) on GitHub Pages. Target screen: 19
 - Never use em dashes or en dashes in text.
 - Plain language for the user, who works from a phone.
 
+## Tests must stay local
+- Never push, fetch from or dispatch against the real GitHub remote in a test. This sandbox adds real credentials to
+  github.com requests, so a "fake token" test still writes for real (it once replaced the live headlines for 7 minutes).
+- Test the relay and any git publishing only against a local bare repository; never pass a github.com URL.
+
 ## Do not touch
 - .github/workflows without testing the script locally first.
 - headlines-data branch (written by the workflow only).

@@ -35,6 +35,14 @@ Updated 2026-11-16.
   can stay open after a slow connect (harmless, the relay uses a child process), a symbols file with no usable
   items exits 1 not 2, and on a failed Yahoo batch EUR/USD, gold and silver should be fetched ahead of stocks.
 
+- Incident 2026-11-16 20:48 to 20:55 UTC: a reviewer's relay test pushed fake data to the real repo (one fake
+  headline on headlines-data, fake prices on a new ticker-data branch). Fixed within minutes: headlines refreshed by
+  hand (80 real headlines), ticker-data overwritten with an empty placeholder (the sandbox blocks branch deletion).
+  Rule added to CLAUDE.md: tests stay local.
+- Task 2 relay Rev2 passed the focused Fable re-check. Open low items for Rev3: two stop signals under 1 ms apart can
+  deadlock the handler (fix known, the runner sends them seconds apart), a run shorter than the 10 minute lead
+  starts its successor at second 0, headlines.yml still uses unpinned checkout@v4.
+
 ## Known issues
 See docs/TAKEOVER.md.
 
