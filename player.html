@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev6</title>
+<title>Universal Player Rev7</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -118,6 +118,8 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev7  2026-11-16  Captions 26% smaller (4.2vw to 3.1vw) with a mostly transparent background
+                  (85% to 20% dark) and a dark outline on the text for legibility.
 Rev6  2026-11-15  Closed captions: shown whenever a stream provides them (WebVTT or CEA-608/708,
                   found while playing), large white text on a dark box. cc=0 turns them off.
 Rev5  2026-11-15  "No signal" card instead of a black tile; backup stream (alt=); channel
@@ -214,9 +216,11 @@ html, body {
   max-width: 94%;
   box-sizing: border-box;
   padding: 0.15em 0.55em;
-  font: 600 clamp(12px, 4.2vw, 42px)/1.3 Arial, Helvetica, sans-serif;
+  font: 600 clamp(9px, 3.1vw, 31px)/1.3 Arial, Helvetica, sans-serif;
   color: #fff;
-  background: rgba(0, 0, 0, 0.85);
+  /* mostly transparent box; the dark outline keeps the white text readable on bright pictures */
+  background: rgba(0, 0, 0, 0.2);
+  text-shadow: 0 0 3px #000, 0 1px 3px #000, 0 0 7px rgba(0, 0, 0, 0.9);
   border-radius: 0.3em;
   text-align: center;
   pointer-events: none;
