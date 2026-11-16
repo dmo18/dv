@@ -79,6 +79,9 @@ HOSTS = {
     "frankfurter": ("api.frankfurter.dev", "frankfurter"),
     "coinbase": ("api.exchange.coinbase.com", "coinbase"),
 }
+LABEL_HOST = {"yahoo": "query1", "yahoo-single": "query1", "yahoo2": "query2",
+              "nasdaq": "nasdaq", "goldapi": "goldapi",
+              "frankfurter": "frankfurter", "coinbase": "coinbase"}
 ALLOWED_HOSTS = frozenset(h for h, _ in HOSTS.values())
 NY = None
 try:
@@ -102,11 +105,16 @@ class FetchError(Exception):
     pass
 
 
-class Blocked(FetchError):
+class Skip(FetchError):
+    """Not tried at all (blocked, deadline, cap, host stopped)."""
     pass
 
 
-class OutOfTime(FetchError):
+class Blocked(Skip):
+    pass
+
+
+class OutOfTime(Skip):
     pass
 
 
@@ -187,12 +195,17 @@ def install_opener():
     urllib.request.install_opener(urllib.request.build_opener(SafeRedirect()))
 
 
-def _read_capped(r):
-    reader = getattr(r, "read1", None) or r.read
+def _read_capped(r, started):
+    """Read at most MAX_BODY bytes. A real response is read in pieces so a
+    slow trickle is cut off after TIMEOUT seconds or at the deadline."""
+    reader = getattr(r, "read1", None)
+    if reader is None:
+        raw = r.read(MAX_BODY + 1)
+        if len(raw) > MAX_BODY:
+            raise FetchError("reply too big")
+        return raw
     chunks, size = [], 0
     while True:
-        if remaining() <= 0:
-            raise OutOfTime("deadline")
         c = reader(65536)
         if not c:
             break
@@ -200,15 +213,18 @@ def _read_capped(r):
         if size > MAX_BODY:
             raise FetchError("reply too big")
         chunks.append(c)
-        if reader is r.read and len(c) < 65536:
-            # plain read() returns everything it has; one more call ends it
-            continue
+        if time.time() - started > TIMEOUT:
+            raise FetchError("timeout")
+        if remaining() <= 0:
+            raise OutOfTime("deadline")
     return b"".join(chunks)
 
 
 def _fail(host_key, msg):
     _fails[host_key] = _fails.get(host_key, 0) + 1
-    raise FetchError(msg)
+    e = FetchError(msg)
+    e.counted = True
+    raise e
 
 
 def http_json(url, host_key, gap=0.0, budget=None):
@@ -220,10 +236,10 @@ def http_json(url, host_key, gap=0.0, budget=None):
         raise Blocked("blocked")
     for attempt in (0, 1):
         if _fails.get(host_key, 0) >= MAX_HOST_FAILS:
-            raise FetchError("host stopped after %d failures" % MAX_HOST_FAILS)
+            raise Skip("host stopped after %d failures" % MAX_HOST_FAILS)
         if budget is not None:
             if _budget.get(budget, 0) <= 0:
-                raise FetchError("request cap reached")
+                raise Skip("request cap reached")
             _budget[budget] -= 1
         if gap:
             wait = min(_last_call.get(host_key, 0) + gap - time.time(), gap)
@@ -234,7 +250,7 @@ def http_json(url, host_key, gap=0.0, budget=None):
         left = remaining()
         if left <= 0.5:
             raise OutOfTime("deadline")
-        _last_call[host_key] = time.time()
+        started = _last_call[host_key] = time.time()
         _sent[host_key] = _sent.get(host_key, 0) + 1
         req = urllib.request.Request(url, headers={
             "User-Agent": YAHOO_UA if host_key in ("query1", "query2") else UA,
@@ -242,7 +258,7 @@ def http_json(url, host_key, gap=0.0, budget=None):
             "Accept-Language": "en-US,en;q=0.9"})
         try:
             with urllib.request.urlopen(req, timeout=min(TIMEOUT, left)) as r:
-                raw = _read_capped(r)
+                raw = _read_capped(r, started)
             break
         except urllib.error.HTTPError as e:
             if e.code == 429 and attempt == 0 and host_key not in _retried:
@@ -259,7 +275,7 @@ def http_json(url, host_key, gap=0.0, budget=None):
                 time.sleep(delay)
                 continue
             _fail(host_key, "HTTP %s" % e.code)
-        except OutOfTime:
+        except Skip:
             raise
         except FetchError as e:
             _fail(host_key, str(e))
@@ -274,8 +290,8 @@ def http_json(url, host_key, gap=0.0, budget=None):
         except Exception as e:
             _fail(host_key, "network " + type(e).__name__)
     try:
-        if raw[:1].lstrip() == b"<" or raw.lstrip()[:1] == b"<":
-            raise ValueError("html")
+        if raw.lstrip()[:1] not in (b"{", b"["):
+            raise ValueError("not JSON")
         return json.loads(raw.decode("utf-8"))
     except (ValueError, UnicodeDecodeError, RecursionError):
         _fail(host_key, "not JSON")
@@ -430,17 +446,17 @@ def yahoo_chart(symbol, host):
 
 def nasdaq_item(symbol):
     last_err = "no data"
+    counted = None
     for ac in ("stocks", "etf"):
         url = ("https://api.nasdaq.com/api/quote/%s/chart?assetclass=%s"
                % (urllib.parse.quote(symbol, safe=""), ac))
         try:
             d = http_json(url, "nasdaq", gap=0.4)
-        except (OutOfTime, Blocked):
+        except Skip:
             raise
         except FetchError as e:
             last_err = str(e)
-            if str(e).startswith("host stopped"):
-                break
+            counted = e
             continue
         data = dig(d, "data")
         chart = dig(data, "chart")
@@ -476,6 +492,8 @@ def nasdaq_item(symbol):
         if item:
             return item
         last_err = "bad fields"
+    if counted is not None and last_err == str(counted):
+        raise counted
     raise FetchError(last_err)
 
 
@@ -626,8 +644,6 @@ def coinbase_item(product):
                         rows.append((ts, c))
             rows.sort()
             series = [c for _, c in rows]
-    except (OutOfTime, Blocked):
-        pass
     except FetchError:
         pass
     item = make_item(p, pc, time.time(), True, series)
@@ -650,6 +666,7 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
     _budget.clear()
     _budget["yahoo_single"] = YAHOO_SINGLE_CAP
     _deadline[0] = start + (DEADLINE if deadline is None else deadline)
+    install_opener()
     syms = load_symbols(symbols_path)
     by_id = {it["id"]: it for it in syms}
     prev_all = load_previous(previous_path, set(by_id))
@@ -679,6 +696,10 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
             accept(i["id"], fn(), label)
         except Exception as e:
             note(i["id"], label, e)
+            # an unusable reply also counts toward the 3 failures of a host
+            if not isinstance(e, Skip) and not getattr(e, "counted", False):
+                key = LABEL_HOST[label]
+                _fails[key] = _fails.get(key, 0) + 1
 
     yahoo_like = lambda i: i["source"] == "yahoo"
 
@@ -696,17 +717,23 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
             for i in ysyms:
                 note(i["id"], "yahoo", e)
 
-    # ---- Yahoo per symbol, query1 then query2 (shared cap of 10 requests)
+    # ---- Yahoo per symbol, query1 then query2 (shared cap of 10 requests).
+    # Items no other source can supply go first, so the cap does not use
+    # up the requests on stocks that Nasdaq can still deliver.
+    def no_other_source(i):
+        return not (i["group"] == "Stocks" or i["symbol"] == "^NDX"
+                    or i["symbol"] in GOLDAPI or i["symbol"] == "EURUSD=X")
     for host, label in (("query1", "yahoo-single"), ("query2", "yahoo2")):
-        for i in pending(yahoo_like):
+        todo = sorted(pending(yahoo_like), key=lambda i: not no_other_source(i))
+        for i in todo:
             attempt(i, label, lambda i=i, host=host: yahoo_chart(i["symbol"], host))
 
-    # ---- Nasdaq (stocks and funds, plus the Nasdaq 100 index)
-    for i in pending(lambda i: yahoo_like(i) and i["group"] == "Stocks"):
-        attempt(i, "nasdaq", lambda i=i: nasdaq_item(i["symbol"]))
+    # ---- Nasdaq (Nasdaq 100 index first, then stocks and funds)
     for i in pending(lambda i: i["symbol"] == "^NDX"):
         attempt(i, "nasdaq", lambda i=i: nasdaq_index_item(
             "NDX", prev_all.get(i["id"])))
+    for i in pending(lambda i: yahoo_like(i) and i["group"] == "Stocks"):
+        attempt(i, "nasdaq", lambda i=i: nasdaq_item(i["symbol"]))
 
     # ---- gold-api and Frankfurter
     for i in pending(lambda i: i["symbol"] in GOLDAPI):
@@ -834,7 +861,6 @@ def main(argv):
         out_path if os.path.exists(out_path) else None)
     try:
         clean_stale_temps(out_path)
-        install_opener()
         doc = run(symbols_path, prev_path, blocked)
         summary(load_symbols(symbols_path), doc)
         for line in LAST_STATS:
