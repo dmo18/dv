@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev16</title>
+<title>Encoder Rev17</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev17  2026-11-16  Added 7 free news feeds for the 18-tile wall (CNN, Bloomberg master, CBS News, Fox Weather,
+                     Scripps News, DW, TRT World) plus Kan 11 and WSVN 7News. Every address the wallboard plays is
+                     now saved here with its exact address (LiveNOW Fox, ABC 10, Global News, Al Jazeera, WSVN 7News).
+                     Replaced the dead Al Jazeera address. Bloomberg now uses the multi-quality master playlist.
+                     The player link default no longer needs wallboard.html or a player.html next to this page:
+                     away from the site and localhost it uses the published player address.
   Rev16  2026-11-15  Removed Sky News: its server refuses connections and no working address exists.
   Rev15  2026-11-13  Added CNN (CNN's free streaming channel, up to 1080p) and Fox News
                      (Fox's own preview feed of the live channel, 240p only).
@@ -252,7 +258,7 @@ hr {
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev16</h1>
+  <h1>Wallboard URL Encoder Rev17</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL. Open uses a separate URL with no muted parameter.
@@ -368,15 +374,20 @@ The grid is generated automatically from STREAMS.
 function $(id) { return document.getElementById(id); }
 
 // Default the player base URL to player.html next to this page, so it is right wherever the site is hosted.
-document.getElementById("base").value = new URL("player.html", location.href).href;
+// Use the player next to this page on the site or on localhost; anywhere else use the published player.
+document.getElementById("base").value = /^(dmo18\.github\.io|localhost|127\.0\.0\.1)$/.test(location.hostname)
+  ? new URL("player.html", location.href).href
+  : "https://dmo18.github.io/dv/player.html";
 function clean(s) { return (s || "").trim(); }
 
+// These are free public streams (official or free streaming channels). Addresses can change or go off air
+// without notice: re-check them if a tile stays black. Every address the wallboard plays is saved here too.
 // ABC1, ABC2 and ABC10 are ABC's event feeds: they only carry video while ABC has an event on air.
 // ABC3 to ABC9 were removed in Rev14: their old addresses are dead, and ABC only exposes a
 // feed's current address while that feed is on air. "ABC News Live" is the 24/7 channel.
 const STREAMS = [
   { name: "IRINN", url: "https://tv.irna.ir/live/stream/index.m3u8" },
-  { name: "Live now fox", url: "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8" },
+  { name: "LiveNOW Fox 720", url: "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX720.m3u8" },
   { name: "CNN", url: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8" },
   { name: "Fox News", url: "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8" },
   { name: "IL13", url: "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8" },
@@ -385,11 +396,21 @@ const STREAMS = [
   { name: "ABC1", url: "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8" },
   { name: "ABC2", url: "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8" },
   { name: "ABC10", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index.m3u8" },
-  { name: "Bloomberg", url: "https://liveprodusphoenixeast.akamaized.net/USPhx-HD/Channel-TX-USPhx-AWS-virginia-1/Source-USPhx-16k-1-s6lk2-BP-07-02-81ykIWnsMsg_live.m3u8" },
-  { name: "GlobalNews", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8" },
+  { name: "Bloomberg", url: "https://www.bloomberg.com/media-manifest/streams/us.m3u8" },
+  { name: "Global News audio+video", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8" },
   { name: "RT", url: "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8" },
   { name: "BBC News", url: "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8" },
-  { name: "Al Jazeera", url: "https://live-hls-web-aje-gcp.thehlive.com/AJE/03.m3u8" }
+  { name: "Al Jazeera", url: "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8" },
+  { name: "LiveNOW Fox", url: "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8" },
+  { name: "ABC 10 (event feed, wall address)", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8" },
+  { name: "Global News", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8" },
+  { name: "CBS News", url: "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8" },
+  { name: "Fox Weather", url: "https://247wlive.foxweather.com/stream/index.m3u8" },
+  { name: "Scripps News", url: "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8" },
+  { name: "DW", url: "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8" },
+  { name: "TRT World", url: "https://tv-trtworld.medya.trt.com.tr/master.m3u8" },
+  { name: "Kan 11", url: "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8" },
+  { name: "WSVN 7News", url: "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web" }
 ];
 
 function buildCustom(opts) {

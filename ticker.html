@@ -3,112 +3,525 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Kiosk Ticker--+</title>
+<title>Ticker Rev2</title>
+<!--
+  VERSION: bump the Rev number in the <title> above on every change to this file,
+  and add a line here (newest first).
 
+  Rev2  2026-11-16  Rewritten. No more TradingView widget: no outside script, font or image.
+                    Prices come from ticker.json (published by the data relay), the symbol list
+                    from ticker-symbols.json. Starts at once from the copy saved in the browser,
+                    refreshes in the background (same design as headlines Rev12). Smooth
+                    graphics-side scroll, pinned indexes on the left, tiny day charts, change
+                    flash, closed and stale states. All sizes follow the page height.
+  Rev1              Version as moved from the previous repository (TradingView widget).
+-->
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: #000;
-    overflow: hidden;
-  }
+:root{
+  --u: 32px;                 /* one unit, set from the page height by the script */
+  --up: #34d27b;
+  --dn: #ff5a5f;
+  --fl: #8a8f98;
+  --nm: #9aa0a6;
+  --amber: #ffb020;
+}
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%;
+  background: #000; color: #fff; overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: none; text-size-adjust: none;
+}
+.bar { position: relative; width: 100%; height: 100%; display: flex; align-items: center; background: #000; }
 
-  :root{
-    --zone-height: 110px;
+/* Left fixed block */
+.left { flex: 0 0 auto; display: flex; align-items: center; height: 100%; padding-left: calc(var(--u) * .5);
+        padding-right: calc(var(--u) * .45); position: relative; z-index: 3; background: #000; white-space: nowrap; }
+.left .it { margin-right: calc(var(--u) * .9); }
+.chip { flex: 0 0 auto; font-size: calc(var(--u) * .34); line-height: 1; color: var(--nm); font-weight: 600;
+        border: 1px solid #333; border-radius: calc(var(--u) * .3); padding: calc(var(--u) * .12) calc(var(--u) * .35);
+        white-space: nowrap; }
+.chip.amber { color: var(--amber); border-color: var(--amber); }
 
-    /* Zoom control */
-    --scale: 1.6;     /* try 2.2 to 3.0 */
+/* Scrolling part */
+.track { position: relative; flex: 1 1 auto; min-width: 0; height: 100%; overflow: hidden; }
+.track::before, .track::after { content: ""; position: absolute; top: 0; bottom: 0; width: calc(var(--u) * 2);
+        z-index: 2; pointer-events: none; }
+.track::before { left: 0; background: linear-gradient(to right, #000, rgba(0,0,0,0)); }
+.track::after { right: 0; background: linear-gradient(to left, #000, rgba(0,0,0,0)); }
+.strip { position: absolute; left: 0; top: 0; height: 100%; display: flex; align-items: center; white-space: nowrap; will-change: transform; }
+.copy { display: flex; align-items: center; flex: 0 0 auto; }
 
-    /* Prevent side clipping by shrinking the effective viewport */
-    --safe-inset: 10px; /* try 80 to 160 */
-  }
+/* Group label with thin divider */
+.gd { flex: 0 0 auto; display: flex; align-items: center; margin: 0 calc(var(--u) * .9) 0 calc(var(--u) * .1); }
+.gd i { display: block; width: 1px; height: calc(var(--u) * .62); background: #333; margin-right: calc(var(--u) * .45); }
+.gd b { font-size: calc(var(--u) * .3); font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .06em; }
 
-  .zone {
-    width: 100vw;
-    height: var(--zone-height);
-    background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
+/* One item */
+.it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .9);
+      padding: 0 calc(var(--u) * .25); border-radius: calc(var(--u) * .3); white-space: nowrap; }
+.nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); }
+.nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
+.cl { position: absolute; left: 0; top: 100%; margin-top: calc(var(--u) * .02); font-size: calc(var(--u) * .21); line-height: 1; color: #8a8a8a; visibility: hidden; letter-spacing: .04em; text-transform: uppercase; }
+.pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .35); }
+.ch { display: inline-flex; align-items: center; font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
+.ar { font-size: .72em; margin-right: .3em; }
+.pt { display: inline-block; min-width: 6.4ch; text-align: right; }
+.sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
+.sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
+.dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
+.up .ch { color: var(--up); } .dn .ch { color: var(--dn); }
+.left .sp { display: none; }
 
-  /* Inner frame is narrower than the full zone so edges never clip */
-  .frame {
-    width: calc(100vw - var(--safe-inset));
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* States */
+.it.closed { opacity: .72; }
+.it.closed .cl { visibility: visible; }
+.it.stale, .it.old { opacity: .5; }
+.it.stale .sp, .it.old .sp { visibility: hidden; }
+.it.old .ch { visibility: hidden; }
 
-  /* Scale centered, then compensate size so it still fits */
-  .scale {
-    transform: scale(var(--scale));
-    transform-origin: center center;
-  }
+/* Change flash: a soft glow that does not change the layout */
+@keyframes glowUp { 0% { background: rgba(52,210,123,.38); box-shadow: 0 0 calc(var(--u) * .5) rgba(52,210,123,.55); }
+                    100% { background: rgba(52,210,123,0); box-shadow: 0 0 0 rgba(52,210,123,0); } }
+@keyframes glowDn { 0% { background: rgba(255,90,95,.38); box-shadow: 0 0 calc(var(--u) * .5) rgba(255,90,95,.55); }
+                    100% { background: rgba(255,90,95,0); box-shadow: 0 0 0 rgba(255,90,95,0); } }
+.it.fu { animation: glowUp .8s ease-out 1; }
+.it.fd { animation: glowDn .8s ease-out 1; }
 
-  .scaleInner {
-    width: calc((100vw - var(--safe-inset)) / var(--scale));
-    height: calc(var(--zone-height) / var(--scale));
-  }
+/* Narrow screens (phone): indexes move into the scroll, left block is only the clock chip */
+.narrow-only { display: none; }
+body.narrow .narrow-only { display: flex; }
+body.narrow .left .it { display: none; }
+body:not(.narrow) .strip .it.pcl { display: none; }
 
-  .tradingview-widget-container,
-  .tradingview-widget-container__widget {
-    width: 100%;
-    height: 100%;
-  }
+.msg { position: absolute; left: calc(var(--u) * .5); top: 0; bottom: 0; display: none; align-items: center;
+       font-size: calc(var(--u) * .42); color: #777; }
 </style>
 </head>
-
 <body>
-  <div class="zone">
-    <div class="frame">
-      <div class="scale">
-        <div class="scaleInner">
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-
-            <script src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-            {
-              "symbols": [
-				{ "proName": "NASDAQ:AAPL", "title": "AAPL" },
-				{ "proName": "NASDAQ:AMD", "title": "AMD" },
-				{ "proName": "NASDAQ:AMZN", "title": "Amazon" },
-				{ "proName": "NASDAQ:GOOGL", "title": "Alphabet" },
-				{ "proName": "NASDAQ:INTC", "title": "Intel" },
-				{ "proName": "NASDAQ:INTZ", "title": "Intrusion" },				  
-				{ "proName": "NASDAQ:META", "title": "Meta" },
-				{ "proName": "NASDAQ:MSFT", "title": "MSFT" },
-				{ "proName": "NASDAQ:NVDA", "title": "NVDA" },
-				{ "proName": "NASDAQ:TSLA", "title": "Tesla" },
-				{ "proName": "FX:EURUSD", "title": "EUR/USD" },
-				{ "proName": "TVC:GOLD", "title": "Gold" },
-				{ "proName": "TVC:SILVER", "title": "Silver" },
-				{ "proName": "TVC:USOIL", "title": "WTI Oil" },
-				{ "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
-				{ "proName": "BITSTAMP:ETHUSD", "title": "Ethereum" },
-				{ "proName": "BINANCE:ADAUSDT", "title": "Cardano" },
-				{ "proName": "BINANCE:DOGEUSDT", "title": "Dogecoin" },
-				{ "proName": "BINANCE:SOLUSDT", "title": "Solana" },
-				{ "proName": "BINANCE:XRPUSDT", "title": "XRP" },
-				{ "proName": "AMEX:DIA", "title": "Dow" },
-				{ "proName": "NASDAQ:QQQ", "title": "Nasdaq 100" },
-				{ "proName": "AMEX:SPY", "title": "S&P 500" },
-				{ "proName": "AMEX:EEM", "title": "Emerging Markets" }				
-              ],
-              "showSymbolLogo": true,
-              "isTransparent": true,
-              "displayMode": "compact",
-              "colorTheme": "dark",
-              "locale": "en"
-            }
-            </script>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="bar" id="bar">
+  <div class="left" id="left"><span class="chip" id="chip" aria-live="off">as of --:--</span></div>
+  <div class="track" id="track">
+    <div class="strip" id="strip"></div>
+    <div class="msg" id="msg">Prices will appear when online</div>
   </div>
+</div>
+
+<script>
+/* =========================================================
+   Ticker Rev2
+
+   Same design as headlines Rev12: the ticker never waits on the network.
+   - Symbols come from ticker-symbols.json, prices from ticker.json (published by the data relay).
+   - The last good copy is kept in the browser and drawn at once at start.
+   - New data is fetched in the background; the strip is never rebuilt while visible, prices are
+     changed in place. A changed symbol list is applied at the end of a pass.
+   - The scroll is a Web Animations transform animation (graphics side), not script driven.
+   ========================================================= */
+
+const SPEED = 50;                 /* CSS px per second, constant */
+const CHECK_SECONDS = 60;         /* look for new prices every minute */
+const RETRY_SECONDS = 30;         /* after a failed fetch */
+const STALE_MIN = 20;             /* open market, price older than this: stale */
+const OLD_HOURS = 24;             /* older than this: percent hidden */
+const MAX_ITEMS = 60;
+const MAX_NAME = 24;
+const U_MAX = 108;
+const NARROW_PX = 900;
+const CACHE_KEY = "ticker_cache_v1";
+const GROUPS = ["Indexes", "Stocks", "FX and commodities", "Crypto"];
+
+const $ = (id) => document.getElementById(id);
+const barEl = $("bar"), leftEl = $("left"), chipEl = $("chip"), trackEl = $("track"), stripEl = $("strip"), msgEl = $("msg");
+
+/* ---------- where things live ---------- */
+function publishedUrl() {
+  let owner = "dmo18", repo = "dv";
+  if (location.hostname.endsWith(".github.io")) {
+    owner = location.hostname.split(".")[0];
+    repo = location.pathname.split("/").filter(Boolean)[0] || repo;
+  }
+  return "https://raw.githubusercontent.com/" + owner + "/" + repo + "/ticker-data/ticker.json";
+}
+/* Test override: ?data=<relative path or same-origin URL>. Anything else is ignored. */
+function dataUrl() {
+  try {
+    const q = new URLSearchParams(location.search).get("data");
+    if (q) {
+      const u = new URL(q, location.href);
+      if (u.origin === location.origin) return u.href;
+    }
+  } catch (e) {}
+  return publishedUrl();
+}
+
+/* ---------- validation ---------- */
+const isNum = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const isObj = (o) => o !== null && typeof o === "object" && !Array.isArray(o);
+
+/* Returns a list of {id,name,group,decimals,pinned} or null */
+function validateSymbols(raw) {
+  if (!isObj(raw) || !Array.isArray(raw.items) || raw.items.length === 0 || raw.items.length > MAX_ITEMS) return null;
+  const out = [], seen = new Set();
+  for (const it of raw.items) {
+    if (!isObj(it) || typeof it.id !== "string" || !it.id || it.id.length > 40 || seen.has(it.id)) continue;
+    if (typeof it.name !== "string" || !it.name) continue;
+    if (GROUPS.indexOf(it.group) < 0) continue;
+    const dec = Number.isInteger(it.decimals) && it.decimals >= 0 && it.decimals <= 8 ? it.decimals : 2;
+    seen.add(it.id);
+    out.push({ id: it.id, name: it.name.slice(0, MAX_NAME), group: it.group, decimals: dec, pinned: it.pinned === true });
+  }
+  return out.length ? out : null;
+}
+
+/* Returns {generated, items: Map id -> entry} or null. Bad single items are skipped. */
+function validateData(raw, ids) {
+  if (!isObj(raw) || !isNum(raw.generated) || !isObj(raw.items)) return null;
+  if (Object.keys(raw.items).length > MAX_ITEMS) return null;
+  const items = new Map();
+  for (const id of ids) {
+    if (!has(raw.items, id)) continue;
+    const e = raw.items[id];
+    if (!isObj(e) || !isNum(e.p) || !isNum(e.pc) || !isNum(e.t) || typeof e.open !== "boolean") continue;
+    let s = [];
+    if (e.s !== undefined && e.s !== null) {
+      if (!Array.isArray(e.s) || e.s.length > 80 || !e.s.every(isNum)) continue;
+      s = e.s.slice();
+    }
+    items.set(id, { p: e.p, pc: e.pc, t: e.t, open: e.open, s });
+  }
+  return items.size ? { generated: raw.generated, items } : null;
+}
+
+/* ---------- saved copy ---------- */
+function saveCache(symRaw, generated, items) {
+  try {
+    const o = {};
+    items.forEach((e, id) => { o[id] = { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s }; });
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: symRaw, data: { generated, items: o } }));
+  } catch (e) {}
+}
+function loadCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) { return null; }
+}
+
+/* ---------- formatting ---------- */
+const nfs = {};
+function fmtPrice(v, dec) {
+  const f = nfs[dec] || (nfs[dec] = new Intl.NumberFormat("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }));
+  return f.format(v);
+}
+function fmtStamp(sec) {
+  const d = new Date(sec * 1000), n = new Date();
+  const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  if (d.toDateString() === n.toDateString()) return hm;
+  return d.toLocaleDateString("en-US", { weekday: "short" }) + " " + hm;
+}
+function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
+
+/* ---------- in-memory store and what is on screen ---------- */
+let symbols = [];                 /* validated symbol list (latest) */
+let symbolsRaw = null;
+const store = new Map();          /* id -> {p, pc, t, open, s} */
+let feedGenerated = 0;
+let shownSig = "";                /* structure currently drawn */
+let els = new Map();              /* id -> [views] */
+let copyCount = 2;
+let narrow = false;
+
+function classify(e) {
+  const now = Date.now() / 1000;
+  const age = now - e.t, feedAge = now - feedGenerated;
+  const old = e.open ? age > OLD_HOURS * 3600 : feedAge > OLD_HOURS * 3600;
+  const stale = !old && e.open && age > STALE_MIN * 60;
+  const closed = !old && !e.open;
+  return { old, stale, closed };
+}
+
+function paint(v, e) {
+  const pct = (e.p - e.pc) / e.pc * 100;
+  const r = Math.round(pct * 100) / 100;
+  const dir = r > 0 ? "up" : r < 0 ? "dn" : "fl";
+  setText(v.pr, fmtPrice(e.p, v.dec));
+  setText(v.pt, (r > 0 ? "+" : "") + r.toFixed(2) + "%");
+  setText(v.ar, dir === "up" ? "▲" : dir === "dn" ? "▼" : "▶");
+  const c = v.root.classList;
+  c.toggle("up", dir === "up"); c.toggle("dn", dir === "dn"); c.toggle("fl", dir === "fl");
+  const st = classify(e);
+  c.toggle("old", st.old); c.toggle("stale", st.stale); c.toggle("closed", st.closed);
+  if (v.sp && v.lastS !== e.s) {
+    v.lastS = e.s;
+    const s = e.s, n = s.length;
+    if (n < 2) { v.sp.style.display = "none"; }
+    else {
+      v.sp.style.display = "";
+      let mn = Infinity, mx = -Infinity;
+      for (const x of s) { if (x < mn) mn = x; if (x > mx) mx = x; }
+      const span = mx - mn || 1;
+      let pts = "";
+      for (let i = 0; i < n; i++) pts += (i / (n - 1) * 44).toFixed(1) + "," + (13 - (s[i] - mn) / span * 12).toFixed(1) + " ";
+      v.poly.setAttribute("points", pts.trim());
+    }
+  }
+}
+
+function updateChip() {
+  let newest = 0, newestOpen = 0;
+  store.forEach((e, id) => { if (!els.has(id)) return; if (e.t > newest) newest = e.t; if (e.open && e.t > newestOpen) newestOpen = e.t; });
+  if (!newest) return;
+  const now = Date.now() / 1000;
+  const amber = (newestOpen > 0 && now - newestOpen > STALE_MIN * 60) || now - feedGenerated > OLD_HOURS * 3600;
+  setText(chipEl, "as of " + fmtStamp(newest));
+  chipEl.classList.toggle("amber", amber);
+}
+
+function flash(views, dir) {
+  const cls = dir === "up" ? "fu" : "fd";
+  for (const v of views) v.root.classList.remove("fu", "fd");
+  void barEl.offsetWidth;
+  for (const v of views) v.root.classList.add(cls);
+}
+
+/* The single entry point for a price. A later task feeds live crypto through this too. */
+function applyPrice(id, d) {
+  const prev = store.get(id);
+  const e = { p: d.p, pc: d.pc, t: d.t, open: d.open, s: d.s || (prev && prev.s) || [] };
+  store.set(id, e);
+  const views = els.get(id);
+  if (!views) return;
+  for (const v of views) paint(v, e);
+  if (prev && prev.p !== e.p) flash(views, e.p > prev.p ? "up" : "dn");
+  updateChip();
+}
+
+/* Re-evaluate stale and closed states as time passes */
+function refreshStates() {
+  els.forEach((views, id) => {
+    const e = store.get(id);
+    if (!e) return;
+    const st = classify(e);
+    for (const v of views) {
+      const c = v.root.classList;
+      c.toggle("old", st.old); c.toggle("stale", st.stale); c.toggle("closed", st.closed);
+    }
+  });
+  updateChip();
+}
+
+/* ---------- building the strip ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
+  const root = document.createElement("span");
+  root.className = "it" + (kind === "clone" ? " pcl" : "");
+  root.dataset.id = sym.id;
+  const nmc = document.createElement("span"); nmc.className = "nmc";
+  const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = sym.name;
+  const cl = document.createElement("span"); cl.className = "cl"; cl.textContent = "closed";
+  nmc.appendChild(nm); nmc.appendChild(cl);
+  const pr = document.createElement("span"); pr.className = "pr";
+  const e = store.get(sym.id);
+  pr.style.minWidth = (fmtPrice(e.p, sym.decimals).length + 2) + "ch";
+  const ch = document.createElement("span"); ch.className = "ch";
+  const ar = document.createElement("span"); ar.className = "ar";
+  const pt = document.createElement("span"); pt.className = "pt";
+  ch.appendChild(ar); ch.appendChild(pt);
+  root.appendChild(nmc); root.appendChild(pr); root.appendChild(ch);
+  const v = { root, pr, pt, ar, dec: sym.decimals, sp: null, poly: null, lastS: null };
+  if (kind !== "pin") {
+    const sp = document.createElementNS(SVGNS, "svg");
+    sp.setAttribute("class", "sp"); sp.setAttribute("viewBox", "0 0 44 14"); sp.setAttribute("preserveAspectRatio", "none");
+    const poly = document.createElementNS(SVGNS, "polyline");
+    sp.appendChild(poly); root.appendChild(sp);
+    v.sp = sp; v.poly = poly;
+  }
+  return v;
+}
+
+function displayed() {   /* symbols that have a price */
+  return symbols.filter((s) => store.has(s.id));
+}
+function sigOf(list) {
+  return list.map((s) => [s.id, s.name, s.group, s.decimals, s.pinned ? 1 : 0].join("|")).join("~");
+}
+
+function addViews(id, v) { const a = els.get(id); if (a) a.push(v); else els.set(id, [v]); }
+
+/* Draws everything. Only called before the first pass, at the end of a pass, or on resize. */
+function buildStructure() {
+  const list = displayed();
+  shownSig = sigOf(list);
+  els = new Map();
+  /* prune prices of symbols no longer listed */
+  const keep = new Set(symbols.map((s) => s.id));
+  Array.from(store.keys()).forEach((k) => { if (!keep.has(k)) store.delete(k); });
+
+  while (leftEl.firstChild !== chipEl) leftEl.removeChild(leftEl.firstChild);
+  stripEl.textContent = "";
+  msgEl.style.display = list.length ? "none" : "flex";
+  if (!list.length) { chipEl.style.display = "none"; return; }
+  chipEl.style.display = "";
+
+  const pinned = list.filter((s) => s.pinned);
+  for (const s of pinned) { const v = makeItem(s, "pin"); leftEl.insertBefore(v.root, chipEl); addViews(s.id, v); }
+
+  for (let k = 0; k < copyCount; k++) {
+    const copy = document.createElement("div"); copy.className = "copy";
+    for (const g of GROUPS) {
+      const items = list.filter((s) => s.group === g);
+      if (!items.length) continue;
+      const allPinned = items.every((s) => s.pinned);
+      const gd = document.createElement("div"); gd.className = "gd" + (allPinned ? " narrow-only" : "");
+      gd.appendChild(document.createElement("i"));
+      const b = document.createElement("b"); b.textContent = g; gd.appendChild(b);
+      copy.appendChild(gd);
+      for (const s of items) {
+        const v = makeItem(s, s.pinned ? "clone" : "strip");
+        if (s.pinned) v.root.classList.add("pcl");
+        copy.appendChild(v.root); addViews(s.id, v);
+      }
+    }
+    stripEl.appendChild(copy);
+  }
+  els.forEach((views, id) => { const e = store.get(id); for (const v of views) paint(v, e); });
+  updateChip();
+}
+
+/* ---------- size and scroll ---------- */
+let anim = null, cycleMs = 0;
+
+function layout(offsetMs) {
+  const w = window.innerWidth, h = window.innerHeight;
+  narrow = w < NARROW_PX;
+  document.body.classList.toggle("narrow", narrow);
+  let u = Math.max(12, Math.min(h, U_MAX));
+  document.documentElement.style.setProperty("--u", u + "px");
+  const lw = leftEl.getBoundingClientRect().width;
+  if (lw > w * 0.55) {
+    u = Math.max(10, u * (w * 0.55) / lw);
+    document.documentElement.style.setProperty("--u", u + "px");
+  }
+  startScroll(offsetMs || 0);
+}
+
+function startScroll(offsetMs) {
+  if (anim) { anim.cancel(); anim = null; }
+  const copy = stripEl.firstElementChild;
+  if (!copy) return;
+  let cw = copy.getBoundingClientRect().width;
+  if (cw < 10) return;
+  /* enough copies to cover the track while one scrolls out */
+  const need = Math.min(8, Math.max(2, Math.ceil(trackEl.getBoundingClientRect().width / cw) + 1));
+  if (need !== copyCount) { copyCount = need; buildStructure(); const c2 = stripEl.firstElementChild; if (!c2) return; cw = c2.getBoundingClientRect().width; }
+  cycleMs = cw / SPEED * 1000;
+  anim = stripEl.animate(
+    [{ transform: "translateX(0px)" }, { transform: "translateX(" + (-cw) + "px)" }],
+    { duration: cycleMs, iterations: Infinity, easing: "linear" }
+  );
+  if (offsetMs) anim.currentTime = offsetMs % cycleMs;
+  if (pendingSwap) scheduleSwap();
+}
+
+/* ---------- applying a changed symbol list at the end of a pass ---------- */
+let pendingSwap = false, swapTimer = 0;
+function scheduleSwap() {
+  clearTimeout(swapTimer);
+  if (!anim) { doSwap(0); return; }
+  const t = Number(anim.currentTime) || 0;
+  const remaining = cycleMs - (t % cycleMs);
+  swapTimer = setTimeout(doSwap, remaining + 3);
+}
+function doSwap() {
+  if (!pendingSwap) return;
+  const t = anim ? Number(anim.currentTime) || 0 : 0;
+  const into = t % cycleMs;
+  if (anim && into > cycleMs / 2) { scheduleSwap(); return; }   /* fired early, wait for the boundary */
+  pendingSwap = false;
+  buildStructure();
+  layout(into);
+}
+
+/* ---------- taking in new data ---------- */
+function ingest(symRaw, dataRaw) {
+  const sy = symRaw ? validateSymbols(symRaw) : null;
+  const list = sy || symbols;
+  if (!list.length) return false;
+  const dv = validateData(dataRaw, list.map((s) => s.id));
+  if (!dv) return false;
+  if (sy) { symbols = sy; symbolsRaw = symRaw; }
+  if (dv.generated < feedGenerated) return true;       /* older than what we have: ignore */
+  const changed = dv.generated > feedGenerated || !!sy;
+  feedGenerated = dv.generated;
+  dv.items.forEach((e, id) => applyPrice(id, e));
+  const sig = sigOf(displayed());
+  if (!shownSig && !els.size) {
+    if (sig) { buildStructure(); layout(0); }
+  } else if (sig !== shownSig) {
+    pendingSwap = true; scheduleSwap();
+  }
+  if (changed && symbolsRaw) saveCache(symbolsRaw, feedGenerated, store);
+  return true;
+}
+
+/* ---------- background refresh ---------- */
+let fetching = false;
+async function getJson(url) {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("http " + res.status);
+  return res.json();
+}
+async function checkForUpdate() {
+  if (fetching) return;
+  fetching = true;
+  let ok = false;
+  try {
+    let symRaw = null;
+    try { symRaw = await getJson("ticker-symbols.json"); } catch (e) { /* use what we have */ }
+    const dataRaw = await getJson(dataUrl());
+    ok = ingest(symRaw, dataRaw);
+  } catch (e) {
+    /* offline, blocked or bad data: keep showing what we have */
+  } finally {
+    fetching = false;
+    setTimeout(checkForUpdate, (ok ? CHECK_SECONDS : RETRY_SECONDS) * 1000);
+  }
+}
+
+/* ---------- start ---------- */
+(function start() {
+  const c = loadCache();
+  if (c && isObj(c)) {
+    const sy = validateSymbols(c.symbols);
+    if (sy) {
+      const dv = c.data ? validateData(c.data, sy.map((s) => s.id)) : null;
+      if (dv) {
+        symbols = sy; symbolsRaw = c.symbols; feedGenerated = dv.generated;
+        dv.items.forEach((e, id) => store.set(id, e));
+        buildStructure();
+      }
+    }
+  }
+  if (!els.size) msgEl.style.display = "flex";
+  layout();
+  checkForUpdate();
+})();
+
+barEl.addEventListener("animationend", (ev) => { if (ev.target.classList) ev.target.classList.remove("fu", "fd"); });
+window.addEventListener("resize", () => layout(anim ? Number(anim.currentTime) || 0 : 0));
+setInterval(refreshStates, 30000);
+
+/* Self-update: every 5 minutes, reload if a newer Rev of this page has been published */
+const versionOf = (text) => (text.match(/<title>[^<]*\bRev(\d+)/i) || [])[1];
+const RUNNING_REV = versionOf("<title>" + document.title);
+setInterval(async () => {
+  try {
+    const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const latest = versionOf(await r.text());
+    if (latest && RUNNING_REV && latest !== RUNNING_REV) location.reload();
+  } catch (e) { /* try again next time */ }
+}, 5 * 60 * 1000);
+</script>
 </body>
 </html>
