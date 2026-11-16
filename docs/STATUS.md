@@ -24,6 +24,12 @@ Updated 2026-11-16.
   stream leaks about 0.6 MB (old, bounded by reload=60, so never set reload=0); a very long label with no spaces runs
   off the tile; first 10 s after a recovery can show a high dropped-frames number (the wall's check view ignores it).
 
+- Ticker Rev3 (task 3 redo) passed independent Fable review (fit for the 32px wall; 12 min soak flat, 29 hostile
+  ?data= variants ran no script). To fix in task 4 (same file): wrong PC clock behind rejects every file as "future"
+  (clamp to now instead), prices near zero need a lower sanity bound, phone width item too wide, closed mark small,
+  a few leftovers (unused argument, duplicate class add, comment says "more than" but code uses ">="),
+  non-JSON saved copy not removed. Not needed: text size at 48 and 108 px (the final bar is 32px).
+
 ## Known issues
 See docs/TAKEOVER.md.
 
