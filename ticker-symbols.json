@@ -1,0 +1,221 @@
+{
+ "version": 1,
+ "items": [
+  {
+   "id": "DJI",
+   "name": "Dow",
+   "group": "Indexes",
+   "source": "yahoo",
+   "symbol": "^DJI",
+   "decimals": 2,
+   "pinned": true
+  },
+  {
+   "id": "SPX",
+   "name": "S&P 500",
+   "group": "Indexes",
+   "source": "yahoo",
+   "symbol": "^GSPC",
+   "decimals": 2,
+   "pinned": true
+  },
+  {
+   "id": "NDX",
+   "name": "Nasdaq 100",
+   "group": "Indexes",
+   "source": "yahoo",
+   "symbol": "^NDX",
+   "decimals": 2,
+   "pinned": true
+  },
+  {
+   "id": "AAPL",
+   "name": "AAPL",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "AAPL",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "AMD",
+   "name": "AMD",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "AMD",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "AMZN",
+   "name": "AMZN",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "AMZN",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "GOOGL",
+   "name": "GOOGL",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "GOOGL",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "INTC",
+   "name": "INTC",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "INTC",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "INTZ",
+   "name": "INTZ",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "INTZ",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "META",
+   "name": "META",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "META",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "MSFT",
+   "name": "MSFT",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "MSFT",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "NVDA",
+   "name": "NVDA",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "NVDA",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "TSLA",
+   "name": "TSLA",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "TSLA",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "EEM",
+   "name": "Emerging Mkts",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "EEM",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "EURUSD",
+   "name": "EUR/USD",
+   "group": "FX and commodities",
+   "source": "yahoo",
+   "symbol": "EURUSD=X",
+   "decimals": 4,
+   "pinned": false
+  },
+  {
+   "id": "GOLD",
+   "name": "Gold",
+   "group": "FX and commodities",
+   "source": "yahoo",
+   "symbol": "GC=F",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "SILVER",
+   "name": "Silver",
+   "group": "FX and commodities",
+   "source": "yahoo",
+   "symbol": "SI=F",
+   "decimals": 3,
+   "pinned": false
+  },
+  {
+   "id": "WTI",
+   "name": "WTI Oil",
+   "group": "FX and commodities",
+   "source": "yahoo",
+   "symbol": "CL=F",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "BTC",
+   "name": "Bitcoin",
+   "group": "Crypto",
+   "source": "coinbase",
+   "symbol": "BTC-USD",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "ETH",
+   "name": "Ethereum",
+   "group": "Crypto",
+   "source": "coinbase",
+   "symbol": "ETH-USD",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "SOL",
+   "name": "Solana",
+   "group": "Crypto",
+   "source": "coinbase",
+   "symbol": "SOL-USD",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
+   "id": "XRP",
+   "name": "XRP",
+   "group": "Crypto",
+   "source": "coinbase",
+   "symbol": "XRP-USD",
+   "decimals": 4,
+   "pinned": false
+  },
+  {
+   "id": "ADA",
+   "name": "Cardano",
+   "group": "Crypto",
+   "source": "coinbase",
+   "symbol": "ADA-USD",
+   "decimals": 4,
+   "pinned": false
+  },
+  {
+   "id": "DOGE",
+   "name": "Dogecoin",
+   "group": "Crypto",
+   "source": "coinbase",
+   "symbol": "DOGE-USD",
+   "decimals": 5,
+   "pinned": false
+  }
+ ]
+}
