@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Headlines Rev12</title>
+<title>Headlines Rev13</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev13  2026-11-16  Text sizes now follow the bar height (about 62 percent for the headline,
+                     30 percent for the source). Source and time sit on one line beside the
+                     headline, so the bar works at 40 px and at 72 px.
   Rev12  2026-11-13  Redesigned so the ticker never waits on the network: it starts from the last
                      headlines saved in the browser, fetches updates in the background and swaps
                      them in between passes. Removed all timeouts, relay services and the
@@ -22,12 +25,17 @@
 
 <style>
 :root{
-  --fontSize: 38px;
-  --sourceSize: 18px;
-  --timeSize: 14px;
-  --gap: 30px;
-  --dotSize: 8px;
-  --padX: 14px;
+  /* --H is the bar height in px, set by the script from the window height.
+     Every size below is a fraction of it, so the bar looks the same at 40 px or 72 px. */
+  --H: 40px;
+  --fontSize: calc(var(--H) * 0.62);
+  --sourceSize: calc(var(--H) * 0.3);
+  --timeSize: calc(var(--H) * 0.27);
+  --gap: calc(var(--H) * 0.42);
+  --dotSize: calc(var(--H) * 0.11);
+  --padX: calc(var(--H) * 0.2);
+  --itemGap: calc(var(--H) * 0.17);
+  --srcGap: calc(var(--H) * 0.2);
 }
 
 html, body {
@@ -89,7 +97,7 @@ html, body {
 .item {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--itemGap);
 }
 
 .dot {
@@ -102,9 +110,11 @@ html, body {
 
 .sourceBlock {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--srcGap);
   line-height: 1;
-  margin-right: 6px;
+  white-space: nowrap;
 }
 
 .source {
@@ -119,7 +129,6 @@ html, body {
   font-weight: 650;
   font-size: var(--timeSize);
   line-height: 1;
-  margin-top: 2px;
 }
 
 .title {
@@ -136,7 +145,7 @@ html, body {
   justify-content: flex-start;
   padding: 0 var(--padX);
   color: #f0f0f0;
-  font-size: calc(var(--fontSize) - 12px);
+  font-size: calc(var(--H) * 0.36);
   pointer-events: none;
 }
 
@@ -160,7 +169,7 @@ a { color: inherit; text-decoration: none; }
 
 <script>
 /* =========================================================
-   Headlines Rev12
+   Headlines Rev13
 
    Design: the ticker never waits on the network.
 
@@ -191,6 +200,13 @@ const statusEl = document.getElementById("status");
 const marqueeEl = document.getElementById("marquee");
 const run1El = document.getElementById("run1");
 const run2El = document.getElementById("run2");
+
+/* Bar height in px: every text size and gap in the CSS is a fraction of it */
+function setBarSize() {
+  document.documentElement.style.setProperty("--H", window.innerHeight + "px");
+}
+setBarSize();
+window.addEventListener("resize", setBarSize);
 
 /* The status line is only ever visible before the very first headlines arrive. */
 function showStatus(msg) {
