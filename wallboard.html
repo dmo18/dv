@@ -268,7 +268,7 @@ html, body {
     let order = 0;
     for (let n = 0; n < N; n++) {
       const wantLive = n < LARGE_COUNT || !resting.has(n - LARGE_COUNT);
-      if (wantLive === !!live[n]) continue;
+      if (wantLive === live[n]) continue;   // live[n] is null before the first step
       if (!wantLive) { restTile(n); continue; }
       const delay = n < LARGE_COUNT ? 0 : (++order) * STAGGER_SECONDS * 1000;
       live[n] = true;   // claimed now so a quick next step cannot double start it
@@ -311,6 +311,7 @@ html, body {
       const h = healthOf[n];
       let text;
       if (!live[n]) text = "resting (card)";
+      else if (TILES[n].kind === "page") text = "page tile, no data";
       else if (!h) text = "waiting for data";
       else {
         const settled = h.state === "playing" && Date.now() - h.playingSince >= DROP_IGNORE_MS;
@@ -360,7 +361,7 @@ html, body {
           overlays[n] = o;
         }
         row.appendChild(cell);
-        frames[n] = f; cells[n] = cell; live[n] = false;
+        frames[n] = f; cells[n] = cell; live[n] = null;
       }
       wall.appendChild(row);
     });
