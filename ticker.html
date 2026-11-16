@@ -16,6 +16,8 @@
                     are clamped to now, absurd ones still rejected), a backward clock jump is handled,
                     prices below 1/11 of the previous close are dropped, items fit a 390px phone, a bigger
                     "closed" mark, a little less slack between price and percent, small leftovers.
+                     Live crypto now starts as soon as the symbol list is read, even when ticker.json is missing,
+                     broken or unreachable (review follow-up).
   Rev3  2026-11-16  Redo of the Rev2 rewrite after review. Rejects times more than 10 minutes in the
                     future and out-of-range numbers, item by item, in new data and in the saved copy
                     (a bad saved copy is removed). Each request gives up after 20 seconds, polling
@@ -597,6 +599,10 @@ async function checkForUpdate() {
     let symRaw = null;
     try { symRaw = await getJson("ticker-symbols.json"); } catch (e) { /* use what we have */ }
     if (my !== pollToken) return;
+    /* The symbol list alone is enough to start the live crypto layer: it must not wait for ticker.json,
+       which can be missing, broken or unreachable (for example before the relay has published). */
+    const sy = symRaw ? validateSymbols(symRaw) : null;
+    if (sy) { symbols = sy; liveSync(); }
     const dataRaw = await getJson(dataUrl());
     if (my !== pollToken) return;
     ok = ingest(symRaw, dataRaw);
