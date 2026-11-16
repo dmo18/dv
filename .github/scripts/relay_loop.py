@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
-"""relay_loop.py Rev 1
+"""relay_loop.py Rev 2
 
 Changelog:
+- Rev 2: fixes after the review.
+  1. The successor start is retried: 3 attempts, one minute apart.
+  2. Timing test inputs without chain_remaining mean chain_remaining 0
+     (no successor), so a test chain can never run on forever.
+  3. Any error while loading the previous files (for example a deeply nested
+     JSON file) means "no previous file"; it never stops the run.
+  4. Previous and published data is shape checked ("items" must be an
+     object) wherever it is used.
+  5. The token is no longer in any command line: git gets a plain https
+     address and the auth header through GIT_CONFIG_* env vars, set only for
+     git. Fetch children get no token at all; only the successor command
+     gets GH_TOKEN.
+  6. A second stop signal can no longer hang the process (reentrant lock,
+     no lock in the signal handler), and the watchdog exits at most 10 s
+     after a second signal.
+  7. (relay.yml runs this script with exec, so stop signals reach it.)
+  8. --remote may not start with "-", and "--" goes before every positional
+     git argument.
+  Also: slow mode is decided only after a successful cycle, and only from
+  items that are present, so a stale or odd file cannot switch it on.
 - Rev 1: first version (plan task 2). One process is one "Data relay" run.
   Test inputs for the successor chain (--inputs-from-env, see below).
   Publish decision taken by fetch_prices.should_write() (fetch_prices Rev 4).
@@ -13,7 +33,8 @@ What it does, in a loop, for about 5.5 hours:
   branch "headlines-data" the same way;
 - when no non-crypto item is open (all markets closed), the price cycle
   slows to once every 15 minutes;
-- 10 minutes before the end it starts its successor (once), then it stops.
+- 10 minutes before the end it starts its successor (up to 3 attempts, one
+  minute apart), then it stops.
 
 Safety:
 - Only the branches ticker-data and headlines-data are ever pushed, with an
@@ -21,7 +42,9 @@ Safety:
 - Every child process has a timeout, and a watchdog ends the process at the
   run length plus a fixed grace, even if a child hangs.
 - The price fetch runs in a child process, so a hang cannot freeze the loop.
-- The token is never printed: every logged child output is scrubbed.
+- The token is never printed (every logged child output is scrubbed) and is
+  never on a command line. Only git (auth header in env) and the successor
+  command (GH_TOKEN) receive it.
 - SIGTERM or SIGINT: no new step starts, a running fetch is stopped, a
   running push may finish (a push replaces the branch in one step, so the
   branch is always either the old or the new commit). A second signal stops
@@ -43,14 +66,18 @@ Each must be empty or a whole number within bounds (5-3600, 1-340, 10-7200,
 0-10), otherwise exit 2. Without any of them the successor is started with
 no inputs (plan defaults). With some, the successor gets the same inputs as
 separate -f arguments (no shell), chain_remaining minus 1; when
-chain_remaining is 0 no successor is started. Inputs only change timings,
-never which branches are pushed or which files are read.
+chain_remaining is 0 no successor is started. When any timing input
+(cycle_seconds, run_minutes, headlines_every_seconds) is set and
+chain_remaining is empty, chain_remaining counts as 0: no successor.
+Inputs only change timings, never which branches are pushed or which files
+are read.
 
 Python standard library only.
 Exit codes: 0 normal end or stopped by signal, 1 too many failures,
 2 bad arguments or unusable work folder, 3 watchdog.
 """
 import argparse
+import base64
 import importlib.util
 import json
 import math
@@ -76,13 +103,20 @@ PUSH_TIMEOUT = 60
 GIT_FETCH_TIMEOUT = 60
 HEADLINES_TIMEOUT = 600
 SUCCESSOR_TIMEOUT = 60
+SUCCESSOR_ATTEMPTS = 3
+SECOND_SIGNAL_EXIT = 10    # seconds after a second signal, exit for sure
 TICK = 0.5
+# env vars that carry credentials; removed for every child except git
+# (gets its own header) and the successor command (gets GH_TOKEN).
+SECRET_ENV = ("GH_TOKEN", "GITHUB_TOKEN", "GIT_CONFIG_COUNT")
 
 _stop = threading.Event()
 _signals = [0]
 _children = set()
-_children_lock = threading.Lock()
+_children_lock = threading.RLock()
 _secrets = []
+_token = [""]
+_second_signal = [None]
 
 
 # ---------------------------------------------------------------- logging
@@ -124,7 +158,8 @@ def run_cmd(args, timeout, hard_end, kill_on_stop=True, env=None, cwd=None):
     limit = min(time.monotonic() + timeout, hard_end)
     try:
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                             stdin=subprocess.DEVNULL, env=env, cwd=cwd,
+                             stdin=subprocess.DEVNULL,
+                             env=clean_env() if env is None else env, cwd=cwd,
                              start_new_session=True)
     except OSError as e:
         return None, "could not start: %s" % e.strerror
@@ -155,15 +190,33 @@ def run_cmd(args, timeout, hard_end, kill_on_stop=True, env=None, cwd=None):
 
 
 def kill_all_children():
-    with _children_lock:
-        for p in list(_children):
-            _kill_group(p)
+    # No lock here: this also runs from the signal handler, and copying the
+    # set is safe without one.
+    for p in list(_children):
+        _kill_group(p)
+
+
+def clean_env():
+    """os.environ without any credential."""
+    env = dict(os.environ)
+    for k in list(env):
+        if k in SECRET_ENV or k.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")):
+            del env[k]
+    return env
 
 
 # ---------------------------------------------------------------- git
 
 def git_env():
-    env = dict(os.environ)
+    env = clean_env()
+    if _token[0]:
+        # auth header for github.com, given to git through env, never argv
+        basic = base64.b64encode(("x-access-token:" + _token[0]).encode()).decode()
+        env.update({
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+            "GIT_CONFIG_VALUE_0": "AUTHORIZATION: basic " + basic,
+        })
     env.update({
         "GIT_TERMINAL_PROMPT": "0",          # never wait for a password
         "GIT_ASKPASS": "true",
@@ -196,7 +249,7 @@ def publish(cfg, branch, src_path, message, hard_end):
             ("commit", ["git", "-c", "commit.gpgsign=false", "commit", "-q",
                         "-m", message]),
             ("push", ["git", "-c", "credential.helper=", "push", "-q", "--force",
-                      cfg.remote, "HEAD:refs/heads/" + branch]),
+                      "--", cfg.remote, "HEAD:refs/heads/" + branch]),
         ]
         for step, args in steps:
             rc, out = run_cmd(args, PUSH_TIMEOUT, hard_end,
@@ -212,22 +265,35 @@ def publish(cfg, branch, src_path, message, hard_end):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+def previous_ok(name, text):
+    """A previous file is used only if it parses and has the expected shape."""
+    doc = json.loads(text)
+    if not isinstance(doc, dict):
+        return False
+    items = doc.get("items")
+    return isinstance(items, dict) if name == "ticker.json" else isinstance(items, list)
+
+
 def bootstrap_previous(cfg, hard_end):
     """Copy the published ticker.json and headlines.json into the work folder,
-    so held jumps and kept values carry over from the previous run."""
+    so held jumps and kept values carry over from the previous run.
+    Any problem means "no previous file", never a stopped run."""
     try:
-        tmp = tempfile.mkdtemp(prefix="boot-", dir=cfg.workdir)
-    except OSError as e:
-        log("previous files not loaded: %s" % e.strerror)
-        return
+        _bootstrap(cfg, hard_end)
+    except Exception as e:
+        log("previous files not loaded: %s" % type(e).__name__)
+
+
+def _bootstrap(cfg, hard_end):
+    tmp = tempfile.mkdtemp(prefix="boot-", dir=cfg.workdir)
     try:
         env = git_env()
-        rc, out = run_cmd(["git", "init", "-q"], 20, hard_end, env=env, cwd=tmp)
+        run_cmd(["git", "init", "-q"], 20, hard_end, env=env, cwd=tmp)
         for branch, name in BRANCHES.items():
             if os.path.exists(os.path.join(cfg.workdir, name)):
                 continue
             rc, out = run_cmd(["git", "-c", "credential.helper=", "fetch", "-q",
-                               "--depth", "1", cfg.remote, "refs/heads/" + branch],
+                               "--depth", "1", "--", cfg.remote, "refs/heads/" + branch],
                               GIT_FETCH_TIMEOUT, hard_end, env=env, cwd=tmp)
             if rc != 0:
                 log("previous %s not loaded: %s" % (name, short(out, 120)))
@@ -238,9 +304,11 @@ def bootstrap_previous(cfg, hard_end):
                 log("previous %s not in branch" % name)
                 continue
             try:
-                json.loads(out)
-            except ValueError:
-                log("previous %s is not valid JSON, ignored" % name)
+                good = previous_ok(name, out)
+            except Exception as e:
+                good = False
+            if not good:
+                log("previous %s is not usable, ignored" % name)
                 continue
             try:
                 with open(os.path.join(cfg.workdir, name), "w", encoding="utf-8") as f:
@@ -268,9 +336,10 @@ def fetch_child(module_path, symbols, out_path, prev_path, deadline):
     except fp.SymbolsError as e:
         print("symbols file unusable: %s" % str(e)[:100])
         return 1
-    fresh = sum(1 for v in doc.get("sources", {}).values()
+    sources = doc.get("sources") if isinstance(doc.get("sources"), dict) else {}
+    fresh = sum(1 for v in sources.values()
                 if not str(v).startswith(("error", "kept")))
-    total = len(doc.get("items", {}))
+    total = len(doc["items"]) if isinstance(doc.get("items"), dict) else 0
     # fetch_prices decides: a fresh item, or a jump marker "h" set, changed
     # or cleared, is worth saving.
     if not fp.should_write(doc):
@@ -291,21 +360,34 @@ def fetch_child(module_path, symbols, out_path, prev_path, deadline):
 
 
 def non_crypto_ids(symbols_path):
-    with open(symbols_path, encoding="utf-8") as f:
-        d = json.load(f)
-    return {i["id"] for i in d.get("items", [])
-            if isinstance(i, dict) and i.get("group") != "Crypto" and "id" in i}
+    """Ids of the non-crypto items; empty set if the file is unusable."""
+    try:
+        with open(symbols_path, encoding="utf-8") as f:
+            d = json.load(f)
+        items = d.get("items") if isinstance(d, dict) else None
+        return {i["id"] for i in (items if isinstance(items, list) else [])
+                if isinstance(i, dict) and i.get("group") != "Crypto"
+                and isinstance(i.get("id"), str)}
+    except Exception:
+        return set()
 
 
 def any_market_open(ticker_path, ids):
     """True if a non-crypto item is open, None if unknown."""
+    if not ids:
+        return None
     try:
         with open(ticker_path, encoding="utf-8") as f:
-            items = json.load(f).get("items", {})
-    except (OSError, ValueError, AttributeError):
+            doc = json.load(f)
+    except Exception:
         return None
-    return any(isinstance(items.get(i), dict) and items[i].get("open") is True
-               for i in ids)
+    items = doc.get("items") if isinstance(doc, dict) else None
+    if not isinstance(items, dict):
+        return None
+    known = [items[i] for i in ids if isinstance(items.get(i), dict)]
+    if not known:
+        return None
+    return any(it.get("open") is True for it in known)
 
 
 def price_cycle(cfg, hard_end, cycle_len):
@@ -350,7 +432,8 @@ class Headlines:
                 args.append("file://" + os.path.abspath(self.final))
             self.logf = open(os.path.join(self.cfg.workdir, "headlines.log"), "wb")
             self.proc = subprocess.Popen(args, stdout=self.logf, stderr=subprocess.STDOUT,
-                                         stdin=subprocess.DEVNULL, start_new_session=True)
+                                         stdin=subprocess.DEVNULL, env=clean_env(),
+                                         start_new_session=True)
         except OSError as e:
             log("headlines could not start: %s" % e.strerror)
             self.close()
@@ -393,9 +476,12 @@ class Headlines:
             return
         try:
             with open(self.new, encoding="utf-8") as f:
-                n = len(json.load(f).get("items", []))
+                doc = json.load(f)
+            if not (isinstance(doc, dict) and isinstance(doc.get("items"), list)):
+                raise ValueError("bad shape")
+            n = len(doc["items"])
             os.replace(self.new, self.final)
-        except (OSError, ValueError, AttributeError) as e:
+        except Exception as e:
             log("headlines output unusable: %s" % type(e).__name__)
             return
         ok, secs, note = publish(self.cfg, "headlines-data", self.final,
@@ -429,22 +515,47 @@ def next_slot(prev_due, length, now):
 
 
 def watchdog(hard_end):
+    why = "run length plus grace reached"
     while True:
-        left = hard_end - time.monotonic()
-        if left <= 0:
+        now = time.monotonic()
+        if now >= hard_end:
             break
-        time.sleep(min(left, 5))
-    log("watchdog: run length plus grace reached, stopping hard")
+        if _second_signal[0] is not None and now - _second_signal[0] >= SECOND_SIGNAL_EXIT:
+            why = "second stop signal"
+            break
+        time.sleep(min(hard_end - now, 0.5))
     kill_all_children()
-    sys.stdout.flush()
+    try:
+        log("watchdog: %s, stopping hard" % why)
+    except Exception:
+        pass
     os._exit(3)
 
 
 def on_signal(signum, frame):
+    # Keep this tiny: no locks, no printing.
     _signals[0] += 1
     _stop.set()
     if _signals[0] >= 2:
+        if _second_signal[0] is None:
+            _second_signal[0] = time.monotonic()
         kill_all_children()
+
+
+def start_successor(cfg, attempts, hard_end):
+    """One attempt to start the successor. Returns (attempts, next attempt).
+    Safe to repeat: the concurrency group holds at most one pending run."""
+    attempts += 1
+    env = clean_env()
+    if _token[0]:
+        env["GH_TOKEN"] = _token[0]
+    rc, out = run_cmd(cfg.successor, SUCCESSOR_TIMEOUT, hard_end, env=env)
+    if rc == 0:
+        log("successor started (attempt %d)" % attempts)
+        return SUCCESSOR_ATTEMPTS, float("inf")
+    log("successor attempt %d of %d failed: %s" % (attempts, SUCCESSOR_ATTEMPTS,
+                                                    short(out, 120)))
+    return attempts, time.monotonic() + cfg.successor_retry_seconds
 
 
 def main_loop(cfg):
@@ -463,19 +574,16 @@ def main_loop(cfg):
     ticker_path = os.path.join(cfg.workdir, "ticker.json")
     heads = Headlines(cfg)
     next_price = next_head = t0
-    successor_done = not cfg.successor
+    attempts = 0 if cfg.successor else SUCCESSOR_ATTEMPTS
+    next_succ = succ_at
     slow = False
     fails = 0
     code = 0
     try:
         while not _stop.is_set():
             now = time.monotonic()
-            if not successor_done and now >= succ_at:
-                successor_done = True
-                rc, out = run_cmd(cfg.successor,
-                                  SUCCESSOR_TIMEOUT, hard_end)
-                log("successor started" if rc == 0 else
-                    "successor failed: %s" % short(out))
+            if attempts < SUCCESSOR_ATTEMPTS and now >= next_succ:
+                attempts, next_succ = start_successor(cfg, attempts, hard_end)
             try:
                 heads.poll(hard_end)
             except Exception as e:
@@ -499,7 +607,8 @@ def main_loop(cfg):
                     log("%d price cycles failed in a row, giving up" % fails)
                     code = 1
                     break
-                is_open = any_market_open(ticker_path, ids)
+                # decide only on a file this cycle just wrote
+                is_open = any_market_open(ticker_path, ids) if ok else None
                 if is_open is not None and slow == is_open:
                     slow = not is_open
                     log("slow mode %s (%s)" % ("on" if slow else "off",
@@ -508,10 +617,19 @@ def main_loop(cfg):
                 next_price = next_slot(next_price, length, time.monotonic())
             wake = min(next_price, end,
                        next_head if not heads.proc else end,
-                       succ_at if not successor_done else end)
+                       next_succ if attempts < SUCCESSOR_ATTEMPTS else end)
             if heads.proc:
                 wake = min(wake, time.monotonic() + 1.0)
             _stop.wait(max(0.0, wake - time.monotonic()))
+        # Retries still due at the end of the run (short test runs): finish
+        # them, within the grace time. Not after a failure exit or a signal.
+        while code == 0 and attempts < SUCCESSOR_ATTEMPTS and not _stop.is_set():
+            if time.monotonic() >= next_succ:
+                attempts, next_succ = start_successor(cfg, attempts, hard_end)
+            else:
+                _stop.wait(max(0.0, min(next_succ, hard_end - 5) - time.monotonic()))
+                if time.monotonic() >= hard_end - 5:
+                    break
     finally:
         heads.stop()
     if _stop.is_set():
@@ -549,6 +667,9 @@ def successor_args(cfg):
         return None
     args = shlex.split(cfg.successor_command)
     inputs = dict(cfg.test_inputs)
+    timing = ("cycle_seconds", "run_minutes", "headlines_every_seconds")
+    if any(k in inputs for k in timing) and "chain_remaining" not in inputs:
+        return None     # a test run without a chain length starts no successor
     if "chain_remaining" in inputs:
         if inputs["chain_remaining"] <= 0:
             return None
@@ -569,6 +690,7 @@ def parse(argv):
                    help="git remote url (default: GitHub from GITHUB_REPOSITORY and GH_TOKEN)")
     a.add_argument("--successor-command", default="")
     a.add_argument("--successor-lead-minutes", type=float, default=10)
+    a.add_argument("--successor-retry-seconds", type=float, default=60)
     a.add_argument("--grace-seconds", type=float, default=300)
     a.add_argument("--workdir", default=None)
     a.add_argument("--symbols", default=os.path.join(ROOT, "ticker-symbols.json"))
@@ -594,18 +716,26 @@ def parse(argv):
         v = getattr(cfg, name)
         if not (math.isfinite(v) and v > 0):
             a.error("--%s must be above zero" % name.replace("_", "-"))
-    for name in ("successor_lead_minutes", "grace_seconds"):
+    for name in ("successor_lead_minutes", "grace_seconds", "successor_retry_seconds"):
         v = getattr(cfg, name)
         if not (math.isfinite(v) and v >= 0):
             a.error("--%s must be zero or more" % name.replace("_", "-"))
     token = os.environ.get("GH_TOKEN", "")
-    _secrets.append(token)
+    _token[0] = token
+    if token:
+        basic = base64.b64encode(("x-access-token:" + token).encode()).decode()
+        _secrets.extend([basic, token])
     if cfg.remote is None:
         repo = os.environ.get("GITHUB_REPOSITORY", "")
-        if not token or "/" not in repo:
+        if not token or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
             a.error("no --remote and GH_TOKEN or GITHUB_REPOSITORY missing")
-        cfg.remote = "https://x-access-token:%s@github.com/%s.git" % (token, repo)
-    _secrets.insert(0, cfg.remote)
+        cfg.remote = "https://github.com/%s.git" % repo
+    if cfg.remote.startswith("-"):
+        a.error("--remote may not start with '-'")
+    # a remote given with credentials in it must not be printed either
+    m = re.match(r"[a-z]+://([^/@]+)@", cfg.remote)
+    if m:
+        _secrets.insert(0, m.group(1))
     return cfg
 
 

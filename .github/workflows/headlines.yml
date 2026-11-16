@@ -1,5 +1,9 @@
 name: Update headlines
 
+# headlines.yml Rev 2
+# - Rev 2 2026-11-16: schedule reduced to a safety net, the relay refreshes headlines.
+# - Rev 1: as built before.
+#
 # Fetches the news feeds for headlines.html and publishes them as headlines.json on the
 # "headlines-data" branch. That branch holds a single commit that is replaced on every
 # run, so it adds no history to main and does not trigger a Pages rebuild.
