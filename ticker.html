@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev3</title>
+<title>Ticker Rev4</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev4  2026-11-16  Live crypto: the page now listens to Coinbase's public price stream (6 coins from
+                    ticker-symbols.json), takes the 24 hour open and the day chart from Coinbase at start
+                    and hourly, and falls back to ticker.json while the stream is down (reconnects with
+                    waits of 2 s growing to 60 s). The newer time wins when both have a coin. Fixes from
+                    the Rev3 review: a PC clock that runs behind no longer blanks the ticker (future times
+                    are clamped to now, absurd ones still rejected), a backward clock jump is handled,
+                    prices below 1/11 of the previous close are dropped, items fit a 390px phone, a bigger
+                    "closed" mark, a little less slack between price and percent, small leftovers.
   Rev3  2026-11-16  Redo of the Rev2 rewrite after review. Rejects times more than 10 minutes in the
                     future and out-of-range numbers, item by item, in new data and in the saved copy
                     (a bad saved copy is removed). Each request gives up after 20 seconds, polling
@@ -69,11 +77,11 @@ html, body {
       padding: 0 calc(var(--u) * .25); border-radius: calc(var(--u) * .3); white-space: nowrap; }
 .nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); }
 .nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
-.cl { position: absolute; left: 0; top: 100%; margin-top: 0; font-size: calc(var(--u) * .27); font-weight: 700; line-height: .9; color: #c4c8cc; visibility: hidden; letter-spacing: .04em; text-transform: uppercase; }
-.pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .35); }
-/* Change box has a fixed minimum width (arrow plus a 7.5ch percent slot), content right aligned,
+.cl { position: absolute; left: 0; top: calc(100% - var(--u) * .04); font-size: calc(var(--u) * .31); font-weight: 700; line-height: .9; color: #d2d6da; visibility: hidden; letter-spacing: .05em; text-transform: uppercase; }
+.pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .22); }
+/* Change box has a fixed minimum width (arrow plus a 7ch percent slot), content right aligned,
    so the arrow stays next to the number and a longer percent never moves a neighbour */
-.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(7.5ch + .87em);
+.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(7ch + .87em);
       font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
 .ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
 .pt { display: inline-block; text-align: right; }
@@ -102,6 +110,7 @@ html, body {
 body.narrow .narrow-only { display: flex; }
 body.narrow .left .it { display: none; }
 body:not(.narrow) .strip .it.pcl { display: none; }
+body.narrow .track::before, body.narrow .track::after { width: calc(var(--u) * .6); }
 
 .msg { position: absolute; left: calc(var(--u) * .5); top: 0; bottom: 0; z-index: 4; display: none; align-items: center;
        font-size: calc(var(--u) * .42); color: #8a8f98; white-space: nowrap; }
@@ -118,7 +127,7 @@ body:not(.narrow) .strip .it.pcl { display: none; }
 
 <script>
 /* =========================================================
-   Ticker Rev3
+   Ticker Rev4
 
    Same design as headlines Rev12: the ticker never waits on the network.
    - Symbols come from ticker-symbols.json, prices from ticker.json (published by the data relay).
@@ -126,6 +135,8 @@ body:not(.narrow) .strip .it.pcl { display: none; }
    - New data is fetched in the background; the strip is never rebuilt while visible, prices are
      changed in place. A changed symbol list is applied at the end of a pass.
    - The scroll is a Web Animations transform animation (graphics side), not script driven.
+   - Crypto is also live from Coinbase's public stream; if that is down or unavailable, ticker.json
+     carries the coins as before.
    ========================================================= */
 
 const SPEED = 50;                 /* CSS px per second, constant */
@@ -137,9 +148,9 @@ const MAX_ITEMS = 60;              /* longer symbol lists are cut to the first 6
 const MAX_PINNED = 3;              /* only the first 3 pinned items go in the fixed left block */
 const MAX_POINTS = 80;
 const MAX_PRICE = 1e9;
-const MAX_RATIO = 11;              /* price more than 11 times the previous close (+1000%): rejected */
+const MAX_RATIO = 11;              /* price 11 times the previous close or more (or 1/11 or less): rejected */
 const MIN_TIME = 946684800;        /* 2000-01-01: any earlier time is not plausible */
-const FUTURE_SECONDS = 600;        /* times more than 10 minutes ahead are rejected */
+const FUTURE_SECONDS = 7 * 86400;  /* times up to 7 days ahead are clamped to now, further ahead are rejected */
 const FETCH_TIMEOUT_MS = 20000;    /* each request gives up after 20 seconds */
 const STUCK_MS = 45000;            /* a poll older than this is treated as dead (page frozen meanwhile) */
 const MAX_NAME = 24;
@@ -175,12 +186,14 @@ function dataUrl() {
 /* ---------- validation ---------- */
 const isNum = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
 const isPrice = (v) => isNum(v) && v < MAX_PRICE;
-/* a plausible epoch in seconds: after 2000 and not more than 10 minutes in the future */
+/* a plausible epoch in seconds: after 2000 and not absurdly far ahead. A time a little ahead
+   (a PC clock that runs behind) is plausible too, it is clamped to now with clampNow. */
 const isTime = (v) => isNum(v) && v > MIN_TIME && v <= Date.now() / 1000 + FUTURE_SECONDS;
+const clampNow = (v) => Math.min(v, Date.now() / 1000);
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const isObj = (o) => o !== null && typeof o === "object" && !Array.isArray(o);
 
-/* Returns a list of {id,name,group,decimals,pinned} or null. Keeps the first 60 valid items. */
+/* Returns a list of {id,name,group,decimals,pinned,cb} (cb: Coinbase product id or "") or null. Keeps the first 60 valid items. */
 function validateSymbols(raw) {
   if (!isObj(raw) || !Array.isArray(raw.items) || raw.items.length === 0) return null;
   const out = [], seen = new Set();
@@ -194,24 +207,26 @@ function validateSymbols(raw) {
     seen.add(it.id);
     const pinned = it.pinned === true && pins < MAX_PINNED;
     if (pinned) pins++;
-    out.push({ id: it.id, name: it.name.slice(0, MAX_NAME), group: it.group, decimals: dec, pinned });
+    const cb = it.source === "coinbase" && typeof it.symbol === "string" && /^[A-Z0-9]{2,10}-[A-Z]{3,5}$/.test(it.symbol) ? it.symbol : "";
+    out.push({ id: it.id, name: it.name.slice(0, MAX_NAME), group: it.group, decimals: dec, pinned, cb });
   }
   return out.length ? out : null;
 }
 
-/* One price entry. Returns a clean copy or null. s: an array, or undefined when absent. */
+/* One price entry. Returns a clean copy or null. s: an array, or undefined when absent.
+   t is clamped to now, rt keeps the time as received. */
 function validateEntry(e) {
   if (!isObj(e) || !isPrice(e.p) || !isPrice(e.pc) || !isTime(e.t) || typeof e.open !== "boolean") return null;
-  if (e.p / e.pc >= MAX_RATIO) return null;
+  if (e.p / e.pc >= MAX_RATIO || e.pc / e.p >= MAX_RATIO) return null;
   let s;
   if (e.s !== undefined && e.s !== null) {
     if (!Array.isArray(e.s) || e.s.length > MAX_POINTS || !e.s.every(isPrice)) return null;
     s = e.s.slice();
   }
-  return { p: e.p, pc: e.pc, t: e.t, open: e.open, s };
+  return { p: e.p, pc: e.pc, t: clampNow(e.t), rt: e.t, open: e.open, s };
 }
 
-/* Returns {generated, items: Map id -> entry} or null. Bad single items are skipped.
+/* Returns {generated (clamped to now), raw (as received), items: Map id -> entry} or null. Bad single items are skipped.
    Only ids from the symbol list (at most 60) are looked at, extra keys are ignored. */
 function validateData(raw, ids) {
   if (!isObj(raw) || !isTime(raw.generated) || !isObj(raw.items)) return null;
@@ -221,7 +236,7 @@ function validateData(raw, ids) {
     const e = validateEntry(raw.items[id]);
     if (e) items.set(id, e);
   }
-  return items.size ? { generated: raw.generated, items } : null;
+  return items.size ? { generated: clampNow(raw.generated), raw: raw.generated, items } : null;
 }
 
 /* ---------- saved copy ---------- */
@@ -229,12 +244,15 @@ function saveCache(list, generated, items) {
   try {
     const o = {};
     items.forEach((e, id) => { o[id] = { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s }; });
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: { version: 1, items: list }, data: { generated, items: o } }));
+    const sy = list.map((s) => ({ id: s.id, name: s.name, group: s.group, decimals: s.decimals, pinned: s.pinned,
+                                  source: s.cb ? "coinbase" : "other", symbol: s.cb || undefined }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: { version: 1, items: sy }, data: { generated, items: o } }));
   } catch (e) {}
 }
 function dropCache() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
 function loadCache() {
-  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) { return null; }
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); }
+  catch (e) { dropCache(); return null; }   /* not valid JSON: remove it */
 }
 
 /* ---------- formatting ---------- */
@@ -245,7 +263,7 @@ function fmtPrice(v, dec) {
 }
 function fmtStamp(sec) {
   if (!isTime(sec)) return "--:--";
-  const d = new Date(sec * 1000), n = new Date();
+  const d = new Date(clampNow(sec) * 1000), n = new Date();
   if (!Number.isFinite(d.getTime())) return "--:--";
   const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   if (d.toDateString() === n.toDateString()) return hm;
@@ -256,7 +274,11 @@ function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
 /* ---------- in-memory store and what is on screen ---------- */
 let symbols = [];                 /* validated symbol list (latest) */
 const store = new Map();          /* id -> {p, pc, t, open, s} */
-let feedGenerated = 0;
+let feedGenerated = 0;            /* time of the newest file, clamped to now */
+let feedRaw = 0;                  /* the same time as received (to tell a new file from the same one again) */
+let feedSeen = 0;                 /* newest clamped time of a file that came from the network (order guard; the
+                                     saved copy never blocks a new file) */
+let lastClock = Date.now() / 1000;
 let shownSig = "";                /* structure currently drawn */
 let els = new Map();              /* id -> [views] */
 let copyCount = 2;
@@ -264,7 +286,7 @@ let narrow = false;
 
 function classify(e) {
   const now = Date.now() / 1000;
-  const age = now - e.t, feedAge = now - feedGenerated;
+  const age = Math.max(0, now - e.t), feedAge = Math.max(0, now - feedGenerated);
   const old = e.open ? age > OLD_HOURS * 3600 : feedAge > OLD_HOURS * 3600;
   const stale = !old && e.open && age > STALE_MIN * 60;
   const closed = !old && !e.open;
@@ -276,7 +298,7 @@ function paint(v, e) {
   const r = Math.round(pct * 100) / 100;
   const dir = r > 0 ? "up" : r < 0 ? "dn" : "fl";
   setText(v.pr, fmtPrice(e.p, v.dec));
-  /* 100 percent or more is shown without decimals, so it fits the same 7.5ch slot */
+  /* 100 percent or more is shown without decimals, so it fits the same 7ch slot */
   setText(v.pt, (r > 0 ? "+" : "") + r.toFixed(Math.abs(r) >= 100 ? 0 : 2) + "%");
   setText(v.ar, dir === "up" ? "▲" : dir === "dn" ? "▼" : "▶");
   const c = v.root.classList;
@@ -304,7 +326,7 @@ function updateChip() {
   store.forEach((e, id) => { if (!els.has(id)) return; if (e.t > newest) newest = e.t; if (e.open && e.t > newestOpen) newestOpen = e.t; });
   if (!newest) return;
   const now = Date.now() / 1000;
-  const amber = (newestOpen > 0 && now - newestOpen > STALE_MIN * 60) || now - feedGenerated > OLD_HOURS * 3600;
+  const amber = (newestOpen > 0 && now - newestOpen > STALE_MIN * 60) || now - feedGenerated > OLD_HOURS * 3600;   /* newest* are clamped to now when stored */
   setText(chipEl, "as of " + fmtStamp(newest));
   chipEl.classList.toggle("amber", amber);
 }
@@ -316,17 +338,37 @@ function flash(views, dir) {
   for (const v of views) v.root.classList.add(cls);
 }
 
-/* The single entry point for a price. A later task feeds live crypto through this too.
-   Every value is checked here, so nothing unchecked can reach the screen. */
-function applyPrice(id, d) {
+/* If the PC clock jumped backward, times stored earlier would be "in the future" and nothing would
+   look stale or old again for a long time. Pull them back to now. */
+function watchClock() {
+  const now = Date.now() / 1000;
+  if (now < lastClock - 30) {
+    store.forEach((e) => { if (e.t > now) e.t = now; });
+    if (feedGenerated > now) feedGenerated = now;
+    if (feedSeen > now) feedSeen = now;
+    cbAppend.forEach((t, id) => { if (t > now) cbAppend.set(id, now); });
+  }
+  lastClock = now;
+}
+
+/* The single entry point for a price (file and live stream). src is "file" (default) or "ws".
+   Every value is checked here, so nothing unchecked can reach the screen.
+   When the stream and the file both have a coin, the one with the newer time wins.
+   Returns true when the price was taken, false when it was refused. */
+function applyPrice(id, d, src) {
+  src = src === "ws" ? "ws" : "file";
+  watchClock();
   const v = validateEntry(d);
   if (!v) return false;
   const prev = store.get(id);
-  const e = { p: v.p, pc: v.pc, t: v.t, open: v.open, s: v.s || (prev && prev.s) || [] };
+  if (prev && v.t < prev.t && (src === "ws" || prev.src === "ws")) return false;
+  /* the same time as received again (a file read twice): keep the time first used, so a dead feed still ages */
+  const t = prev && prev.rt === v.rt && prev.src === src ? prev.t : v.t;
+  const e = { p: v.p, pc: v.pc, t, rt: v.rt, open: v.open, s: v.s || (prev && prev.s) || [], src };
   store.set(id, e);
   const views = els.get(id);
-  if (!views) return;
-  for (const v of views) paint(v, e);
+  if (!views) return true;
+  for (const w of views) paint(w, e);
   if (prev && prev.p !== e.p) flash(views, e.p > prev.p ? "up" : "dn");
   updateChip();
   return true;
@@ -334,6 +376,7 @@ function applyPrice(id, d) {
 
 /* Re-evaluate stale and closed states as time passes */
 function refreshStates() {
+  watchClock();
   els.forEach((views, id) => {
     const e = store.get(id);
     if (!e) return;
@@ -419,7 +462,6 @@ function buildStructure() {
       copy.appendChild(gd);
       for (const s of items) {
         const v = makeItem(s, s.pinned ? "clone" : "strip");
-        if (s.pinned) v.root.classList.add("pcl");
         copy.appendChild(v.root); addViews(s.id, v);
       }
     }
@@ -442,6 +484,18 @@ function layout(offsetMs) {
   if (lw > w * 0.55) {
     u = Math.max(10, u * (w * 0.55) / lw);
     document.documentElement.style.setProperty("--u", u + "px");
+  }
+  /* Phone: the widest item must fit the clear part of the scroll area (the edge fades are .6 unit
+     each), so name, price and percent can be read together. Sizes are all in units, so scale. */
+  if (narrow) {
+    for (let k = 0; k < 4; k++) {
+      let ww = 0;
+      stripEl.querySelectorAll(".it").forEach((el) => { const x = el.getBoundingClientRect().width; if (x > ww) ww = x; });
+      const tw = trackEl.getBoundingClientRect().width;
+      if (!ww || ww + 1.2 * u <= tw) break;
+      u = Math.max(10, u * tw / (ww + 1.2 * u));
+      document.documentElement.style.setProperty("--u", u + "px");
+    }
   }
   startScroll(offsetMs || 0);
 }
@@ -484,23 +538,31 @@ function doSwap() {
 }
 
 /* ---------- taking in new data ---------- */
-function ingest(symRaw, dataRaw) {
-  const sy = symRaw ? validateSymbols(symRaw) : null;
-  const list = sy || symbols;
-  if (!list.length) return false;
-  const dv = validateData(dataRaw, list.map((s) => s.id));
-  if (!dv) return false;
-  if (sy) symbols = sy;
-  if (dv.generated < feedGenerated) return true;       /* older than what we have: ignore */
-  const changed = dv.generated > feedGenerated || !!sy;
-  feedGenerated = dv.generated;
-  dv.items.forEach((e, id) => applyPrice(id, e));
+/* Draws the strip if nothing is drawn yet, or plans a swap at the end of a pass if the list changed */
+function syncStructure() {
   const sig = sigOf(displayed());
   if (!shownSig && !els.size) {
     if (sig) { buildStructure(); layout(0); }
   } else if (sig !== shownSig) {
     pendingSwap = true; scheduleSwap();
   }
+}
+
+function ingest(symRaw, dataRaw) {
+  watchClock();
+  const sy = symRaw ? validateSymbols(symRaw) : null;
+  const list = sy || symbols;
+  if (!list.length) return false;
+  const dv = validateData(dataRaw, list.map((s) => s.id));
+  if (!dv) return false;
+  if (sy) { symbols = sy; liveSync(); }
+  /* the same file again keeps its time, so a feed that stopped still ages even if the PC clock is behind */
+  const gen = dv.raw === feedRaw ? feedGenerated : dv.generated;
+  if (gen < feedSeen) return true;                     /* older than the last file from the network: ignore */
+  const changed = gen > feedGenerated || !!sy;
+  feedGenerated = feedSeen = gen; feedRaw = dv.raw;
+  dv.items.forEach((e, id) => applyPrice(id, { p: e.p, pc: e.pc, t: e.rt, open: e.open, s: e.s }, "file"));
+  syncStructure();
   if (changed) saveCache(symbols, feedGenerated, store);
   return true;
 }
@@ -510,9 +572,9 @@ function ingest(symRaw, dataRaw) {
    20 seconds. If the page was frozen or hidden for hours, a poll that looks stuck is replaced
    and the single timer is reset, so polls never stack. */
 let fetching = false, pollTimer = 0, pollToken = 0, pollStarted = 0;
-async function getJson(url, ms) {
+async function getJson(url) {
   const ctl = typeof AbortController === "function" ? new AbortController() : null;
-  const timer = ctl ? setTimeout(() => ctl.abort(), ms || FETCH_TIMEOUT_MS) : 0;
+  const timer = ctl ? setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS) : 0;
   try {
     const res = await fetch(url, { cache: "no-store", signal: ctl ? ctl.signal : undefined });
     if (!res.ok) throw new Error("http " + res.status);
@@ -552,6 +614,158 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden && Date.now() - pollStarted > CHECK_SECONDS * 1000) checkForUpdate();
 });
 
+/* ---------- live crypto: Coinbase public stream plus Coinbase REST ---------- */
+/* The coins come from ticker-symbols.json (source "coinbase"). One socket at a time. Every message is
+   checked like file data and only ever reaches the screen through applyPrice (textContent). If the
+   stream is down or WebSocket does not exist, ticker.json carries the coins as before. */
+const WS_URL = "wss://ws-feed.exchange.coinbase.com";
+const REST_URL = "https://api.exchange.coinbase.com";
+const WS_MAX_CHARS = 4096;         /* a real message is about 600; anything bigger is ignored */
+const WS_SILENT_MS = 30000;        /* no message for 30 s while visible: half-open, reconnect */
+const WS_CONNECT_MS = 15000;       /* a connection that does not open in 15 s is dropped */
+const WS_WAIT_MIN = 2, WS_WAIT_MAX = 60;   /* reconnect waits in seconds: 2, 4, 8 ... 60 */
+const SERIES_STEP_S = 900;         /* a new chart point from live prices at most every 15 minutes */
+const REST_EVERY_MS = 3600000;     /* 24 hour open and day chart: at start and hourly */
+const REST_RETRY_MS = 300000;      /* after a failure: try again in 5 minutes */
+
+let cbMap = new Map();             /* Coinbase product id -> our item id */
+let cbSig = "";
+const cbOpen = new Map();          /* item id -> 24 hour open (previous close for the percent) */
+const cbAppend = new Map();        /* item id -> epoch seconds of the last chart point added */
+let ws = null, wsTimer = 0, wsTries = 0, wsLast = 0, wsStart = 0, wsWatchTimer = 0;
+let restTimer = 0, restBusy = false, restAgain = false;
+
+/* Coinbase sends numbers as plain decimal strings; anything else is not a number for us */
+const num = (v) => (typeof v === "string" && v.length <= 24 && /^\d+(\.\d+)?$/.test(v)) ? Number(v) : NaN;
+
+function dropSocket() {
+  const s = ws; ws = null;
+  if (s) { s.onopen = s.onmessage = s.onclose = s.onerror = null; try { s.close(); } catch (e) {} }
+}
+function wsDown() {
+  dropSocket();
+  clearTimeout(wsTimer);
+  if (!cbMap.size) return;
+  const wait = Math.min(WS_WAIT_MAX, WS_WAIT_MIN * Math.pow(2, wsTries));
+  wsTries++;
+  wsTimer = setTimeout(wsConnect, wait * 1000);
+}
+function wsConnect() {
+  clearTimeout(wsTimer); wsTimer = 0;
+  if (ws || !cbMap.size) return;
+  let s;
+  try { s = new WebSocket(WS_URL); } catch (e) { wsDown(); return; }
+  ws = s; wsStart = wsLast = performance.now();
+  s.onopen = () => {
+    if (ws !== s) return;
+    wsLast = performance.now();
+    try { s.send(JSON.stringify({ type: "subscribe", product_ids: Array.from(cbMap.keys()), channels: ["ticker_batch"] })); } catch (e) {}
+  };
+  s.onmessage = (ev) => { if (ws === s) onWsMessage(ev.data); };
+  s.onclose = s.onerror = () => { if (ws === s) wsDown(); };
+}
+function wsWatch() {
+  if (!ws) return;
+  const now = performance.now();
+  if (ws.readyState === 0) { if (now - wsStart > WS_CONNECT_MS) wsDown(); }
+  else if (!document.hidden && now - wsLast > WS_SILENT_MS) wsDown();
+}
+
+function wsGood() { wsTries = 0; wsLast = performance.now(); }
+function onWsMessage(d) {
+  if (typeof d !== "string" || d.length > WS_MAX_CHARS) return;
+  let m;
+  try { m = JSON.parse(d); } catch (e) { return; }
+  if (!isObj(m)) return;
+  if (m.type === "subscriptions") { wsGood(); return; }
+  if (m.type !== "ticker" || typeof m.product_id !== "string") return;
+  const id = cbMap.get(m.product_id);
+  if (!id) return;
+  const p = num(m.price);
+  const ts = typeof m.time === "string" && m.time.length <= 40 ? Date.parse(m.time) / 1000 : NaN;
+  if (!isPrice(p) || !isTime(ts)) return;
+  wsGood();
+  const prev = store.get(id);
+  const pc = cbOpen.get(id) || (prev && prev.pc);
+  if (!pc) return;
+  const hadView = els.has(id);
+  if (!applyPrice(id, { p, pc, t: ts, open: true }, "ws")) return;
+  if (!hadView) syncStructure();
+  addPoint(id, p);
+}
+
+/* new live prices extend the day chart, at most once per 15 minutes */
+function addPoint(id, p) {
+  const at = cbAppend.get(id);
+  const now = Date.now() / 1000;
+  const e = store.get(id);
+  if (at === undefined || !e || now - at < SERIES_STEP_S) return;
+  cbAppend.set(id, now);
+  setSeries(id, e.s.concat(p).slice(-MAX_POINTS));
+}
+function setSeries(id, s) {
+  const e = store.get(id);
+  if (!e) return;
+  e.s = s;
+  const views = els.get(id);
+  if (views) for (const v of views) paint(v, e);
+}
+
+/* REST: 24 hour open and the last 80 closes of 15 minute candles, same as the relay writes */
+async function restOne(prod, id) {
+  const q = encodeURIComponent(prod);
+  const st = await getJson(REST_URL + "/products/" + q + "/stats");
+  const open = isObj(st) ? num(st.open) : NaN;
+  if (isPrice(open)) {
+    cbOpen.set(id, open);
+    const e = store.get(id);
+    if (e && e.pc !== open) applyPrice(id, { p: e.p, pc: open, t: e.rt, open: e.open }, e.src);
+  }
+  const cs = await getJson(REST_URL + "/products/" + q + "/candles?granularity=900");
+  if (Array.isArray(cs)) {
+    const rows = [];
+    for (const r of cs.slice(0, 1000)) {
+      if (Array.isArray(r) && r.length >= 5 && isNum(r[0]) && isPrice(r[4])) rows.push([r[0], r[4]]);
+    }
+    rows.sort((a, b) => a[0] - b[0]);
+    const series = rows.slice(-MAX_POINTS).map((r) => r[1]);
+    if (series.length) { cbAppend.set(id, Date.now() / 1000); setSeries(id, series); }
+  }
+}
+async function restRun() {
+  clearTimeout(restTimer); restTimer = 0;
+  if (restBusy) { restAgain = true; return; }
+  restBusy = true; restAgain = false;
+  let ok = true;
+  try {
+    for (const [prod, id] of Array.from(cbMap)) {
+      if (cbMap.get(prod) !== id) continue;
+      try { await restOne(prod, id); } catch (e) { ok = false; }
+    }
+  } finally {
+    restBusy = false;
+    if (cbMap.size) restTimer = setTimeout(restRun, restAgain ? 0 : (ok ? REST_EVERY_MS : REST_RETRY_MS));
+  }
+}
+
+/* Called whenever the symbol list is set: follows ticker-symbols.json */
+function liveSync() {
+  if (typeof WebSocket !== "function") return;
+  const m = new Map();
+  for (const s of symbols) if (s.cb) m.set(s.cb, s.id);
+  const sig = Array.from(m).map((x) => x.join(">")).join("|");
+  if (sig === cbSig) return;
+  cbSig = sig; cbMap = m;
+  const ids = new Set(m.values());
+  Array.from(cbOpen.keys()).forEach((k) => { if (!ids.has(k)) cbOpen.delete(k); });
+  Array.from(cbAppend.keys()).forEach((k) => { if (!ids.has(k)) cbAppend.delete(k); });
+  dropSocket(); clearTimeout(wsTimer); wsTimer = 0;
+  if (!wsWatchTimer) wsWatchTimer = setInterval(wsWatch, 5000);
+  if (!m.size) { clearTimeout(restTimer); restTimer = 0; return; }
+  wsConnect();
+  restRun();
+}
+
 /* ---------- start ---------- */
 (function start() {
   const c = loadCache();
@@ -561,14 +775,15 @@ document.addEventListener("visibilitychange", () => {
     const dv = sy && isObj(c.data) ? validateData(c.data, sy.map((s) => s.id)) : null;
     if (dv) {
       good = true;
-      symbols = sy; feedGenerated = dv.generated;
-      dv.items.forEach((e, id) => store.set(id, { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s || [] }));
+      symbols = sy; feedGenerated = dv.generated; feedRaw = dv.raw;
+      dv.items.forEach((e, id) => store.set(id, { p: e.p, pc: e.pc, t: e.t, rt: e.rt, open: e.open, s: e.s || [], src: "file" }));
       buildStructure();
     }
   }
   if (c !== null && !good) dropCache();   /* a saved copy that fails the checks is thrown away */
   if (!els.size) { msgEl.style.display = "flex"; chipEl.style.display = "none"; }
   layout();
+  liveSync();
   checkForUpdate();
 })();
 
