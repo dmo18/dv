@@ -10,11 +10,12 @@
 
   Rev17  2026-11-16  Wall feeds: added CBS News, Fox Weather, Scripps News, DW and TRT World (CNN already here).
                      Bloomberg now uses the multi-quality master playlist (smallest 480x272) instead of the fixed 1080p one.
-                     Added Kan 11 (light 640x360 level, replaces the 4K-only address) and WSVN 7News (the stream the
-                     Brightcove player gets; its token has no expiry, so it may need re-fetching if WSVN changes it).
+                     Added Kan 11 (multi-quality address, 640x360 up to 1080p, the player picks the small level; replaces the 4K-only address) and WSVN 7News (the stream the
+                     Brightcove player gets; its token has no expiry, so it may need re-fetching if WSVN changes it; the station fills its ad breaks with a
+                     "7News will be right back" card, so a tile can show that card for a few minutes).
                      Every address the wallboard plays is now saved here exactly: LiveNOW Fox, ABC 10, Global News, Al Jazeera,
                      plus the CNN backup. Replaced the dead Al Jazeera address (03.m3u8 gave 404). Renamed the old
-                     "Live now fox" to "LiveNOW Fox 720" and "GlobalNews" to "Global News audio+video".
+                     "Live now fox" to "LiveNOW Fox 720" and "GlobalNews" to "Global News 720p", and the old "ABC10" to "ABC10 (old address)".
                      The player link default no longer depends on a player.html next to this page: away from the site
                      and localhost it uses the published player address. Nothing here reads wallboard.html.
   Rev16  2026-11-15  Removed Sky News: its server refuses connections and no working address exists.
@@ -378,9 +379,18 @@ function $(id) { return document.getElementById(id); }
 
 // Default the player base URL to player.html next to this page, so it is right wherever the site is hosted.
 // Use the player next to this page on the site or on localhost; anywhere else use the published player.
-document.getElementById("base").value = /^(dmo18\.github\.io|localhost|127\.0\.0\.1)$/.test(location.hostname)
-  ? new URL("player.html", location.href).href
-  : "https://dmo18.github.io/dv/player.html";
+const LOCAL_PLAYER = new URL("player.html", location.href).href;
+const ON_SITE = /^(dmo18\.github\.io|localhost|127\.0\.0\.1)$/.test(location.hostname);
+document.getElementById("base").value = ON_SITE ? LOCAL_PLAYER : "https://dmo18.github.io/dv/player.html";
+if (!ON_SITE && location.protocol !== "file:") {
+  // A copy hosted elsewhere: prefer a player.html that sits next to this page, if there is one.
+  fetch(LOCAL_PLAYER, { method: "HEAD", cache: "no-store" }).then((r) => {
+    if (!r.ok) return;
+    document.getElementById("base").value = LOCAL_PLAYER;
+    document.getElementById("out").value = build();
+    renderSnapshotGrid();
+  }).catch(() => {});
+}
 function clean(s) { return (s || "").trim(); }
 
 // These are free public streams (official or free streaming channels). Addresses can change or go off air
@@ -398,14 +408,14 @@ const STREAMS = [
   { name: "ABC News Live", url: "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8" },
   { name: "ABC1", url: "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8" },
   { name: "ABC2", url: "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8" },
-  { name: "ABC10", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index.m3u8" },
+  { name: "ABC10 (old address)", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index.m3u8" },
   { name: "Bloomberg", url: "https://www.bloomberg.com/media-manifest/streams/us.m3u8" },
-  { name: "Global News audio+video", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8" },
+  { name: "Global News 720p", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/live-audio_1=96000-video=2499968.m3u8" },
   { name: "RT", url: "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8" },
   { name: "BBC News", url: "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8" },
   { name: "Al Jazeera", url: "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8" },
   { name: "LiveNOW Fox", url: "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8" },
-  { name: "ABC 10 (event feed, wall address)", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8" },
+  { name: "ABC 10", url: "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8" },
   { name: "Global News", url: "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8" },
   { name: "CBS News", url: "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8" },
   { name: "Fox Weather", url: "https://247wlive.foxweather.com/stream/index.m3u8" },
