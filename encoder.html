@@ -8,12 +8,15 @@
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
-  Rev17  2026-11-16  Added 7 free news feeds for the 18-tile wall (CNN, Bloomberg master, CBS News, Fox Weather,
-                     Scripps News, DW, TRT World) plus Kan 11 and WSVN 7News. Every address the wallboard plays is
-                     now saved here with its exact address (LiveNOW Fox, ABC 10, Global News, Al Jazeera, WSVN 7News).
-                     Replaced the dead Al Jazeera address. Bloomberg now uses the multi-quality master playlist.
-                     The player link default no longer needs wallboard.html or a player.html next to this page:
-                     away from the site and localhost it uses the published player address.
+  Rev17  2026-11-16  Wall feeds: added CBS News, Fox Weather, Scripps News, DW and TRT World (CNN already here).
+                     Bloomberg now uses the multi-quality master playlist (smallest 480x272) instead of the fixed 1080p one.
+                     Added Kan 11 (light 640x360 level, replaces the 4K-only address) and WSVN 7News (the stream the
+                     Brightcove player gets; its token has no expiry, so it may need re-fetching if WSVN changes it).
+                     Every address the wallboard plays is now saved here exactly: LiveNOW Fox, ABC 10, Global News, Al Jazeera,
+                     plus the CNN backup. Replaced the dead Al Jazeera address (03.m3u8 gave 404). Renamed the old
+                     "Live now fox" to "LiveNOW Fox 720" and "GlobalNews" to "Global News audio+video".
+                     The player link default no longer depends on a player.html next to this page: away from the site
+                     and localhost it uses the published player address. Nothing here reads wallboard.html.
   Rev16  2026-11-15  Removed Sky News: its server refuses connections and no working address exists.
   Rev15  2026-11-13  Added CNN (CNN's free streaming channel, up to 1080p) and Fox News
                      (Fox's own preview feed of the live channel, 240p only).

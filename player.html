@@ -89,7 +89,9 @@ receives it. Opened on its own (no frame around it), the page sends nothing.
   {
     type:       "tilehealth"
     id:         the ID parameter ("" if not given)
-    state:      "playing"   no card on screen (picture moving, or still starting)
+    state:      "starting"  the current player has not shown a moving picture yet
+                "playing"   the picture is moving (advanced in the last 2 seconds)
+                "stalled"   the picture moved before but is frozen now, card not showing yet
                 "nosignal"  the "No signal" card is showing, still trying
                 "resting"   every option failed, waiting before starting over (card showing)
     w, h:       size of the video picture in pixels (0 if none yet)
@@ -97,8 +99,9 @@ receives it. Opened on its own (no frame around it), the page sends nothing.
     engine:     "vjs" (Video.js) or "clappr"
     alt:        true while the backup stream (alt=) is in use
     dropped:    dropped video frames in the last 5 seconds, percent, 0 to 100, 1 decimal
-    stalls:     number of "waiting" or "stalled" video events since the page loaded
-    sinceStall: seconds since the last such event, or null if none yet
+    stalls:     number of "waiting" or "stalled" video events since the page loaded, counted
+                only once that video's picture has moved (start-up waits are not stalls)
+    sinceStall: seconds since the last counted stall, or null if none yet
   }
 
 Examples
@@ -144,7 +147,9 @@ Revision log (newest first)
 ---------------------------
 Rev8  2026-11-16  Clappr pinned to 0.4.7 (was "latest", same file); integrity hashes on Clappr
                   and Video.js. Captions at most 2 lines (newest shown), never under 12px.
-                  Health report to the wallboard every 5 seconds (see "Health report").
+                  Health report to the wallboard every 5 seconds (see "Health report"), with
+                  state starting, playing, stalled, nosignal or resting; start-up waits are
+                  not counted as stalls.
 Rev7  2026-11-16  Captions 26% smaller (4.2vw to 3.1vw) with a mostly transparent background
                   (85% to 20% dark) and a dark outline on the text for legibility.
 Rev6  2026-11-15  Closed captions: shown whenever a stream provides them (WebVTT or CEA-608/708,
@@ -564,10 +569,25 @@ if (alt) {
    Only reads the state above; it changes nothing. Sent only when this page is in a frame. */
 if (window.parent && window.parent !== window) {
   const tileId = String(param("ID", "")).slice(0, 40);
+  const MOVING_MS = 2000;            /* picture advanced within this time: "playing" */
   let stalls = 0;
   let lastStallAt = null;
-  const countStall = () => { stalls += 1; lastStallAt = Date.now(); };
+  /* For each <video>: its first seen time position, and when its picture last advanced.
+     A video that has never advanced is still starting; its waiting events are not stalls. */
+  const firstTime = new WeakMap();
+  const lastAdvance = new WeakMap();
+  const lastSeen = new WeakMap();
+  const countStall = (e) => {
+    if (!lastAdvance.has(e.target)) return;   /* not moving yet: start-up, not a stall */
+    stalls += 1; lastStallAt = Date.now();
+  };
   /* media events do not bubble, so listen in the capture phase to catch every <video> */
+  document.addEventListener("timeupdate", (e) => {
+    const v = e.target, t = v.currentTime;
+    if (!firstTime.has(v)) firstTime.set(v, t);
+    if (t !== firstTime.get(v) && t !== lastSeen.get(v)) lastAdvance.set(v, Date.now());
+    lastSeen.set(v, t);
+  }, true);
   document.addEventListener("waiting", countStall, true);
   document.addEventListener("stalled", countStall, true);
 
@@ -585,10 +605,15 @@ if (window.parent && window.parent !== window) {
         prevVideo = null; prevDropped = 0; prevTotal = 0;
       }
       const a = ATTEMPTS[attempt] || ATTEMPTS[0];
+      const advancedAt = v ? lastAdvance.get(v) : undefined;
+      const state = resting ? "resting"
+        : offlineEl.style.display === "flex" ? "nosignal"
+        : advancedAt === undefined ? "starting"
+        : Date.now() - advancedAt <= MOVING_MS ? "playing" : "stalled";
       window.parent.postMessage({
         type: "tilehealth",
         id: tileId,
-        state: resting ? "resting" : offlineEl.style.display === "flex" ? "nosignal" : "playing",
+        state: state,
         w: v ? v.videoWidth : 0,
         h: v ? v.videoHeight : 0,
         tileW: window.innerWidth,
