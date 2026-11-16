@@ -12,6 +12,7 @@ Static HTML wallboard (no build, no packages) on GitHub Pages. Target screen: 19
 - Wallboard self-reloads when its title version changes, so bump wallboard.html when a child page changes.
 - Use relative links, not absolute site addresses.
 - Merge to main after testing (standing instruction). Branch name: claude/awesome-volta-kwfe4l, restart from main after each merge.
+- Every video stream used on the wallboard (main and backup addresses, exact match) must also be saved in encoder.html. The encoder will be used on its own later.
 - Never use em dashes or en dashes in text.
 - Plain language for the user, who works from a phone.
 

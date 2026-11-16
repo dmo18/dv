@@ -481,6 +481,15 @@ that tells us by email when its data stops.
 
 10 tasks. Writers: 1 Haiku, 7 Sonnet, 2 Opus. Reviews: 1 Sonnet, 7 Opus, 2 Fable.
 
+### Added requirement (2026-11-16, from the user)
+
+All video sources used on the wall must also be saved in encoder.html (exact address, main and
+backup), because the encoder will be used separately later.
+- Task 5: encoder gets the exact wall addresses (LiveNOW, ABC 10, Global News, Al Jazeera were
+  missing) and WSVN is investigated for a stable stream address (it runs in a Brightcove page).
+- Task 7: acceptance adds "every stream in the wall's tile list is in encoder.html by exact address".
+- Task 10: the daily check also fails if a wall stream is missing from encoder.html.
+
 ## 12. Phone preview
 
 After each milestone you get, in the chat (not stored in the repo):
