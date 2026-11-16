@@ -11,6 +11,14 @@ It writes a Markdown report and prints the number of dead streams on the last li
 ("DEAD=<n>"). Event feeds that are normally off air between events are reported but
 not counted as dead.
 
+Also enforces the standing rule: every stream address used on the wall (main and backup, exact
+string) must also be saved in encoder.html. Missing ones are listed and counted in DEAD, and the
+script exits with status 1.
+
+Changelog:
+  2026-11-16  Reads the new wallboard tile list (player(...) calls with an options object in any key
+              order: alt, altLabel, cc). Fails when a wall address is missing from encoder.html.
+
 Usage: check_streams.py <wallboard.html> <encoder.html> <report.md>
 """
 import re
@@ -38,10 +46,17 @@ def collect(wallboard_path, encoder_path):
             rows.append((where, name, url))
 
     wall = open(wallboard_path, encoding="utf-8").read()
-    for m in re.finditer(r'player\("([^"]+)",\s*"([^"]+)",\s*"([^"]+)"(?:,\s*\{\s*alt:\s*"([^"]+)",\s*altLabel:\s*"([^"]+)")?', wall):
+    # Ignore comments, so examples in them are not read as tiles.
+    wall = re.sub(r"<!--.*?-->|/\*.*?\*/", "", wall, flags=re.S)
+    wall = re.sub(r"(?m)^\s*//.*$", "", wall)
+    call = re.compile(r'player\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"(https?://[^"]+)"\s*(?:,\s*\{([^}]*)\})?\s*\)')
+    for m in call.finditer(wall):
+        opts = m.group(4) or ""
+        alt = re.search(r'\balt\s*:\s*"([^"]+)"', opts)
+        alt_label = re.search(r'\baltLabel\s*:\s*"([^"]+)"', opts)
         add("Wallboard", m.group(2), m.group(3))
-        if m.group(4):
-            add("Wallboard backup", m.group(5), m.group(4))
+        if alt:
+            add("Wallboard backup", alt_label.group(1) if alt_label else m.group(2), alt.group(1))
 
     enc = open(encoder_path, encoding="utf-8").read()
     block = enc[enc.index("const STREAMS = ["):]
@@ -49,6 +64,13 @@ def collect(wallboard_path, encoder_path):
     for name, url in re.findall(r'\{\s*name:\s*"([^"]+)",\s*url:\s*"([^"]+)"\s*\}', block):
         add("Encoder", name, url)
     return rows
+
+
+def encoder_urls(encoder_path):
+    enc = open(encoder_path, encoding="utf-8").read()
+    block = enc[enc.index("const STREAMS = ["):]
+    block = block[:block.index("];")]
+    return set(re.findall(r'\{\s*name:\s*"[^"]+",\s*url:\s*"([^"]+)"\s*\}', block))
 
 
 def get(url, byte_range=None):
@@ -100,6 +122,8 @@ def check(url):
 def main():
     wallboard_path, encoder_path, report_path = sys.argv[1:4]
     rows = collect(wallboard_path, encoder_path)
+    saved = encoder_urls(encoder_path)
+    unsaved = [r for r in rows if r[0].startswith("Wallboard") and r[2] not in saved]
     first = [check(url) for _, _, url in rows]
 
     time.sleep(PAUSE_S)
@@ -119,6 +143,9 @@ def main():
         results.append((where, name, url, state, detail, event))
 
     dead = [r for r in results if r[3] != "ok" and not r[5]]
+    # Standing rule: a wall address missing from the encoder counts as a failure.
+    for w, n, u in unsaved:
+        dead.append((w, n, u, "dead", "address is not saved in encoder.html", False))
     off_air = [r for r in results if r[3] != "ok" and r[5]]
 
     lines = [f"Checked {len(results)} streams: {len(results) - len(dead) - len(off_air)} playing, "
@@ -138,7 +165,10 @@ def main():
     report = "\n".join(lines) + "\n"
     open(report_path, "w", encoding="utf-8").write(report)
     print(report)
+    print(f"WALL_STREAMS={sum(1 for r in rows if r[0].startswith('Wallboard'))} NOT_IN_ENCODER={len(unsaved)}")
     print(f"DEAD={len(dead)}")
+    if unsaved:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

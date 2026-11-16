@@ -50,6 +50,18 @@ Updated 2026-11-16.
   (real stream is about 1 per second), a coin missing from ticker.json gets no chart until the hourly refresh,
   phone text is small, a price near 1e-300 shows 0.00.
 
+- Milestone 2 merged 2026-11-16 (18-tile wall v20, headlines Rev13, older pages pinned to Clappr 0.4.7, check_streams
+  reads the new tile format and fails if a wall stream is missing from encoder.html). Restore point before the merge:
+  main at 12a9cfc7cececca5b6d7aff534d673697a84d1c3 (wallboard v19, 11 tiles).
+- Wall v20 review (Opus) passed: 18 of 18 moving at 60 s and 310 s, CPU 1.74 cores vs 1.21 for the old 11-tile wall
+  (headless, no graphics card), memory 1.8 GB. Known limits: at Windows display scaling of 125 or 150 percent a
+  one device pixel hairline can show between some tiles (black on black; a snapping fix was tried and made it
+  no better and shrank the picture, so it was reverted; 100 percent scaling is exact). Some tile reloads can land
+  within 10 s of each other a few times in 6 hours (plan said never; still far better than all at once). The cap
+  MAX_LIVE (off) rests tiles round-robin, not heavy feeds first. check_streams counts a wall address missing from the
+  encoder as "not playing" in its summary and, in the workflow, the exit code is lost through tee (the issue still
+  opens). WSVN tile still shows its own ads with a Skip Ad button.
+
 ## Known issues
 See docs/TAKEOVER.md.
 
