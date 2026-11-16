@@ -356,10 +356,13 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   const cl = document.createElement("span"); cl.className = "cl"; cl.textContent = "closed";
   nmc.appendChild(nm); nmc.appendChild(cl);
   const pr = document.createElement("span"); pr.className = "pr";
-  /* reserve: every digit plus one spare digit; commas and points are narrower than a digit */
-  const txt = fmtPrice(store.get(sym.id).p, sym.decimals);
+  /* reserve room for one more whole digit, and the comma that may come with it:
+     size of the smallest number with one more digit (271.30 -> "1,000.00").
+     Digits are 1ch each, commas and points are counted as half a digit. */
+  const ip = Math.floor(store.get(sym.id).p);
+  const txt = fmtPrice(Math.pow(10, ip >= 1 ? String(ip).length : 1), sym.decimals);
   const digits = txt.replace(/[^0-9]/g, "").length;
-  pr.style.minWidth = (digits + 1 + (txt.length - digits) * 0.5) + "ch";
+  pr.style.minWidth = (digits + (txt.length - digits) * 0.5) + "ch";
   const ch = document.createElement("span"); ch.className = "ch";
   const ar = document.createElement("span"); ar.className = "ar";
   const pt = document.createElement("span"); pt.className = "pt";

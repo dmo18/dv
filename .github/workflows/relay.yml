@@ -1,0 +1,76 @@
+name: Data relay
+
+# relay.yml Rev 1
+# Changelog:
+# - Rev 1: first version (plan task 2).
+#
+# One run stays alive for about 5.5 hours (.github/scripts/relay_loop.py).
+# Every 2 minutes it publishes ticker.json to the "ticker-data" branch, every
+# 15 minutes headlines.json to the "headlines-data" branch (each branch holds a
+# single commit that is replaced every time). When all markets are closed it
+# slows to every 15 minutes. 10 minutes before the end it starts its successor.
+# The concurrency group makes the successor wait until this run has ended, so
+# two relays never run at once. The schedule is only a safety net that restarts
+# the chain if it ever breaks. The inputs are for testing only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cycle_seconds:
+        description: "Seconds between price fetches (test only, empty = 120)"
+        required: false
+        default: ""
+        type: string
+      run_minutes:
+        description: "Run length in minutes (test only, empty = 330)"
+        required: false
+        default: ""
+        type: string
+      headlines_every_seconds:
+        description: "Seconds between headline fetches (test only, empty = 900)"
+        required: false
+        default: ""
+        type: string
+      successor:
+        description: "Start the next run before this one ends"
+        required: false
+        default: "yes"
+        type: choice
+        options: ["yes", "no"]
+  schedule:
+    - cron: "23 */5 * * *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: relay
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Run the relay
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          IN_CYCLE: ${{ inputs.cycle_seconds }}
+          IN_RUN: ${{ inputs.run_minutes }}
+          IN_HEADLINES: ${{ inputs.headlines_every_seconds }}
+          IN_SUCCESSOR: ${{ inputs.successor }}
+        run: |
+          args=(--workdir "$RUNNER_TEMP/relay")
+          if [ -n "$IN_CYCLE" ]; then args+=(--cycle-seconds "$IN_CYCLE"); fi
+          if [ -n "$IN_RUN" ]; then args+=(--run-minutes "$IN_RUN"); fi
+          if [ -n "$IN_HEADLINES" ]; then args+=(--headlines-every-seconds "$IN_HEADLINES"); fi
+          if [ "$IN_SUCCESSOR" != "no" ]; then
+            args+=(--successor-command "gh workflow run relay.yml --ref main")
+          fi
+          python3 .github/scripts/relay_loop.py "${args[@]}"

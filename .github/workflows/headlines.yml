@@ -6,7 +6,9 @@ name: Update headlines
 
 on:
   schedule:
-    - cron: "7,22,37,52 * * * *"
+    # Safety net only: the "Data relay" workflow (relay.yml) now refreshes the
+    # headlines every 15 minutes.
+    - cron: "7 */6 * * *"
   workflow_dispatch:
   push:
     branches: [main]
