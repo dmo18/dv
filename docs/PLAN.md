@@ -507,6 +507,13 @@ After each milestone you get, in the chat (not stored in the repo):
 - Delegated token limit: 4 million tokens in total, 500 thousand per task.
 - If either limit is reached, work stops and you get a status note, not more spending.
 
+### Run cap changed (2026-11-16, user approved)
+
+Raised from 13 task runs and 4M delegated tokens to 17 task runs and 5M delegated tokens. Reason: the
+independent reviews caught real defects twice (a crash risk in the price script, a freeze risk in the ticker
+page), tasks 1 and 3 needed a redo, and the projection to finish with every review kept was about 3.9M.
+Measured at the time of the change: about 2.6M tokens, 9 task runs.
+
 ## 14. Risks
 
 | # | Risk | Chance | What we do |
