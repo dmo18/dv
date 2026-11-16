@@ -61,6 +61,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_REPO: ${{ github.repository }}
           IN_CYCLE: ${{ inputs.cycle_seconds }}
           IN_RUN: ${{ inputs.run_minutes }}
           IN_HEADLINES: ${{ inputs.headlines_every_seconds }}

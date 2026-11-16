@@ -1,7 +1,24 @@
 #!/usr/bin/env python3
-"""fetch_prices.py Rev 3
+"""fetch_prices.py Rev 4
 
 Changelog:
+- Rev 4: fixes after the second review.
+  1. Numbers are rounded first and checked after, so a tiny price can no
+     longer become zero. Every division is guarded.
+  2. Healthy sources can no longer be starved: Coinbase goes first, gold-api
+     and Frankfurter are fetched as a reserve right after the Yahoo batch,
+     a request timeout stops that host for the rest of the run, and no host
+     may use more than 30 percent of the run time.
+  3. Hard wall-clock limit on every request (also while headers trickle in),
+     plus an alarm in main() at DEADLINE + 15 seconds.
+  4. Price time must be after 1e9 and at most 10 minutes ahead of now, for
+     fresh values and for the previous file.
+  5. At most 10 Yahoo requests per run in total (batch, retries, singles).
+  6. A new, changed or cleared jump marker "h" counts as a change, so the
+     file is written and the marker is not lost.
+  7. Missing or unreadable symbols file gives a clear SymbolsError (exit 2).
+     Private URL opener, nothing installed process-wide. EUR/USD time never
+     steps back on the Frankfurter fallback. Output file mode 0644.
 - Rev 3: hardened after review. Every reply field is type checked and every
   source and item is wrapped, so one odd reply only loses that source. Reply
   bodies capped at 2 MB, deep JSON and non-JSON rejected. Previous file is
@@ -21,28 +38,36 @@ Usage:
 --block lists sources to treat as unreachable (for testing):
   yahoo, yahoo2, nasdaq, goldapi, frankfurter, coinbase
 
-Fallback order (plan 5.3):
+Fallback order (plan 5.3), which value is used:
   Yahoo batch (v7 spark) -> Yahoo per symbol (v8 chart, query1)
   -> Yahoo per symbol on query2 -> Nasdaq API (stocks and funds, Nasdaq 100)
   -> gold-api.com (gold, silver) / Frankfurter (EUR/USD)
   -> keep previous value from previous.json (marked "kept: <reason>").
 Crypto comes from Coinbase REST.
+Request order (so a hanging host cannot starve the others): Coinbase, Yahoo
+batch, then gold-api and Frankfurter as a reserve for items the batch did not
+deliver, then Yahoo per symbol, second Yahoo host, Nasdaq. The reserve is
+used only for items those slower fallbacks could not deliver.
 
 Item fields: p price, pc previous close, t epoch of price, open, s points,
 and optional h: a price jump candidate waiting for confirmation.
 
 Python standard library only. No keys, no secrets.
-Exit code 0 if at least one item was freshly updated, 1 otherwise
-(then the output file is not touched), 2 for bad arguments.
+Exit code 0 if the file was written (at least one item freshly updated, or a
+jump marker "h" set, changed or cleared), 1 otherwise (then the output file is
+not touched), 2 for bad arguments or an unreadable symbols file.
 """
 import glob
+import http.client
 import json
 import math
 import os
 import re
+import signal
 import socket
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -65,7 +90,10 @@ MAX_BODY = 2 * 1024 * 1024  # reply cap
 MAX_PREV = 2 * 1024 * 1024  # previous file cap
 MAX_RETRY_WAIT = 20
 MAX_HOST_FAILS = 3
-YAHOO_SINGLE_CAP = 10
+YAHOO_CAP = 10          # all Yahoo requests of one run
+HOST_SHARE = 0.30       # share of the run time one host may use
+MAX_AHEAD = 600         # a price time may be this far ahead of now
+MIN_TIME = 1e9
 MAX_REDIRECTS = 3
 GROUPS = ("Indexes", "Stocks", "FX and commodities", "Crypto")
 BLOCKABLE = ("yahoo", "yahoo2", "nasdaq", "goldapi", "frankfurter", "coinbase")
@@ -98,7 +126,14 @@ _sent = {}            # host_key -> requests sent this run
 _budget = {}          # name -> requests left
 _blocked = set()
 _deadline = [float("inf")]
+_dead = set()         # hosts stopped by a timeout in this run
+_spent = {}           # host_key -> seconds used this run
+_host_cap = [float("inf")]   # seconds one host may use (set during run())
+_opener = [None]      # private URL opener, never installed process-wide
+_live = {}            # thread id -> open connection (for the hard limit)
+_STD_URLOPEN = urllib.request.urlopen
 LAST_STATS = []       # summary lines of the last run
+LAST_HELD = [0]       # jump markers set, changed or cleared by the last run
 
 
 class FetchError(Exception):
@@ -118,6 +153,19 @@ class OutOfTime(Skip):
     pass
 
 
+class Timeout(FetchError):
+    pass
+
+
+class SymbolsError(ValueError):
+    """The symbols file is missing or unreadable."""
+    pass
+
+
+class _Alarm(BaseException):
+    pass
+
+
 # ---------------------------------------------------------------- helpers
 
 def good(x):
@@ -126,9 +174,23 @@ def good(x):
             and math.isfinite(x) and 0 < x <= MAX_PRICE)
 
 
-def good_time(t):
+def r6(x):
+    """Round to 6 places first, then check. None if not a good number."""
+    if not good(x):
+        return None
+    v = round(float(x), 6)
+    return v if good(v) else None
+
+
+def epoch_like(t):
+    """Loose check for helper times (session start and end, chart points)."""
     return (isinstance(t, (int, float)) and not isinstance(t, bool)
             and math.isfinite(t) and 0 < t < 4e9)
+
+
+def good_time(t):
+    """A price time: after 1e9 and at most 10 minutes ahead of now."""
+    return epoch_like(t) and MIN_TIME < t <= time.time() + MAX_AHEAD
 
 
 def num(x):
@@ -191,8 +253,79 @@ class SafeRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+class _Tracked:
+    """Remembers the connection of the current thread so the hard limit can
+    close its socket."""
+    def connect(self):
+        _live[threading.get_ident()] = self
+        super().connect()
+
+
+class _HTTPSConn(_Tracked, http.client.HTTPSConnection):
+    pass
+
+
+class _HTTPConn(_Tracked, http.client.HTTPConnection):
+    pass
+
+
+class _HTTPS(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(_HTTPSConn, req,
+                            context=getattr(self, "_context", None))
+
+
+class _HTTP(urllib.request.HTTPHandler):
+    def http_open(self, req):
+        return self.do_open(_HTTPConn, req)
+
+
 def install_opener():
-    urllib.request.install_opener(urllib.request.build_opener(SafeRedirect()))
+    """Build the private opener. Nothing is installed process-wide."""
+    _opener[0] = urllib.request.build_opener(SafeRedirect(), _HTTPS(), _HTTP())
+
+
+def _open(req, timeout):
+    """Open with the private opener. A urlopen replaced by the caller (tests)
+    is respected."""
+    fn = urllib.request.urlopen
+    if fn is not _STD_URLOPEN:
+        return fn(req, timeout=timeout)
+    if _opener[0] is None:
+        install_opener()
+    return _opener[0].open(req, timeout=timeout)
+
+
+def _fetch(req, timeout, started):
+    """One request with a hard wall-clock limit that also covers the status
+    line and the headers. The request runs in a helper thread. If it is not
+    done in time its socket is closed and it counts as a timeout."""
+    box = {}
+
+    def work():
+        try:
+            with _open(req, timeout) as r:
+                box["raw"] = _read_capped(r, started)
+        except BaseException as e:
+            box["err"] = e
+        finally:
+            _live.pop(threading.get_ident(), None)
+
+    th = threading.Thread(target=work, daemon=True)
+    th.start()
+    th.join(timeout + 0.5)
+    if th.is_alive():
+        sock = getattr(_live.pop(th.ident, None), "sock", None)
+        for close in (lambda: sock.shutdown(socket.SHUT_RDWR),
+                      lambda: sock.close()):
+            try:
+                close()
+            except Exception:
+                pass
+        raise Timeout("timeout")
+    if "err" in box:
+        raise box["err"]
+    return box["raw"]
 
 
 def _read_capped(r, started):
@@ -214,7 +347,7 @@ def _read_capped(r, started):
             raise FetchError("reply too big")
         chunks.append(c)
         if time.time() - started > TIMEOUT:
-            raise FetchError("timeout")
+            raise Timeout("timeout")
         if remaining() <= 0:
             raise OutOfTime("deadline")
     return b"".join(chunks)
@@ -227,16 +360,49 @@ def _fail(host_key, msg):
     raise e
 
 
+def _timed_out(host_key):
+    """A timeout stops the host for the rest of the run."""
+    _dead.add(host_key)
+    _fails[host_key] = max(_fails.get(host_key, 0) + 1, MAX_HOST_FAILS)
+    e = Timeout("timeout")
+    e.counted = True
+    raise e
+
+
 def http_json(url, host_key, gap=0.0, budget=None):
     """GET a URL and parse JSON. gap = minimum seconds between calls per host.
     On HTTP 429: wait for Retry-After (capped at 20 s, default 5 s) and try
-    once more. At most one such retry per host per run. After 3 failures a
-    host gets no more requests this run. No request after the deadline."""
+    once more. At most one such retry per host per run. After 3 failures, or
+    after one timeout, a host gets no more requests this run. A host may use
+    at most 30 percent of the run time. No request after the deadline."""
     if HOSTS.get(host_key, (None, host_key))[1] in _blocked:
         raise Blocked("blocked")
+    t_in = time.time()
+    used = _spent.get(host_key, 0.0)
+
+    def host_left():
+        return _host_cap[0] - used - (time.time() - t_in)
+
+    try:
+        raw = _request(url, host_key, gap, budget, host_left)
+    finally:
+        _spent[host_key] = used + max(0.0, time.time() - t_in)
+    try:
+        if raw.lstrip()[:1] not in (b"{", b"["):
+            raise ValueError("not JSON")
+        return json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, RecursionError):
+        _fail(host_key, "not JSON")
+
+
+def _request(url, host_key, gap, budget, host_left):
     for attempt in (0, 1):
         if _fails.get(host_key, 0) >= MAX_HOST_FAILS:
+            if host_key in _dead:
+                raise Skip("host stopped after timeout")
             raise Skip("host stopped after %d failures" % MAX_HOST_FAILS)
+        if host_left() <= 0.5:
+            raise Skip("host time share used")
         if budget is not None:
             if _budget.get(budget, 0) <= 0:
                 raise Skip("request cap reached")
@@ -246,10 +412,13 @@ def http_json(url, host_key, gap=0.0, budget=None):
             if wait > 0:
                 if wait >= remaining():
                     raise OutOfTime("deadline")
+                if wait >= host_left():
+                    raise Skip("host time share used")
                 time.sleep(wait)
         left = remaining()
         if left <= 0.5:
             raise OutOfTime("deadline")
+        limit = min(TIMEOUT, left, max(host_left(), 0.5))
         started = _last_call[host_key] = time.time()
         _sent[host_key] = _sent.get(host_key, 0) + 1
         req = urllib.request.Request(url, headers={
@@ -257,9 +426,7 @@ def http_json(url, host_key, gap=0.0, budget=None):
             "Accept": "application/json,text/plain,*/*",
             "Accept-Language": "en-US,en;q=0.9"})
         try:
-            with urllib.request.urlopen(req, timeout=min(TIMEOUT, left)) as r:
-                raw = _read_capped(r, started)
-            break
+            return _fetch(req, limit, started)
         except urllib.error.HTTPError as e:
             if e.code == 429 and attempt == 0 and host_key not in _retried:
                 _retried.add(host_key)
@@ -270,39 +437,37 @@ def http_json(url, host_key, gap=0.0, budget=None):
                 except (TypeError, ValueError, AttributeError):
                     delay = 5.0
                 delay = max(0.0, min(delay, MAX_RETRY_WAIT))
-                if delay + 1 >= remaining():
+                if delay + 1 >= min(remaining(), host_left()):
                     _fail(host_key, "HTTP 429")
                 time.sleep(delay)
                 continue
             _fail(host_key, "HTTP %s" % e.code)
         except Skip:
             raise
+        except Timeout:
+            _timed_out(host_key)
         except FetchError as e:
             _fail(host_key, str(e))
         except urllib.error.URLError as e:
             if isinstance(e.reason, (socket.timeout, TimeoutError)):
-                _fail(host_key, "timeout")
+                _timed_out(host_key)
             if isinstance(e.reason, FetchError):
                 _fail(host_key, str(e.reason))
             _fail(host_key, "network error")
         except (socket.timeout, TimeoutError):
-            _fail(host_key, "timeout")
+            _timed_out(host_key)
         except Exception as e:
             _fail(host_key, "network " + type(e).__name__)
-    try:
-        if raw.lstrip()[:1] not in (b"{", b"["):
-            raise ValueError("not JSON")
-        return json.loads(raw.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError, RecursionError):
-        _fail(host_key, "not JSON")
+    _fail(host_key, "HTTP 429")
 
 
 def clean_series(vals):
     out = []
     if isinstance(vals, list):
         for v in vals[-MAX_POINTS * 4:]:
-            if good(v):
-                out.append(round(float(v), 6))
+            v = r6(v)
+            if v is not None:
+                out.append(v)
     return out[-MAX_POINTS:]
 
 
@@ -332,16 +497,19 @@ def rebuild_prev(v):
     """A clean copy of a previous item from known fields only, or None."""
     if not isinstance(v, dict):
         return None
-    p, pc, t, op, s = (v.get("p"), v.get("pc"), v.get("t"), v.get("open"),
-                       v.get("s"))
-    if not (good(p) and good(pc) and good_time(t) and isinstance(op, bool)
-            and isinstance(s, list) and 1 <= len(s) <= MAX_POINTS
-            and all(good(x) for x in s)):
+    p, pc, t, op, s = (r6(v.get("p")), r6(v.get("pc")), v.get("t"),
+                       v.get("open"), v.get("s"))
+    if not (p is not None and pc is not None and good_time(t)
+            and isinstance(op, bool)
+            and isinstance(s, list) and 1 <= len(s) <= MAX_POINTS):
         return None
-    out = {"p": float(p), "pc": float(pc), "t": int(t), "open": op,
-           "s": [float(x) for x in s]}
-    if good(v.get("h")):
-        out["h"] = float(v["h"])
+    s = [r6(x) for x in s]
+    if None in s:
+        return None
+    out = {"p": p, "pc": pc, "t": int(t), "open": op, "s": s}
+    h = r6(v.get("h"))
+    if h is not None:
+        out["h"] = h
     return out
 
 
@@ -371,13 +539,11 @@ def load_previous(path, ids):
 
 def make_item(p, pc, t, is_open, s):
     """Build a candidate item or return None if any number is bad."""
-    if not (good(p) and good(pc) and good_time(t)):
+    p, pc = r6(p), r6(pc)
+    if p is None or pc is None or not good_time(t):
         return None
-    s = clean_series(s)
-    if not s:
-        s = [round(float(p), 6)]
-    return {"p": round(float(p), 6), "pc": round(float(pc), 6),
-            "t": int(t), "open": bool(is_open), "s": s}
+    s = clean_series(s) or [p]
+    return {"p": p, "pc": pc, "t": int(t), "open": bool(is_open), "s": s}
 
 
 # ------------------------------------------------------------------ Yahoo
@@ -395,7 +561,7 @@ def yahoo_parse(res, now):
     closes = dig(res, "indicators", "quote", 0, "close")
     start = dig(meta, "currentTradingPeriod", "regular", "start")
     end = dig(meta, "currentTradingPeriod", "regular", "end")
-    if good_time(start) and good_time(end):
+    if epoch_like(start) and epoch_like(end):
         is_open = start <= now <= end
     else:
         is_open = good_time(t) and now - t < 900
@@ -409,7 +575,7 @@ def yahoo_batch(symbols, host):
     q = urllib.parse.quote(",".join(symbols), safe=",")
     url = ("https://%s.finance.yahoo.com/v7/finance/spark?symbols=%s"
            "&range=1d&interval=5m&includePrePost=false" % (host, q))
-    d = http_json(url, host)
+    d = http_json(url, host, budget="yahoo")
     now = time.time()
     results = dig(d, "spark", "result")
     if not isinstance(results, list):
@@ -432,7 +598,7 @@ def yahoo_chart(symbol, host):
     url = ("https://%s.finance.yahoo.com/v8/finance/chart/%s"
            "?range=1d&interval=5m&includePrePost=false"
            % (host, urllib.parse.quote(symbol, safe="")))
-    d = http_json(url, host, gap=0.8, budget="yahoo_single")
+    d = http_json(url, host, gap=0.8, budget="yahoo")
     res = dig(d, "chart", "result", 0)
     if not isinstance(res, dict):
         raise FetchError("chart shape")
@@ -471,7 +637,7 @@ def nasdaq_item(symbol):
                 x = ny_wall_to_epoch(x / 1000.0)
             except Exception:
                 continue
-            if good_time(x):
+            if epoch_like(x):
                 pts.append((x, y))
         if not pts:
             continue
@@ -604,6 +770,9 @@ def frankfurter_item(prev):
         pass
     if not good(pc):
         pc = prev["pc"] if prev else p
+    # the date has no clock time: never let t step back behind the previous t
+    if prev and prev["t"] > t:
+        t = prev["t"]
     item = make_item(p, pc, t, False, prev["s"] if prev else [])
     if not item:
         raise FetchError("bad fields")
@@ -656,18 +825,39 @@ def coinbase_item(product):
 
 def run(symbols_path, previous_path=None, blocked=(), deadline=None):
     """Fetch everything. Returns the ticker.json dict (always, even if empty).
-    deadline: seconds for the whole run (default DEADLINE)."""
+    deadline: seconds for the whole run (default DEADLINE).
+    Raises SymbolsError (a ValueError) if the symbols file is missing or
+    unreadable. Nothing else is raised for bad data or network trouble.
+    should_write(doc) tells whether the result is worth writing."""
+    try:
+        syms = load_symbols(symbols_path)
+    except RecursionError:
+        raise SymbolsError("symbols file unreadable: too deep")
+    except (OSError, ValueError, TypeError) as e:
+        raise SymbolsError("symbols file unreadable: %s"
+                           % clean_text(type(e).__name__))
     start = time.time()
+    total = DEADLINE if deadline is None else deadline
     _blocked.clear()
     _blocked.update(blocked)
     _retried.clear()
     _fails.clear()
     _sent.clear()
+    _dead.clear()
+    _spent.clear()
     _budget.clear()
-    _budget["yahoo_single"] = YAHOO_SINGLE_CAP
-    _deadline[0] = start + (DEADLINE if deadline is None else deadline)
+    _budget["yahoo"] = YAHOO_CAP
+    _deadline[0] = start + total
+    _host_cap[0] = HOST_SHARE * total
+    LAST_HELD[0] = 0
     install_opener()
-    syms = load_symbols(symbols_path)
+    try:
+        return _run(syms, previous_path, start)
+    finally:
+        _host_cap[0] = float("inf")
+
+
+def _run(syms, previous_path, start):
     by_id = {it["id"]: it for it in syms}
     prev_all = load_previous(previous_path, set(by_id))
     items, sources, problems = {}, {}, {}
@@ -678,9 +868,10 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
     def accept(iid, item, src):
         """Store a fresh item, or hold back a big jump until confirmed."""
         prev = prev_all.get(iid)
-        if prev and abs(item["p"] / prev["p"] - 1.0) > MAX_JUMP:
+        if (prev and prev["p"] > 0
+                and abs(item["p"] / prev["p"] - 1.0) > MAX_JUMP):
             h = prev.get("h")
-            if not (h and abs(item["p"] / h - 1.0) <= CONFIRM):
+            if not (h and h > 0 and abs(item["p"] / h - 1.0) <= CONFIRM):
                 kept = dict(prev, s=list(prev["s"]), h=item["p"])
                 items[iid] = kept
                 sources[iid] = "kept: jump held, %s" % src
@@ -701,7 +892,23 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
                 key = LABEL_HOST[label]
                 _fails[key] = _fails.get(key, 0) + 1
 
+    reserve, reserve_err = {}, {}
+
+    def stash(i, label, fn):
+        """Like attempt, but the value is only used if nothing better comes."""
+        try:
+            reserve[i["id"]] = (fn(), label)
+        except Exception as e:
+            reserve_err[i["id"]] = "%s %s" % (label, reason_of(e))
+            if not isinstance(e, Skip) and not getattr(e, "counted", False):
+                key = LABEL_HOST[label]
+                _fails[key] = _fails.get(key, 0) + 1
+
     yahoo_like = lambda i: i["source"] == "yahoo"
+
+    # ---- Coinbase first: independent of everything else
+    for i in pending(lambda i: i["source"] == "coinbase"):
+        attempt(i, "coinbase", lambda i=i: coinbase_item(i["symbol"]))
 
     # ---- Yahoo batch
     ysyms = [i for i in syms if yahoo_like(i)]
@@ -717,7 +924,17 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
             for i in ysyms:
                 note(i["id"], "yahoo", e)
 
-    # ---- Yahoo per symbol, query1 then query2 (shared cap of 10 requests).
+    # ---- gold-api and Frankfurter now, as a reserve (cheap, and a hanging
+    # Yahoo or Nasdaq cannot starve them). Used further down.
+    for i in pending(lambda i: i["symbol"] in GOLDAPI):
+        stash(i, "goldapi", lambda i=i: goldapi_item(
+            i["symbol"], prev_all.get(i["id"])))
+    for i in pending(lambda i: i["symbol"] == "EURUSD=X"):
+        stash(i, "frankfurter", lambda i=i: frankfurter_item(
+            prev_all.get(i["id"])))
+
+    # ---- Yahoo per symbol, query1 then query2. All Yahoo requests of a run
+    # (batch, retries, singles) share one cap of 10.
     # Items no other source can supply go first, so the cap does not use
     # up the requests on stocks that Nasdaq can still deliver.
     def no_other_source(i):
@@ -735,17 +952,11 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
     for i in pending(lambda i: yahoo_like(i) and i["group"] == "Stocks"):
         attempt(i, "nasdaq", lambda i=i: nasdaq_item(i["symbol"]))
 
-    # ---- gold-api and Frankfurter
-    for i in pending(lambda i: i["symbol"] in GOLDAPI):
-        attempt(i, "goldapi", lambda i=i: goldapi_item(
-            i["symbol"], prev_all.get(i["id"])))
-    for i in pending(lambda i: i["symbol"] == "EURUSD=X"):
-        attempt(i, "frankfurter", lambda i=i: frankfurter_item(
-            prev_all.get(i["id"])))
-
-    # ---- Coinbase
-    for i in pending(lambda i: i["source"] == "coinbase"):
-        attempt(i, "coinbase", lambda i=i: coinbase_item(i["symbol"]))
+    # ---- gold-api and Frankfurter: use the reserve for what is still missing
+    for i in pending(lambda i: i["id"] in reserve):
+        accept(i["id"], *reserve[i["id"]])
+    for i in pending(lambda i: i["id"] in reserve_err):
+        problems[i["id"]] = reserve_err[i["id"]]
 
     # ---- keep previous for anything still missing
     for i in syms:
@@ -761,6 +972,9 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
     for iid in sources:
         sources[iid] = clean_text(sources[iid])
 
+    LAST_HELD[0] = sum(
+        1 for iid in by_id
+        if (items.get(iid) or {}).get("h") != (prev_all.get(iid) or {}).get("h"))
     doc = {"generated": int(time.time()), "items": items, "sources": sources}
     shrink_to_fit(doc)
     stats(doc, time.time() - start)
@@ -775,8 +989,9 @@ def stats(doc, secs):
         counts[k] = counts.get(k, 0) + 1
     LAST_STATS[:] = []
     for key, (host, name) in HOSTS.items():
-        LAST_STATS.append("source %-11s %-25s requests %2d  failures %d" % (
-            name, host, _sent.get(key, 0), _fails.get(key, 0)))
+        LAST_STATS.append("source %-11s %-25s requests %2d  failures %d%s" % (
+            name, host, _sent.get(key, 0), _fails.get(key, 0),
+            "  timed out" if key in _dead else ""))
     for k in ("yahoo", "yahoo-single", "yahoo2", "nasdaq", "goldapi",
               "frankfurter", "coinbase", "kept", "error"):
         LAST_STATS.append("items %-12s %d" % (k, counts.get(k, 0)))
@@ -802,6 +1017,12 @@ def fresh_count(doc):
                if not v.startswith(("error", "kept")))
 
 
+def should_write(doc):
+    """True if the last run() changed something worth saving: a fresh item,
+    or a jump marker "h" that was set, changed or cleared."""
+    return fresh_count(doc) > 0 or LAST_HELD[0] > 0
+
+
 def clean_stale_temps(path):
     d = os.path.dirname(os.path.abspath(path))
     for f in glob.glob(os.path.join(glob.escape(d), ".ticker-*.tmp")):
@@ -817,6 +1038,7 @@ def write_atomic(path, doc):
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(encoded(doc))
+        os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp):
@@ -829,7 +1051,7 @@ def summary(syms, doc):
         it = doc["items"].get(iid)
         src = doc["sources"].get(iid)
         if it:
-            chg = (it["p"] / it["pc"] - 1) * 100
+            chg = (it["p"] / it["pc"] - 1) * 100 if it["pc"] > 0 else 0.0
             print("%-7s %-12s %12.*f  %+6.2f%%  t=%d  %s  pts=%d  [%s]" % (
                 iid, i["name"][:12], i["decimals"], it["p"], chg, it["t"],
                 "open" if it["open"] else "closed", len(it["s"]), src))
@@ -859,6 +1081,31 @@ def main(argv):
     symbols_path, out_path = args[0], args[1]
     prev_path = args[2] if len(args) == 3 else (
         out_path if os.path.exists(out_path) else None)
+    # last line of defence: a hard stop a little after the run deadline
+    armed, old = False, None
+    if hasattr(signal, "SIGALRM"):
+        try:
+            old = signal.signal(signal.SIGALRM, _on_alarm)
+            signal.alarm(int(DEADLINE + 15))
+            armed = True
+        except ValueError:      # not the main thread
+            pass
+    try:
+        return _main(symbols_path, out_path, prev_path, blocked)
+    except _Alarm:
+        print("run stopped by the alarm, %s left untouched" % out_path)
+        return 1
+    finally:
+        if armed:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old)
+
+
+def _on_alarm(signum, frame):
+    raise _Alarm()
+
+
+def _main(symbols_path, out_path, prev_path, blocked):
     try:
         clean_stale_temps(out_path)
         doc = run(symbols_path, prev_path, blocked)
@@ -866,10 +1113,13 @@ def main(argv):
         for line in LAST_STATS:
             print(line)
         n = fresh_count(doc)
-        if n == 0:
+        if not should_write(doc):
             print("nothing could be updated, %s left untouched" % out_path)
             return 1
         write_atomic(out_path, doc)
+    except SymbolsError as e:
+        print("%s, %s left untouched" % (clean_text(str(e)), out_path))
+        return 2
     except Exception as e:
         print("run failed (%s), %s left untouched" % (
             clean_text(type(e).__name__ + " " + str(e)), out_path))

@@ -276,7 +276,8 @@ function paint(v, e) {
   const r = Math.round(pct * 100) / 100;
   const dir = r > 0 ? "up" : r < 0 ? "dn" : "fl";
   setText(v.pr, fmtPrice(e.p, v.dec));
-  setText(v.pt, (r > 0 ? "+" : "") + r.toFixed(2) + "%");
+  /* 100 percent or more is shown without decimals, so it fits the same 7.5ch slot */
+  setText(v.pt, (r > 0 ? "+" : "") + r.toFixed(Math.abs(r) >= 100 ? 0 : 2) + "%");
   setText(v.ar, dir === "up" ? "▲" : dir === "dn" ? "▼" : "▶");
   const c = v.root.classList;
   c.toggle("up", dir === "up"); c.toggle("dn", dir === "dn"); c.toggle("fl", dir === "fl");
