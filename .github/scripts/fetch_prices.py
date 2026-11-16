@@ -36,6 +36,9 @@ from datetime import datetime, timedelta, timezone
 
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/124.0.0.0 Safari/537.36")
+# Yahoo answered a bare "Mozilla/5.0" far more often than a full Chrome string
+# from a shared IP (tested), so Yahoo hosts get the short one.
+YAHOO_UA = "Mozilla/5.0"
 TIMEOUT = 20
 MAX_POINTS = 80
 MAX_JUMP = 0.40
@@ -76,7 +79,8 @@ def http_json(url, host_key, gap=0.0):
                 time.sleep(wait)
         _last_call[host_key] = time.time()
         req = urllib.request.Request(url, headers={
-            "User-Agent": UA, "Accept": "application/json,text/plain,*/*",
+            "User-Agent": YAHOO_UA if host_key in ("query1", "query2") else UA,
+            "Accept": "application/json,text/plain,*/*",
             "Accept-Language": "en-US,en;q=0.9"})
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
