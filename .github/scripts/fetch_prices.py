@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""fetch_prices.py Rev 1
+"""fetch_prices.py Rev 2
 
 Changelog:
+- Rev 2: Nasdaq fallback for the Nasdaq 100 index, real EUR/USD previous close
+  from Frankfurter, polite HTTP 429 handling (Retry-After, one retry per host).
 - Rev 1: first version. Reads ticker-symbols.json, writes ticker.json.
 
 Usage:
@@ -30,7 +32,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/124.0.0.0 Safari/537.36")
@@ -43,6 +45,8 @@ BLOCKABLE = ("yahoo", "yahoo2", "nasdaq", "goldapi", "frankfurter", "coinbase")
 GOLDAPI = {"GC=F": "XAU", "SI=F": "XAG"}
 
 _last_call = {}
+_retried = set()  # hosts already retried after a 429 in this run
+MAX_RETRY_WAIT = 20
 
 
 class FetchError(Exception):
@@ -62,22 +66,34 @@ def good(x):
 
 
 def http_json(url, host_key, gap=0.0):
-    """GET a URL and parse JSON. gap = minimum seconds between calls per host."""
-    if gap:
-        wait = _last_call.get(host_key, 0) + gap - time.time()
-        if wait > 0:
-            time.sleep(wait)
-    _last_call[host_key] = time.time()
-    req = urllib.request.Request(url, headers={
-        "User-Agent": UA, "Accept": "application/json,text/plain,*/*",
-        "Accept-Language": "en-US,en;q=0.9"})
-    try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            raw = r.read(5_000_000)
-    except urllib.error.HTTPError as e:
-        raise FetchError("HTTP %s" % e.code)
-    except Exception as e:
-        raise FetchError(type(e).__name__)
+    """GET a URL and parse JSON. gap = minimum seconds between calls per host.
+    On HTTP 429: wait for Retry-After (capped at 20 s, default 5 s) and try
+    once more. At most one such retry per host per run."""
+    for attempt in (0, 1):
+        if gap:
+            wait = _last_call.get(host_key, 0) + gap - time.time()
+            if wait > 0:
+                time.sleep(wait)
+        _last_call[host_key] = time.time()
+        req = urllib.request.Request(url, headers={
+            "User-Agent": UA, "Accept": "application/json,text/plain,*/*",
+            "Accept-Language": "en-US,en;q=0.9"})
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                raw = r.read(5_000_000)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt == 0 and host_key not in _retried:
+                _retried.add(host_key)
+                try:
+                    delay = float(e.headers.get("Retry-After", ""))
+                except (TypeError, ValueError):
+                    delay = 5.0
+                time.sleep(max(0.0, min(delay, MAX_RETRY_WAIT)))
+                continue
+            raise FetchError("HTTP %s" % e.code)
+        except Exception as e:
+            raise FetchError(type(e).__name__)
     try:
         return json.loads(raw)
     except ValueError:
@@ -286,9 +302,39 @@ def in_regular_session(epoch):
     return 570 <= m < 960
 
 
+def nasdaq_index_item(symbol, prev):
+    """Nasdaq 100 only (other indexes return 400 there). Price and previous
+    close only, so the little chart reuses the previous series."""
+    url = ("https://api.nasdaq.com/api/quote/%s/info?assetclass=index"
+           % urllib.parse.quote(symbol, safe=""))
+    d = http_json(url, "nasdaq", gap=0.4)
+    data = d.get("data") if isinstance(d, dict) else None
+    if not data or not data.get("primaryData"):
+        raise FetchError("no data")
+    pd = data["primaryData"]
+    p = _money(pd.get("lastSalePrice"))
+    pc = _money(((data.get("keyStats") or {}).get("previousclose") or {})
+                .get("value"))
+    t = time.time()
+    try:
+        from zoneinfo import ZoneInfo
+        stamp = str(pd.get("lastTradeTimestamp", "")).replace(" ET", "")
+        t = datetime.strptime(stamp, "%b %d, %Y %I:%M %p").replace(
+            tzinfo=ZoneInfo("America/New_York")).timestamp()
+    except Exception:
+        pass
+    is_open = data.get("marketStatus") == "Open" and time.time() - t < 1800
+    item = make_item(p, pc, t, is_open, prev["s"] if prev else [])
+    if not item:
+        raise FetchError("bad fields")
+    return item
+
+
 # -------------------------------------------------- gold-api and Frankfurter
 
 def goldapi_item(symbol, prev):
+    # Limitation: gold-api.com gives a price only. pc and s are reused from the
+    # previous file, so pc equals p only on a first run (no previous file).
     code = GOLDAPI[symbol]
     d = http_json("https://api.gold-api.com/price/%s" % code, "goldapi")
     p = d.get("price")
@@ -304,12 +350,27 @@ def frankfurter_item(prev):
     d = http_json("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD",
                   "frankfurter")
     p = d["rates"]["USD"]
+    day = datetime.strptime(d["date"], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    t = day.timestamp()
+    # previous business day rate (one extra request) gives a real pc
+    back = day - timedelta(days=1)
+    while back.weekday() >= 5:
+        back -= timedelta(days=1)
+    pc = None
     try:
-        t = datetime.strptime(d["date"], "%Y-%m-%d").replace(
-            tzinfo=timezone.utc).timestamp()
-    except Exception:
-        t = time.time()
-    return fallback_item(p, t, False, prev)
+        d2 = http_json("https://api.frankfurter.dev/v1/%s?base=EUR&symbols=USD"
+                       % back.strftime("%Y-%m-%d"), "frankfurter")
+        pc = d2["rates"]["USD"]
+    except (FetchError, KeyError, TypeError):
+        pass
+    if not good(pc):
+        pc = prev["pc"] if prev else p
+    if not good(p):
+        raise FetchError("bad price")
+    item = make_item(p, pc, t, False, prev["s"] if prev else [])
+    if not item:
+        raise FetchError("bad fields")
+    return item
 
 
 def fallback_item(p, t, is_open, prev):
@@ -357,6 +418,7 @@ def check_jump(item, prev):
 def run(symbols_path, previous_path=None, blocked=()):
     """Fetch everything. Returns the ticker.json dict (always, even if empty)."""
     blocked = set(blocked)
+    _retried.clear()
     syms = load_symbols(symbols_path)
     by_id = {it["id"]: it for it in syms}
     prev_all = load_previous(previous_path, set(by_id))
@@ -416,6 +478,14 @@ def run(symbols_path, previous_path=None, blocked=()):
                 fails = 0
             except FetchError as e:
                 fails += 1
+                problems[i["id"]] = "nasdaq: %s" % e
+
+    if "nasdaq" not in blocked:
+        for i in pending(lambda i: i["symbol"] == "^NDX"):
+            try:
+                accept(i["id"], nasdaq_index_item("NDX", prev_all.get(i["id"])),
+                       "nasdaq")
+            except FetchError as e:
                 problems[i["id"]] = "nasdaq: %s" % e
 
     # ---- gold-api and Frankfurter

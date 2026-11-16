@@ -395,7 +395,7 @@ function layout(offsetMs) {
   const w = window.innerWidth, h = window.innerHeight;
   narrow = w < NARROW_PX;
   document.body.classList.toggle("narrow", narrow);
-  let u = Math.max(12, Math.min(h, U_MAX));
+  let u = Math.max(12, Math.min(h, U_MAX, narrow ? w / 11 : U_MAX));
   document.documentElement.style.setProperty("--u", u + "px");
   const lw = leftEl.getBoundingClientRect().width;
   if (lw > w * 0.55) {
