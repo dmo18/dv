@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev2</title>
+<title>Ticker Rev3</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev3  2026-11-16  Redo of the Rev2 rewrite after review. Rejects times more than 10 minutes in the
+                    future and out-of-range numbers, item by item, in new data and in the saved copy
+                    (a bad saved copy is removed). Each request gives up after 20 seconds, polling
+                    can no longer stop or stack. Pinned block is tighter so the 108px bar shows
+                    bigger text. Fixed width arrow and percent slot, clearer "closed" mark and group
+                    names, cleaner first offline start. Long lists trimmed to 60, at most 3 pinned.
   Rev2  2026-11-16  Rewritten. No more TradingView widget: no outside script, font or image.
                     Prices come from ticker.json (published by the data relay), the symbol list
                     from ticker-symbols.json. Starts at once from the copy saved in the browser,
@@ -35,9 +41,10 @@ html, body {
 .bar { position: relative; width: 100%; height: 100%; display: flex; align-items: center; background: #000; }
 
 /* Left fixed block */
-.left { flex: 0 0 auto; display: flex; align-items: center; height: 100%; padding-left: calc(var(--u) * .5);
-        padding-right: calc(var(--u) * .45); position: relative; z-index: 3; background: #000; white-space: nowrap; }
-.left .it { margin-right: calc(var(--u) * .9); }
+.left { flex: 0 0 auto; display: flex; align-items: center; height: 100%; padding-left: calc(var(--u) * .3);
+        padding-right: calc(var(--u) * .3); position: relative; z-index: 3; background: #000; white-space: nowrap; }
+.left .it { margin-right: calc(var(--u) * .45); padding: 0 calc(var(--u) * .12); }
+.left .nmc, .left .pr { margin-right: calc(var(--u) * .25); }
 .chip { flex: 0 0 auto; font-size: calc(var(--u) * .34); line-height: 1; color: var(--nm); font-weight: 600;
         border: 1px solid #333; border-radius: calc(var(--u) * .3); padding: calc(var(--u) * .12) calc(var(--u) * .35);
         white-space: nowrap; }
@@ -54,25 +61,23 @@ html, body {
 
 /* Group label with thin divider */
 .gd { flex: 0 0 auto; display: flex; align-items: center; margin: 0 calc(var(--u) * .9) 0 calc(var(--u) * .1); }
-.gd i { display: block; width: 1px; height: calc(var(--u) * .62); background: #333; margin-right: calc(var(--u) * .45); }
-.gd b { font-size: calc(var(--u) * .3); font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .06em; }
+.gd i { display: block; width: 1px; height: calc(var(--u) * .62); background: #4a4a4a; margin-right: calc(var(--u) * .45); }
+.gd b { font-size: calc(var(--u) * .34); font-weight: 700; color: #a3a8ae; text-transform: uppercase; letter-spacing: .06em; }
 
 /* One item */
 .it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .9);
       padding: 0 calc(var(--u) * .25); border-radius: calc(var(--u) * .3); white-space: nowrap; }
 .nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); }
 .nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
-.cl { position: absolute; left: 0; top: 100%; margin-top: calc(var(--u) * .02); font-size: calc(var(--u) * .21); line-height: 1; color: #8a8a8a; visibility: hidden; letter-spacing: .04em; text-transform: uppercase; }
+.cl { position: absolute; left: 0; top: 100%; margin-top: 0; font-size: calc(var(--u) * .27); font-weight: 700; line-height: .9; color: #c4c8cc; visibility: hidden; letter-spacing: .04em; text-transform: uppercase; }
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .35); }
 .ch { display: inline-flex; align-items: center; font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
-.ar { font-size: .72em; margin-right: .3em; }
-.pt { display: inline-block; min-width: 6.4ch; text-align: right; }
+.ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; }
+.pt { display: inline-block; min-width: 7.5ch; text-align: right; }
 .sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
 .sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 .up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
 .dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
-.up .ch { color: var(--up); } .dn .ch { color: var(--dn); }
-.left .sp { display: none; }
 
 /* States */
 .it.closed { opacity: .72; }
@@ -95,22 +100,22 @@ body.narrow .narrow-only { display: flex; }
 body.narrow .left .it { display: none; }
 body:not(.narrow) .strip .it.pcl { display: none; }
 
-.msg { position: absolute; left: calc(var(--u) * .5); top: 0; bottom: 0; display: none; align-items: center;
-       font-size: calc(var(--u) * .42); color: #777; }
+.msg { position: absolute; left: calc(var(--u) * .5); top: 0; bottom: 0; z-index: 4; display: none; align-items: center;
+       font-size: calc(var(--u) * .42); color: #8a8f98; white-space: nowrap; }
 </style>
 </head>
 <body>
 <div class="bar" id="bar">
-  <div class="left" id="left"><span class="chip" id="chip" aria-live="off">as of --:--</span></div>
+  <div class="left" id="left"><span class="chip" id="chip" aria-live="off" style="display:none">as of --:--</span></div>
   <div class="track" id="track">
     <div class="strip" id="strip"></div>
-    <div class="msg" id="msg">Prices will appear when online</div>
   </div>
+  <div class="msg" id="msg">Prices will appear when online</div>
 </div>
 
 <script>
 /* =========================================================
-   Ticker Rev2
+   Ticker Rev3
 
    Same design as headlines Rev12: the ticker never waits on the network.
    - Symbols come from ticker-symbols.json, prices from ticker.json (published by the data relay).
