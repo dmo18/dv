@@ -41,10 +41,10 @@ html, body {
 .bar { position: relative; width: 100%; height: 100%; display: flex; align-items: center; background: #000; }
 
 /* Left fixed block */
-.left { flex: 0 0 auto; display: flex; align-items: center; height: 100%; padding-left: calc(var(--u) * .3);
-        padding-right: calc(var(--u) * .3); position: relative; z-index: 3; background: #000; white-space: nowrap; }
-.left .it { margin-right: calc(var(--u) * .45); padding: 0 calc(var(--u) * .12); }
-.left .nmc, .left .pr { margin-right: calc(var(--u) * .25); }
+.left { flex: 0 0 auto; display: flex; align-items: center; height: 100%; padding-left: calc(var(--u) * .25);
+        padding-right: calc(var(--u) * .25); position: relative; z-index: 3; background: #000; white-space: nowrap; }
+.left .it { margin-right: calc(var(--u) * .4); padding: 0 calc(var(--u) * .1); }
+.left .nmc, .left .pr { margin-right: calc(var(--u) * .2); }
 .chip { flex: 0 0 auto; font-size: calc(var(--u) * .34); line-height: 1; color: var(--nm); font-weight: 600;
         border: 1px solid #333; border-radius: calc(var(--u) * .3); padding: calc(var(--u) * .12) calc(var(--u) * .35);
         white-space: nowrap; }
@@ -71,9 +71,12 @@ html, body {
 .nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
 .cl { position: absolute; left: 0; top: 100%; margin-top: 0; font-size: calc(var(--u) * .27); font-weight: 700; line-height: .9; color: #c4c8cc; visibility: hidden; letter-spacing: .04em; text-transform: uppercase; }
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .35); }
-.ch { display: inline-flex; align-items: center; font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
-.ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; }
-.pt { display: inline-block; min-width: 7.5ch; text-align: right; }
+/* Change box has a fixed minimum width (arrow plus a 7.5ch percent slot), content right aligned,
+   so the arrow stays next to the number and a longer percent never moves a neighbour */
+.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(7.5ch + .87em);
+      font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
+.ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
+.pt { display: inline-block; text-align: right; }
 .sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
 .sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 .up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
@@ -130,7 +133,15 @@ const CHECK_SECONDS = 60;         /* look for new prices every minute */
 const RETRY_SECONDS = 30;         /* after a failed fetch */
 const STALE_MIN = 20;             /* open market, price older than this: stale */
 const OLD_HOURS = 24;             /* older than this: percent hidden */
-const MAX_ITEMS = 60;
+const MAX_ITEMS = 60;              /* longer symbol lists are cut to the first 60 valid items */
+const MAX_PINNED = 3;              /* only the first 3 pinned items go in the fixed left block */
+const MAX_POINTS = 80;
+const MAX_PRICE = 1e9;
+const MAX_RATIO = 11;              /* price more than 11 times the previous close (+1000%): rejected */
+const MIN_TIME = 946684800;        /* 2000-01-01: any earlier time is not plausible */
+const FUTURE_SECONDS = 600;        /* times more than 10 minutes ahead are rejected */
+const FETCH_TIMEOUT_MS = 20000;    /* each request gives up after 20 seconds */
+const STUCK_MS = 45000;            /* a poll older than this is treated as dead (page frozen meanwhile) */
 const MAX_NAME = 24;
 const U_MAX = 108;
 const NARROW_PX = 900;
@@ -163,51 +174,65 @@ function dataUrl() {
 
 /* ---------- validation ---------- */
 const isNum = (v) => typeof v === "number" && Number.isFinite(v) && v > 0;
+const isPrice = (v) => isNum(v) && v < MAX_PRICE;
+/* a plausible epoch in seconds: after 2000 and not more than 10 minutes in the future */
+const isTime = (v) => isNum(v) && v > MIN_TIME && v <= Date.now() / 1000 + FUTURE_SECONDS;
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const isObj = (o) => o !== null && typeof o === "object" && !Array.isArray(o);
 
-/* Returns a list of {id,name,group,decimals,pinned} or null */
+/* Returns a list of {id,name,group,decimals,pinned} or null. Keeps the first 60 valid items. */
 function validateSymbols(raw) {
-  if (!isObj(raw) || !Array.isArray(raw.items) || raw.items.length === 0 || raw.items.length > MAX_ITEMS) return null;
+  if (!isObj(raw) || !Array.isArray(raw.items) || raw.items.length === 0) return null;
   const out = [], seen = new Set();
+  let pins = 0;
   for (const it of raw.items) {
+    if (out.length >= MAX_ITEMS) break;
     if (!isObj(it) || typeof it.id !== "string" || !it.id || it.id.length > 40 || seen.has(it.id)) continue;
     if (typeof it.name !== "string" || !it.name) continue;
     if (GROUPS.indexOf(it.group) < 0) continue;
     const dec = Number.isInteger(it.decimals) && it.decimals >= 0 && it.decimals <= 8 ? it.decimals : 2;
     seen.add(it.id);
-    out.push({ id: it.id, name: it.name.slice(0, MAX_NAME), group: it.group, decimals: dec, pinned: it.pinned === true });
+    const pinned = it.pinned === true && pins < MAX_PINNED;
+    if (pinned) pins++;
+    out.push({ id: it.id, name: it.name.slice(0, MAX_NAME), group: it.group, decimals: dec, pinned });
   }
   return out.length ? out : null;
 }
 
-/* Returns {generated, items: Map id -> entry} or null. Bad single items are skipped. */
+/* One price entry. Returns a clean copy or null. s: an array, or undefined when absent. */
+function validateEntry(e) {
+  if (!isObj(e) || !isPrice(e.p) || !isPrice(e.pc) || !isTime(e.t) || typeof e.open !== "boolean") return null;
+  if (e.p / e.pc >= MAX_RATIO) return null;
+  let s;
+  if (e.s !== undefined && e.s !== null) {
+    if (!Array.isArray(e.s) || e.s.length > MAX_POINTS || !e.s.every(isPrice)) return null;
+    s = e.s.slice();
+  }
+  return { p: e.p, pc: e.pc, t: e.t, open: e.open, s };
+}
+
+/* Returns {generated, items: Map id -> entry} or null. Bad single items are skipped.
+   Only ids from the symbol list (at most 60) are looked at, extra keys are ignored. */
 function validateData(raw, ids) {
-  if (!isObj(raw) || !isNum(raw.generated) || !isObj(raw.items)) return null;
-  if (Object.keys(raw.items).length > MAX_ITEMS) return null;
+  if (!isObj(raw) || !isTime(raw.generated) || !isObj(raw.items)) return null;
   const items = new Map();
   for (const id of ids) {
     if (!has(raw.items, id)) continue;
-    const e = raw.items[id];
-    if (!isObj(e) || !isNum(e.p) || !isNum(e.pc) || !isNum(e.t) || typeof e.open !== "boolean") continue;
-    let s = [];
-    if (e.s !== undefined && e.s !== null) {
-      if (!Array.isArray(e.s) || e.s.length > 80 || !e.s.every(isNum)) continue;
-      s = e.s.slice();
-    }
-    items.set(id, { p: e.p, pc: e.pc, t: e.t, open: e.open, s });
+    const e = validateEntry(raw.items[id]);
+    if (e) items.set(id, e);
   }
   return items.size ? { generated: raw.generated, items } : null;
 }
 
 /* ---------- saved copy ---------- */
-function saveCache(symRaw, generated, items) {
+function saveCache(list, generated, items) {
   try {
     const o = {};
     items.forEach((e, id) => { o[id] = { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s }; });
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: symRaw, data: { generated, items: o } }));
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: { version: 1, items: list }, data: { generated, items: o } }));
   } catch (e) {}
 }
+function dropCache() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
 function loadCache() {
   try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); } catch (e) { return null; }
 }
@@ -219,7 +244,9 @@ function fmtPrice(v, dec) {
   return f.format(v);
 }
 function fmtStamp(sec) {
+  if (!isTime(sec)) return "--:--";
   const d = new Date(sec * 1000), n = new Date();
+  if (!Number.isFinite(d.getTime())) return "--:--";
   const hm = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   if (d.toDateString() === n.toDateString()) return hm;
   return d.toLocaleDateString("en-US", { weekday: "short" }) + " " + hm;
@@ -228,7 +255,6 @@ function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
 
 /* ---------- in-memory store and what is on screen ---------- */
 let symbols = [];                 /* validated symbol list (latest) */
-let symbolsRaw = null;
 const store = new Map();          /* id -> {p, pc, t, open, s} */
 let feedGenerated = 0;
 let shownSig = "";                /* structure currently drawn */
@@ -289,16 +315,20 @@ function flash(views, dir) {
   for (const v of views) v.root.classList.add(cls);
 }
 
-/* The single entry point for a price. A later task feeds live crypto through this too. */
+/* The single entry point for a price. A later task feeds live crypto through this too.
+   Every value is checked here, so nothing unchecked can reach the screen. */
 function applyPrice(id, d) {
+  const v = validateEntry(d);
+  if (!v) return false;
   const prev = store.get(id);
-  const e = { p: d.p, pc: d.pc, t: d.t, open: d.open, s: d.s || (prev && prev.s) || [] };
+  const e = { p: v.p, pc: v.pc, t: v.t, open: v.open, s: v.s || (prev && prev.s) || [] };
   store.set(id, e);
   const views = els.get(id);
   if (!views) return;
   for (const v of views) paint(v, e);
   if (prev && prev.p !== e.p) flash(views, e.p > prev.p ? "up" : "dn");
   updateChip();
+  return true;
 }
 
 /* Re-evaluate stale and closed states as time passes */
@@ -326,8 +356,10 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   const cl = document.createElement("span"); cl.className = "cl"; cl.textContent = "closed";
   nmc.appendChild(nm); nmc.appendChild(cl);
   const pr = document.createElement("span"); pr.className = "pr";
-  const e = store.get(sym.id);
-  pr.style.minWidth = (fmtPrice(e.p, sym.decimals).length + 2) + "ch";
+  /* reserve: every digit plus one spare digit; commas and points are narrower than a digit */
+  const txt = fmtPrice(store.get(sym.id).p, sym.decimals);
+  const digits = txt.replace(/[^0-9]/g, "").length;
+  pr.style.minWidth = (digits + 1 + (txt.length - digits) * 0.5) + "ch";
   const ch = document.createElement("span"); ch.className = "ch";
   const ar = document.createElement("span"); ar.className = "ar";
   const pt = document.createElement("span"); pt.className = "pt";
@@ -365,7 +397,7 @@ function buildStructure() {
   while (leftEl.firstChild !== chipEl) leftEl.removeChild(leftEl.firstChild);
   stripEl.textContent = "";
   msgEl.style.display = list.length ? "none" : "flex";
-  if (!list.length) { chipEl.style.display = "none"; return; }
+  if (!list.length) { chipEl.style.display = "none"; return; }   /* first offline start: only the message */
   chipEl.style.display = "";
 
   const pinned = list.filter((s) => s.pinned);
@@ -432,7 +464,7 @@ function startScroll(offsetMs) {
 let pendingSwap = false, swapTimer = 0;
 function scheduleSwap() {
   clearTimeout(swapTimer);
-  if (!anim) { doSwap(0); return; }
+  if (!anim) { doSwap(); return; }
   const t = Number(anim.currentTime) || 0;
   const remaining = cycleMs - (t % cycleMs);
   swapTimer = setTimeout(doSwap, remaining + 3);
@@ -454,7 +486,7 @@ function ingest(symRaw, dataRaw) {
   if (!list.length) return false;
   const dv = validateData(dataRaw, list.map((s) => s.id));
   if (!dv) return false;
-  if (sy) { symbols = sy; symbolsRaw = symRaw; }
+  if (sy) symbols = sy;
   if (dv.generated < feedGenerated) return true;       /* older than what we have: ignore */
   const changed = dv.generated > feedGenerated || !!sy;
   feedGenerated = dv.generated;
@@ -465,49 +497,73 @@ function ingest(symRaw, dataRaw) {
   } else if (sig !== shownSig) {
     pendingSwap = true; scheduleSwap();
   }
-  if (changed && symbolsRaw) saveCache(symbolsRaw, feedGenerated, store);
+  if (changed) saveCache(symbols, feedGenerated, store);
   return true;
 }
 
 /* ---------- background refresh ---------- */
-let fetching = false;
-async function getJson(url) {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error("http " + res.status);
-  return res.json();
+/* One poll at a time, one timer at a time. A request that never answers is aborted after
+   20 seconds. If the page was frozen or hidden for hours, a poll that looks stuck is replaced
+   and the single timer is reset, so polls never stack. */
+let fetching = false, pollTimer = 0, pollToken = 0, pollStarted = 0;
+async function getJson(url, ms) {
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), ms || FETCH_TIMEOUT_MS) : 0;
+  try {
+    const res = await fetch(url, { cache: "no-store", signal: ctl ? ctl.signal : undefined });
+    if (!res.ok) throw new Error("http " + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function schedulePoll(sec) {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(checkForUpdate, sec * 1000);
 }
 async function checkForUpdate() {
-  if (fetching) return;
-  fetching = true;
+  if (fetching && Date.now() - pollStarted < STUCK_MS) return;
+  clearTimeout(pollTimer);
+  const my = ++pollToken;
+  fetching = true; pollStarted = Date.now();
   let ok = false;
   try {
     let symRaw = null;
     try { symRaw = await getJson("ticker-symbols.json"); } catch (e) { /* use what we have */ }
+    if (my !== pollToken) return;
     const dataRaw = await getJson(dataUrl());
+    if (my !== pollToken) return;
     ok = ingest(symRaw, dataRaw);
   } catch (e) {
-    /* offline, blocked or bad data: keep showing what we have */
+    /* offline, blocked, timed out or bad data: keep showing what we have */
   } finally {
-    fetching = false;
-    setTimeout(checkForUpdate, (ok ? CHECK_SECONDS : RETRY_SECONDS) * 1000);
+    if (my === pollToken) {
+      fetching = false;
+      schedulePoll(ok ? CHECK_SECONDS : RETRY_SECONDS);
+    }
   }
 }
+/* Back from hidden: look now if the last poll is long ago (the guard above prevents doubles) */
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && Date.now() - pollStarted > CHECK_SECONDS * 1000) checkForUpdate();
+});
 
 /* ---------- start ---------- */
 (function start() {
   const c = loadCache();
+  let good = false;
   if (c && isObj(c)) {
     const sy = validateSymbols(c.symbols);
-    if (sy) {
-      const dv = c.data ? validateData(c.data, sy.map((s) => s.id)) : null;
-      if (dv) {
-        symbols = sy; symbolsRaw = c.symbols; feedGenerated = dv.generated;
-        dv.items.forEach((e, id) => store.set(id, e));
-        buildStructure();
-      }
+    const dv = sy && isObj(c.data) ? validateData(c.data, sy.map((s) => s.id)) : null;
+    if (dv) {
+      good = true;
+      symbols = sy; feedGenerated = dv.generated;
+      dv.items.forEach((e, id) => store.set(id, { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s || [] }));
+      buildStructure();
     }
   }
-  if (!els.size) msgEl.style.display = "flex";
+  if (c !== null && !good) dropCache();   /* a saved copy that fails the checks is thrown away */
+  if (!els.size) { msgEl.style.display = "flex"; chipEl.style.display = "none"; }
   layout();
   checkForUpdate();
 })();
@@ -519,13 +575,19 @@ setInterval(refreshStates, 30000);
 /* Self-update: every 5 minutes, reload if a newer Rev of this page has been published */
 const versionOf = (text) => (text.match(/<title>[^<]*\bRev(\d+)/i) || [])[1];
 const RUNNING_REV = versionOf("<title>" + document.title);
+let revChecking = false;
 setInterval(async () => {
+  if (revChecking) return;
+  revChecking = true;
+  const ctl = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS) : 0;
   try {
-    const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store" });
+    const r = await fetch(location.pathname + "?t=" + Date.now(), { cache: "no-store", signal: ctl ? ctl.signal : undefined });
     if (!r.ok) return;
     const latest = versionOf(await r.text());
     if (latest && RUNNING_REV && latest !== RUNNING_REV) location.reload();
   } catch (e) { /* try again next time */ }
+  finally { clearTimeout(timer); revChecking = false; }
 }, 5 * 60 * 1000);
 </script>
 </body>
