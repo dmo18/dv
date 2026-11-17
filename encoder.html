@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev18</title>
+<title>Encoder Rev19</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev19  2026-11-17  Every station now has a plain description under its name (DESCRIPTIONS list). 11 more stations (45 in all):
+                     Newsmax 2, MS NOW, Fox Business, Reuters TV, Fox 5 New York, Fox 11 Los Angeles, Now 14, i24NEWS English World,
+                     i24NEWS Hebrew, Makan 33, The Israeli Network. Each played on the live check. No NewsNation or CBS 24/7 address works.
   Rev18  2026-11-17  Nine more stations (34 in all): Euronews English, France 24 English, Newsmax TV, NHK World-Japan,
                      NBC News NOW, Cheddar News, Court TV, Arirang TV, GB News. Each played a real programme on the live
                      player at 384x216 (free or official channel streams, spares for the wall).
@@ -208,6 +211,7 @@ hr {
   padding: 10px;
 }
 
+.snapshotDesc { font-size: 13px; opacity: 0.8; margin: 2px 0 6px; line-height: 1.3; }
 .snapshotName {
   font-weight: 600;
   margin-bottom: 6px;
@@ -265,7 +269,7 @@ hr {
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev18</h1>
+  <h1>Wallboard URL Encoder Rev19</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL. Open uses a separate URL with no muted parameter.
@@ -435,8 +439,68 @@ const STREAMS = [
   { name: "Cheddar News", url: "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8" },
   { name: "Court TV", url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-courttv-tablo/playlist.m3u8" },
   { name: "Arirang TV", url: "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8" },
-  { name: "GB News", url: "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8" }
+  { name: "GB News", url: "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8" },
+  { name: "Newsmax 2", url: "https://amg00217-newsmax-newsmax-zeasn-022k9.amagi.tv/playlist.m3u8" },
+  { name: "MS NOW (ex MSNBC)", url: "https://tvsen6.aynaott.com/msnbc/index.m3u8" },
+  { name: "Fox Business", url: "https://tvsen6.aynaott.com/foxbusiness/index.m3u8" },
+  { name: "Reuters TV", url: "https://amg00453-reuters-amg00453c1-rakuten-uk-2110.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-rakutenuk/playlist.m3u8" },
+  { name: "Fox 5 New York (WNYW)", url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wnyw-lgus/playlist.m3u8" },
+  { name: "Fox 11 Los Angeles (KTTV)", url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox11losangeleskttv-vizious/playlist.m3u8" },
+  { name: "Now 14 (Israel)", url: "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8" },
+  { name: "i24NEWS English World", url: "https://hlspackager.akamaized.net/live/DB/i24_ENGLISH/HLS/i24_ENGLISH.m3u8" },
+  { name: "i24NEWS Hebrew", url: "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8" },
+  { name: "Makan 33 (Kan Arabic)", url: "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8" },
+  { name: "The Israeli Network", url: "https://r.eu.cdn-redge.media/livehls/oeu/mt/live/the_israeli_network/live.livx/playlist.m3u8" }
+
 ];
+
+const DESCRIPTIONS = {
+  "IRINN": "Iranian state news channel (Persian). Fails from US servers, may work on your PC.",
+  "LiveNOW Fox 720": "Lower quality copy of LiveNOW Fox, Fox's streaming news channel.",
+  "CNN": "CNN's free 24/7 channel, US cable news.",
+  "Fox News": "Fox News Channel live, US cable news.",
+  "IL13": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.",
+  "i24": "i24NEWS English: Israel based international news, Middle East focus.",
+  "ABC News Live": "ABC's 24/7 US news channel.",
+  "ABC1": "ABC News event feed. Only carries video while ABC has a live event on air.",
+  "ABC2": "ABC News event feed. Only carries video while ABC has a live event on air.",
+  "ABC10 (old address)": "Previous address of ABC 10, the ABC News weather and extra coverage feed.",
+  "Bloomberg": "Bloomberg TV US, business and markets news.",
+  "Global News 720p": "Lower quality copy of Global News, Canadian national news.",
+  "RT": "RT, Russian state news in English.",
+  "BBC News": "BBC World News, North America feed.",
+  "Al Jazeera": "Al Jazeera English, news from Qatar.",
+  "LiveNOW Fox": "LiveNOW from Fox, Fox's streaming news channel, often carries live events and press conferences.",
+  "ABC 10": "ABC News weather and extra coverage feed (the wall's CNN backup is set on this tile).",
+  "Global News": "Global News, Canadian national news.",
+  "CBS News": "CBS News 24/7, CBS's streaming news channel.",
+  "Fox Weather": "Fox Weather, 24/7 US weather channel.",
+  "Scripps News": "Scripps News, US national news.",
+  "DW": "Deutsche Welle, Germany's public international broadcaster. English news and reports from Europe.",
+  "TRT World": "TRT World, Turkey's state English news channel.",
+  "Kan 11": "Kan 11, Israel's public broadcaster. Hebrew news and shows. Fails from US servers, may work on your PC.",
+  "WSVN 7News": "WSVN 7News, Miami local TV (Fox affiliate). Shows a 'right back' card during its own ad breaks.",
+  "Euronews English": "Euronews, pan European news in English.",
+  "France 24 English": "France 24, French international news in English.",
+  "Newsmax TV": "Newsmax, US conservative news channel.",
+  "NHK World-Japan": "NHK World-Japan, Japan's public international news in English.",
+  "NBC News NOW": "NBC News NOW, NBC's 24/7 streaming news channel.",
+  "Cheddar News": "Cheddar News, business and tech news.",
+  "Court TV": "Court TV, live trials and legal news.",
+  "Arirang TV": "Arirang TV, Korean international channel, mostly culture, music and news in English.",
+  "GB News": "GB News, UK news and opinion channel.",
+  "Newsmax 2": "Newsmax 2, Newsmax's second US news channel (second feed alongside Newsmax TV).",
+  "MS NOW (ex MSNBC)": "MS NOW (formerly MSNBC), US cable news. Lower quality (432p) and served by a reseller host, not the network, so it may drop.",
+  "Fox Business": "Fox Business Network, US markets and business news with breaking news banners. Served by a reseller host.",
+  "Reuters TV": "Reuters TV, wire service video news. Mostly footage with captions.",
+  "Fox 5 New York (WNYW)": "Fox 5 New York, local TV station: local and breaking news, with ad breaks.",
+  "Fox 11 Los Angeles (KTTV)": "Fox 11 Los Angeles, local TV station: local and breaking news, with ad breaks.",
+  "Now 14 (Israel)": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.",
+  "i24NEWS English World": "i24NEWS English, second address (the international feed). Israel and Middle East news.",
+  "i24NEWS Hebrew": "i24NEWS in Hebrew, Israeli news and talk.",
+  "Makan 33 (Kan Arabic)": "Makan 33, Kan's Arabic language channel, Israeli public broadcaster. News in Arabic.",
+  "The Israeli Network": "The Israeli Network, Israeli TV shown abroad. Mixed Hebrew programmes and news with subtitles.",
+};
 
 function buildCustom(opts) {
   const base = clean(opts.base);
@@ -644,6 +708,10 @@ function renderSnapshotGrid() {
     name.className = "snapshotName";
     name.textContent = stream.name;
 
+    const desc = document.createElement("div");
+    desc.className = "snapshotDesc";
+    desc.textContent = DESCRIPTIONS[stream.name] || "";
+
     const rawLabel = document.createElement("div");
     rawLabel.className = "snapshotLabel";
     rawLabel.textContent = "Raw feed URL";
@@ -711,6 +779,7 @@ function renderSnapshotGrid() {
     btns.appendChild(copyOpenBtn);
 
     meta.appendChild(name);
+    meta.appendChild(desc);
     meta.appendChild(rawLabel);
     meta.appendChild(rawUrl);
     meta.appendChild(readyLabel);
