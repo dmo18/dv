@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev11</title>
+<title>Universal Player Rev12</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,8 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev12 2026-11-17  The browser tab title (the page's title tag) now shows name, resolution, bitrate and
+                  "paused" while playing. The on-screen label shows the name only again.
 Rev11 2026-11-17  Title shows the stream name plus live stats while playing (resolution and bitrate, and "paused").
                   Remote commands from the encoder's Play all / Pause all / Stop all buttons (postMessage type "tilectl",
                   cmd play | pause | stop). Paused and stopped tiles do not reload, restart or switch streams.
@@ -559,7 +561,8 @@ window.addEventListener("message", (e) => {
   applyCommand(String(e.data.cmd || ""));
 });
 
-/* Title line: name, then live stats while the picture moves (or "paused"). Refreshed each second. */
+/* Browser tab title: name, then live stats while the picture moves (or "paused"). The on-screen label stays
+   the name only. Refreshed each second. */
 function statsText() {
   const v = currentVideo();
   const parts = [];
@@ -571,12 +574,18 @@ function statsText() {
   return parts.join(" \u00b7 ");
 }
 setInterval(() => {
-  if (offlineEl.style.display === "flex" || resting) return;
-  const base = ATTEMPTS[attempt] && ATTEMPTS[attempt].isAlt ? altLabel : label;
+  const base = (ATTEMPTS[attempt] && ATTEMPTS[attempt].isAlt ? altLabel : label) || "";
+  const live = userState === "live" && Date.now() - lastProgressAt < 5000;
+  if (offlineEl.style.display === "flex" || resting) {
+    document.title = base ? base + " \u00b7 no signal" : "Player";
+    return;
+  }
   if (userState === "paused") {
-    setLabel([base, statsText(), "paused"].filter(Boolean).join(" \u00b7 "));
-  } else if (userState === "live" && Date.now() - lastProgressAt < 5000) {
-    setLabel([base, statsText()].filter(Boolean).join(" \u00b7 "));
+    document.title = [base, statsText(), "paused"].filter(Boolean).join(" \u00b7 ") || "Player";
+    setLabel(base);
+  } else if (live) {
+    document.title = [base, statsText()].filter(Boolean).join(" \u00b7 ") || "Player";
+    setLabel(base);
   }
 }, 1000);
 
