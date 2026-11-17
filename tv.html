@@ -3,625 +3,266 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev3</title>
+<title>Red Macho Devil TV Rev4</title>
 <!--
-  TV PAGE (framework). Full-screen channel changer built on player.html.
-  Rev1  2026-11-17  First version: channel guide with descriptions, change channel (arrows, Page Up/Down, number keys,
-                    swipe on phones, or tap in the guide), last channel remembered on this device, tap once to start sound.
-                    Channels are the encoder's list (copied in below; regenerate when the encoder list changes).
-                    EPG hook: set window.EPG = { "<channel name>": "what is on now" } in a script to show it in the guide.
+  RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev4  2026-11-17  Devil logo (start screen, brand). Bottom bar: channel down/up, skip off air, last channel, CC, mute,
+                    volume, guide, fullscreen, info. Top bar with clock and date, status light (LIVE, CONNECTING,
+                    NO SIGNAL, OFF AIR). Now-playing banner with the channel description. Guide with All / On air tabs.
+                    Keys: arrows or Page Up/Down, digits then Enter, S skip off air, L last channel, C CC, M mute,
+                    +/- volume, G guide, I info, F fullscreen. Channels copied from encoder.html (keep in step).
+                    EPG hook: window.EPG = { "<channel name>": "what is on now" } shows in the banner and guide.
                     Real programme schedules are NOT included yet.
-  Rev2  2026-11-17  Theme: Red Macho Devil TV. Black and blood red, flame edges, bold caps, pulsing devil-horn start screen,
-                    brand bar on screen, guide with flame header, live channel badge.
-  Rev3  2026-11-17  Controls bar: channel down and up, guide, volume slider, mute, info. Now-playing line with the
-                    channel's description. Browser tab title shows the channel. Keys: arrows, Page Up/Down, digits, G, M,
-                    +/- for volume. Volume is set on the player's own video element (same site).
   Rule: every address here must also be in encoder.html (see CLAUDE.md).
 -->
 <style>
-:root { --bg:#000; --panel:#0c0606; --fg:#fff3f0; --dim:#c9a7a2; --red:#e10600; --red2:#7a0000; --gold:#ffb000; }
+:root { --bg:#000; --panel:#0c0606; --fg:#fff3f0; --dim:#c9a7a2; --red:#e10600; --red2:#7a0000; --gold:#ffb000; --good:#3ddc84; --warn:#ffb000; --bad:#ff4d4d; }
 html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow:hidden; }
+button { font-family:inherit; }
 #screen { position:fixed; inset:0; width:100%; height:100%; border:0; background:#000; }
-/* flame edge: a moving red-orange-black band along the top of the picture */
-#flame { position:fixed; left:0; right:0; top:0; height:10px; pointer-events:none; z-index:3;
+#flame { position:fixed; left:0; right:0; top:0; height:8px; z-index:3; pointer-events:none;
   background:linear-gradient(90deg,#7a0000,#e10600,#ff4d00,#ffb000,#e10600,#7a0000,#e10600,#ff4d00,#7a0000);
   background-size:200% 100%; animation:flow 2.5s linear infinite; box-shadow:0 0 18px #e10600; }
 @keyframes flow { to { background-position:-200% 0; } }
-#brand { position:fixed; left:14px; top:22px; z-index:3; font-weight:900; font-style:italic; text-transform:uppercase;
-  letter-spacing:.04em; font-size:clamp(14px,2.2vw,22px); color:var(--fg); text-shadow:0 2px 0 var(--red2),0 0 14px rgba(225,6,0,.8);
-  opacity:0; transition:opacity .4s ease; pointer-events:none; }
-#brand.show { opacity:1; }
+
+/* top bar: brand, clock, status light. Shows with the info banner and on any key or tap. */
+#top { position:fixed; left:0; right:0; top:8px; z-index:4; display:flex; align-items:center; gap:12px; padding:8px 14px;
+  background:linear-gradient(180deg,rgba(0,0,0,.85),rgba(0,0,0,0)); transition:opacity .4s ease; }
+#top.hide { opacity:0; pointer-events:none; }
+#top .devil { width:38px; height:38px; flex:none; filter:drop-shadow(0 0 8px var(--red)); }
+#brand { font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.04em; font-size:clamp(14px,2vw,20px); text-shadow:0 2px 0 var(--red2); }
 #brand span { color:var(--red); }
-#osd { position:fixed; left:16px; bottom:16px; padding:8px 14px 8px 10px; border-left:6px solid var(--red);
-  background:linear-gradient(90deg,rgba(122,0,0,.9),rgba(0,0,0,.75)); text-transform:uppercase; font-weight:800;
-  font-size:clamp(14px,2.4vw,20px); opacity:0; transition:opacity .4s ease; pointer-events:none; }
-#osd.show { opacity:1; }
-#osd .num { color:var(--gold); font-weight:900; margin-right:10px; font-size:1.3em; }
-#start { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+#clock { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:800; font-size:clamp(14px,2vw,20px); }
+#clock small { display:block; font-size:11px; font-weight:600; color:var(--dim); text-align:right; }
+#status { display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:6px; background:#000; border:1px solid #3a0a0a;
+  font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
+#status i { width:10px; height:10px; border-radius:50%; background:var(--warn); display:inline-block; }
+#status.live i { background:var(--good); box-shadow:0 0 8px var(--good); }
+#status.nosig i, #status.off i { background:var(--bad); }
+#status.off i { background:var(--gold); }
+
+/* start screen */
+#start { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
   background:radial-gradient(circle at center,rgba(122,0,0,.85) 0%,#000 70%); border:0; color:var(--fg); cursor:pointer; }
-#start .horns { width:clamp(90px,14vw,160px); fill:var(--red); filter:drop-shadow(0 0 16px var(--red)); animation:pulse 1.4s ease-in-out infinite; }
-#start .big { font-size:clamp(28px,6vw,64px); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em;
-  text-shadow:0 4px 0 var(--red2); }
+#start .devil { width:clamp(120px,22vw,220px); filter:drop-shadow(0 0 22px var(--red)); animation:pulse 1.4s ease-in-out infinite; }
+#start .big { font-size:clamp(28px,6vw,64px); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em; text-shadow:0 4px 0 var(--red2); }
 #start .sub { font-size:clamp(13px,2vw,18px); color:var(--dim); text-transform:uppercase; letter-spacing:.2em; }
-@keyframes pulse { 50% { transform:scale(1.08); filter:drop-shadow(0 0 30px var(--red)); } }
-#bar { position:fixed; right:12px; bottom:12px; z-index:4; display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
-  max-width:calc(100vw - 24px); padding:8px; border-radius:10px; background:rgba(10,0,0,.8); border:1px solid #5a0000; }
-#bar button, #bar select { min-height:42px; min-width:42px; padding:0 12px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
-  font-weight:900; font-size:16px; cursor:pointer; }
-#bar button:hover { background:#5a0000; }
-#bar input[type=range] { width:clamp(90px,16vw,160px); accent-color:var(--red); }
-#now { position:fixed; left:14px; top:50px; z-index:3; max-width:min(560px,calc(100vw - 28px)); padding:8px 12px; border-radius:8px;
-  background:rgba(0,0,0,.6); border-left:4px solid var(--gold); font-size:14px; color:var(--dim); opacity:0; transition:opacity .4s ease; pointer-events:none; }
-#now.show { opacity:1; }
-#now b { color:var(--fg); text-transform:uppercase; letter-spacing:.03em; }
-#guideBtn { min-height:46px; padding:0 20px; border:0; border-radius:6px;
-  background:linear-gradient(180deg,#ff1a10,#a00000); color:#fff; font-weight:900; font-size:16px; text-transform:uppercase;
-  letter-spacing:.06em; box-shadow:0 0 16px rgba(225,6,0,.6); cursor:pointer; }
-#guide { position:fixed; left:0; right:0; bottom:0; z-index:6; max-height:66vh; display:flex; flex-direction:column;
+@keyframes pulse { 50% { transform:scale(1.07); } }
+
+/* on-screen banner: channel number, name, description */
+#osd { position:fixed; left:14px; bottom:86px; z-index:4; max-width:min(620px,calc(100vw - 28px)); padding:10px 14px 10px 12px;
+  border-left:6px solid var(--red); background:linear-gradient(90deg,rgba(122,0,0,.92),rgba(0,0,0,.78));
+  opacity:0; transition:opacity .4s ease; pointer-events:none; }
+#osd.show { opacity:1; }
+#osd .head { font-weight:900; text-transform:uppercase; font-size:clamp(16px,2.4vw,22px); }
+#osd .num { color:var(--gold); font-style:italic; margin-right:10px; }
+#osd .off { color:var(--gold); font-size:12px; letter-spacing:.1em; margin-left:8px; }
+#osd .desc { color:var(--dim); font-size:14px; margin-top:4px; line-height:1.35; }
+#osd .now { color:#ff8a80; font-weight:700; font-size:14px; margin-top:4px; }
+#entry { position:fixed; right:14px; top:84px; z-index:4; font-size:clamp(28px,4vw,48px); font-weight:900; font-style:italic; color:var(--gold);
+  text-shadow:0 3px 0 #000; font-variant-numeric:tabular-nums; }
+
+/* bottom bar: always visible */
+#bar { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px)); background:linear-gradient(0deg,#000 60%,rgba(0,0,0,.6));
+  border-top:3px solid var(--red); }
+#bar button { min-height:42px; min-width:42px; padding:0 12px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
+  font-weight:900; font-size:15px; cursor:pointer; text-transform:uppercase; letter-spacing:.03em; }
+#bar button:hover, #bar button:focus-visible { background:#5a0000; outline:none; }
+#bar button.on { background:var(--red); color:#fff; }
+#bar .ch { font-weight:900; font-style:italic; font-variant-numeric:tabular-nums; color:var(--gold); padding:0 6px; min-width:64px; }
+#bar .playing { flex:1 1 200px; min-width:0; font-size:14px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#bar .playing b { color:var(--fg); text-transform:uppercase; }
+#bar .vol { display:flex; align-items:center; gap:6px; }
+#bar input[type=range] { width:clamp(80px,12vw,140px); accent-color:var(--red); }
+
+/* guide */
+#guide { position:fixed; left:0; right:0; bottom:0; z-index:8; max-height:70vh; display:flex; flex-direction:column;
   background:var(--panel); border-top:5px solid var(--red); box-shadow:0 -10px 40px rgba(225,6,0,.45);
   transform:translateY(100%); transition:transform .3s ease; }
 #guide.open { transform:translateY(0); }
-#guide header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
-  background:linear-gradient(90deg,#e10600,#7a0000); }
-#guide header b { font-size:20px; font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.05em; }
-#guide header button { min-height:40px; padding:0 14px; border:2px solid #000; border-radius:6px; background:#000; color:var(--fg);
-  font-size:14px; font-weight:800; text-transform:uppercase; cursor:pointer; }
-#list { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 0 18px; }
-.row { display:grid; grid-template-columns:52px 1fr; gap:4px 12px; padding:10px 16px; border:0; width:100%; text-align:left;
-  background:none; color:var(--fg); cursor:pointer; transition:background .15s ease; }
-.row { border-bottom:1px solid #2a0c0c; }
+#guide header { display:flex; align-items:center; gap:8px; padding:10px 14px; background:linear-gradient(90deg,#e10600,#7a0000); flex-wrap:wrap; }
+#guide header b { font-size:18px; font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.05em; margin-right:auto; }
+#guide header button { min-height:38px; padding:0 12px; border:2px solid #000; border-radius:6px; background:#000; color:var(--fg); font-weight:800; font-size:13px; text-transform:uppercase; cursor:pointer; }
+#guide header button.on { background:var(--gold); color:#000; }
+#list { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 0 14px; }
+.row { display:grid; grid-template-columns:56px 1fr auto; gap:2px 12px; padding:10px 14px; border:0; border-bottom:1px solid #2a0c0c; width:100%; text-align:left;
+  background:none; color:var(--fg); cursor:pointer; }
 .row:hover, .row:focus-visible { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
 .row.on { background:linear-gradient(90deg,#5c0000,#1a0404); box-shadow:inset 6px 0 0 var(--gold); }
-.row .n { grid-row:span 2; font-weight:900; font-style:italic; color:var(--gold); font-size:20px; padding-top:2px; }
-.row .t { font-size:16px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
-.row .d { font-size:13px; color:var(--dim); line-height:1.35; }
-.row.off .t::after { content:"  off air"; color:var(--gold); font-weight:700; font-size:11px; letter-spacing:.1em; }
-.now { font-size:12px; color:#ff8a80; font-weight:700; }
+.row .n { grid-row:span 2; font-weight:900; font-style:italic; color:var(--gold); font-size:20px; padding-top:2px; font-variant-numeric:tabular-nums; }
+.row .t { font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
+.row .d { grid-column:2 / 4; font-size:13px; color:var(--dim); line-height:1.35; }
+.row .s { font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; align-self:center; }
+.s.on { color:var(--good); } .s.off { color:var(--gold); }
+.now { color:#7fe0a8; font-weight:700; }
+
+@media (max-width:620px) {
+  #bar .playing { order:-1; flex-basis:100%; }
+  #bar button { min-width:38px; padding:0 9px; }
+  #entry { top:70px; }
+}
 </style>
 </head>
 <body>
 <div id="flame" aria-hidden="true"></div>
 <iframe id="screen" allow="autoplay; fullscreen" title="Channel"></iframe>
-<div id="brand">Red Macho <span>Devil</span> TV</div>
+
+<div id="top">
+  <svg class="devil" viewBox="0 0 200 200" aria-hidden="true">
+<path d="M50 74 C26 66 18 38 30 16 C38 34 48 44 66 54 Z" fill="#ffb000" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+<path d="M150 74 C174 66 182 38 170 16 C162 34 152 44 134 54 Z" fill="#ffb000" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+<ellipse cx="100" cy="110" rx="62" ry="58" fill="#e10600" stroke="#000" stroke-width="6"/>
+<ellipse cx="78" cy="98" rx="13" ry="9" fill="#fff" stroke="#000" stroke-width="3"/>
+<ellipse cx="122" cy="98" rx="13" ry="9" fill="#fff" stroke="#000" stroke-width="3"/>
+<circle cx="81" cy="99" r="4.5" fill="#000"/><circle cx="125" cy="99" r="4.5" fill="#000"/>
+<path d="M60 82 Q78 72 94 84 M106 84 Q122 72 140 82" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+<path d="M100 118 C96 124 92 124 90 120" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+<path d="M58 130 C66 116 80 120 90 130 C94 121 104 121 100 133 C96 121 106 121 110 130 C120 120 134 116 142 130 C128 136 112 138 100 136 C88 138 72 136 58 130 Z" fill="#000"/>
+<path d="M58 130 C50 126 48 116 56 112 M142 130 C150 126 152 116 144 112" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+<path d="M80 154 Q100 170 120 154" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+<path d="M92 164 L100 184 L108 164 Z" fill="#e10600" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+</svg>
+  <div id="brand">Red Macho <span>Devil</span> TV</div>
+  <div id="status"><i></i><span>Connecting</span></div>
+  <div id="clock"><span id="time"></span><small id="date"></small></div>
+</div>
+<div id="entry" aria-live="polite"></div>
+<div id="osd" aria-live="polite"></div>
+
 <button id="start" type="button">
-  <svg class="horns" viewBox="0 0 120 80" aria-hidden="true"><path d="M8 78C4 50 14 18 36 6c-2 14 0 24 8 32 6-12 14-18 26-20-6 10-6 20 0 30 6-8 14-12 26-10-8 4-12 10-12 18 6 4 12 6 16 4C100 40 96 60 80 78H62c4-14 2-26-6-34-8 8-10 20-6 34H8z"/></svg>
+  <svg class="devil" viewBox="0 0 200 200" aria-hidden="true">
+<path d="M50 74 C26 66 18 38 30 16 C38 34 48 44 66 54 Z" fill="#ffb000" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+<path d="M150 74 C174 66 182 38 170 16 C162 34 152 44 134 54 Z" fill="#ffb000" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+<ellipse cx="100" cy="110" rx="62" ry="58" fill="#e10600" stroke="#000" stroke-width="6"/>
+<ellipse cx="78" cy="98" rx="13" ry="9" fill="#fff" stroke="#000" stroke-width="3"/>
+<ellipse cx="122" cy="98" rx="13" ry="9" fill="#fff" stroke="#000" stroke-width="3"/>
+<circle cx="81" cy="99" r="4.5" fill="#000"/><circle cx="125" cy="99" r="4.5" fill="#000"/>
+<path d="M60 82 Q78 72 94 84 M106 84 Q122 72 140 82" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+<path d="M100 118 C96 124 92 124 90 120" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+<path d="M58 130 C66 116 80 120 90 130 C94 121 104 121 100 133 C96 121 106 121 110 130 C120 120 134 116 142 130 C128 136 112 138 100 136 C88 138 72 136 58 130 Z" fill="#000"/>
+<path d="M58 130 C50 126 48 116 56 112 M142 130 C150 126 152 116 144 112" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+<path d="M80 154 Q100 170 120 154" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round"/>
+<path d="M92 164 L100 184 L108 164 Z" fill="#e10600" stroke="#000" stroke-width="4" stroke-linejoin="round"/>
+</svg>
   <span class="big">Tap to rock</span>
   <span class="sub">Red Macho Devil TV</span>
 </button>
-<div id="osd"></div>
-<div id="now"></div>
+
 <div id="bar">
-  <button id="chDown" type="button" aria-label="Channel down">&#9660;</button>
-  <button id="chUp" type="button" aria-label="Channel up">&#9650;</button>
-  <button id="mute" type="button" aria-label="Mute">Mute</button>
-  <input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+  <button id="chDown" type="button" aria-label="Channel down">&#9664; CH</button>
+  <span class="ch" id="chNum">CH 1</span>
+  <button id="chUp" type="button" aria-label="Channel up">CH &#9654;</button>
+  <button id="skipOff" type="button" aria-label="Skip to next channel that is on air">Skip off air</button>
+  <button id="last" type="button" aria-label="Last channel">Last</button>
+  <div class="playing" id="playing"></div>
+  <button id="cc" type="button" aria-pressed="true">CC</button>
+  <button id="mute" type="button">Mute</button>
+  <div class="vol"><input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" /></div>
   <button id="info" type="button">Info</button>
   <button id="guideBtn" type="button">Guide</button>
+  <button id="full" type="button" aria-label="Full screen">Full</button>
+  <span class="edu-note" style="font-size:10px;color:#8a8a8a;white-space:nowrap">For educational purposes only.</span>
 </div>
 
 <section id="guide" aria-label="Channel guide">
-  <header><b>Red Macho Devil TV</b><button id="closeGuide" type="button">Close</button></header>
+  <header>
+    <b>Red Macho Devil TV</b>
+    <button id="tabAll" type="button" class="on">All</button>
+    <button id="tabOn" type="button">On air</button>
+    <button id="closeGuide" type="button">Close</button>
+  </header>
   <div id="list"></div>
 </section>
 
 <script>
 /* Channels: copied from encoder.html (keep in step with it). */
-const CHANNELS = [
-{
-"name": "ABC1",
-"url": "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8",
-"desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.",
-"off": false
-},
-{
-"name": "ABC2",
-"url": "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8",
-"desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.",
-"off": false
-},
-{
-"name": "ABC 10",
-"url": "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8",
-"desc": "ABC News weather and extra coverage feed (the wall's CNN backup is set on this tile).",
-"off": false
-},
-{
-"name": "ABC News Australia",
-"url": "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8",
-"desc": "ABC News Australia, the Australian public broadcaster's 24/7 news channel.",
-"off": false
-},
-{
-"name": "ABC News Live",
-"url": "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8",
-"desc": "ABC's 24/7 US news channel.",
-"off": false
-},
-{
-"name": "ABC News Live 1",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023560/abcnewshudson1/master.m3u8",
-"desc": "ABC News Live 1, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 2",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023561/abcnewshudson2/master.m3u8",
-"desc": "ABC News Live 2, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 3",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023562/abcnewshudson3/master.m3u8",
-"desc": "ABC News Live 3, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 4",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023563/abcnewshudson4/master.m3u8",
-"desc": "ABC News Live 4, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 5",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023564/abcnewshudson5/master.m3u8",
-"desc": "ABC News Live 5, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 6",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023565/abcnewshudson6/master.m3u8",
-"desc": "ABC News Live 6, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 7",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023566/abcnewshudson7/master.m3u8",
-"desc": "ABC News Live 7, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 8",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023567/abcnewshudson8/master.m3u8",
-"desc": "ABC News Live 8, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 9",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023568/abcnewshudson9/master.m3u8",
-"desc": "ABC News Live 9, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "ABC News Live 10",
-"url": "https://abcnews-streams.akamaized.net/hls/live/2023569/abcnewshudson10/master.m3u8",
-"desc": "ABC News Live 10, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
-"off": true
-},
-{
-"name": "Africanews English",
-"url": "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8",
-"desc": "Africanews, pan African news in English (from the Euronews group). Shows its logo card between items.",
-"off": false
-},
-{
-"name": "Al Arabiya English",
-"url": "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8",
-"desc": "Al Arabiya English, Saudi owned Middle East news channel.",
-"off": false
-},
-{
-"name": "Al Jazeera",
-"url": "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8",
-"desc": "Al Jazeera English, news from Qatar.",
-"off": false
-},
-{
-"name": "Arirang TV",
-"url": "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8",
-"desc": "Arirang TV, Korean international channel, mostly culture, music and news in English.",
-"off": false
-},
-{
-"name": "BBC News",
-"url": "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8",
-"desc": "BBC World News, North America feed.",
-"off": false
-},
-{
-"name": "Bloomberg",
-"url": "https://www.bloomberg.com/media-manifest/streams/us.m3u8",
-"desc": "Bloomberg TV US, business and markets news.",
-"off": false
-},
-{
-"name": "Bloomberg TV Asia",
-"url": "https://bloomberg.com/media-manifest/streams/asia.m3u8",
-"desc": "Bloomberg TV Asia feed, business and markets news.",
-"off": false
-},
-{
-"name": "Bloomberg TV Asia Live Event",
-"url": "https://bloomberg.com/media-manifest/streams/asia-event.m3u8",
-"desc": "Bloomberg Asia live event feed. Shows a waiting card until an event is on.",
-"off": false
-},
-{
-"name": "Bloomberg TV Europe",
-"url": "https://bloomberg.com/media-manifest/streams/eu.m3u8",
-"desc": "Bloomberg TV Europe feed, business and markets news.",
-"off": false
-},
-{
-"name": "Bloomberg TV Europe Live Event",
-"url": "https://bloomberg.com/media-manifest/streams/eu-event.m3u8",
-"desc": "Bloomberg Europe, Middle East and Africa live event feed. Shows a waiting card until an event is on.",
-"off": false
-},
-{
-"name": "Bloomberg TV Politics Live Event",
-"url": "https://bloomberg.com/media-manifest/streams/politics.m3u8",
-"desc": "Bloomberg politics live event feed. Shows a waiting card until an event is on.",
-"off": false
-},
-{
-"name": "Bloomberg TV US Live Event",
-"url": "https://bloomberg.com/media-manifest/streams/us-event.m3u8",
-"desc": "Bloomberg US live event feed. Shows 'event livestream will start shortly' until an event is on.",
-"off": false
-},
-{
-"name": "CBC News Network",
-"url": "https://aka-live1050.delivery.roku.com/0c24a9ef-e9c3-485c-bf68-3f1ae5ef3e85/t2-origin/out/v1/live.m3u8",
-"desc": "CBC News Network, Canada's public broadcaster, national news.",
-"off": false
-},
-{
-"name": "CBS News",
-"url": "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8",
-"desc": "CBS News 24/7, CBS's streaming news channel.",
-"off": false
-},
-{
-"name": "CBS News Baltimore",
-"url": "https://lineup.cbsivideo.com/playout/8877a7d5-b094-4ac8-bc72-75a5fed68e5b/index.m3u8",
-"desc": "CBS News Baltimore, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": false
-},
-{
-"name": "CBS News Bay Area",
-"url": "https://cbsn-sf.cbsnstream.cbsnews.com/out/v1/dac63c1abb3f4a2dac9f508f44bb072a/master.m3u8",
-"desc": "CBS News Bay Area, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Boston",
-"url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8",
-"desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Chicago",
-"url": "https://cbsn-chi.cbsnstream.cbsnews.com/out/v1/b2fc0d5715d54908adf07f97d2616646/master.m3u8",
-"desc": "CBS News Chicago, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Colorado",
-"url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8",
-"desc": "CBS News Colorado, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Detroit",
-"url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8",
-"desc": "CBS News Detroit, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Los Angeles",
-"url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8",
-"desc": "CBS News Los Angeles, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Miami",
-"url": "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8",
-"desc": "CBS News Miami, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": false
-},
-{
-"name": "CBS News Minnesota",
-"url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8",
-"desc": "CBS News Minnesota, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News New York",
-"url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8",
-"desc": "CBS News New York, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Philly",
-"url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8",
-"desc": "CBS News Philly, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Pittsburgh",
-"url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8",
-"desc": "CBS News Pittsburgh, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": true
-},
-{
-"name": "CBS News Sacramento",
-"url": "https://lineup.cbsivideo.com/playout/c1ed69db-6b71-4581-a937-a70ab4089f8a/index.m3u8",
-"desc": "CBS News Sacramento, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-"off": false
-},
-{
-"name": "CGTN",
-"url": "https://amg00405-rakutentv-cgtn-rakuten-i9tar.amagi.tv/master.m3u8",
-"desc": "CGTN, China's state international news channel in English.",
-"off": false
-},
-{
-"name": "CGTN Global Business",
-"url": "https://fastlive.cctvplus.com/out/v1/2b3d8a0c805d437f9dc85b764c2ac599/index.m3u8",
-"desc": "CGTN Global Business, China's state business news in English.",
-"off": false
-},
-{
-"name": "Cheddar News",
-"url": "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8",
-"desc": "Cheddar News, business and tech news.",
-"off": false
-},
-{
-"name": "CNBC UK",
-"url": "https://amg01079-nbcuuk-amg01079c2-samsung-gb-1258.playouts.now.amagi.tv/playlist.m3u8",
-"desc": "CNBC UK, business and markets news.",
-"off": false
-},
-{
-"name": "CNN",
-"url": "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8",
-"desc": "CNN's free 24/7 channel, US cable news.",
-"off": false
-},
-{
-"name": "CNN International Europe",
-"url": "https://d3bp6dwmpbdajl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ury0meh5m4nzm/index.m3u8",
-"desc": "CNN International, the Europe feed. Different schedule from the US feed.",
-"off": false
-},
-{
-"name": "DW",
-"url": "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8",
-"desc": "Deutsche Welle, Germany's public international broadcaster. English news and reports from Europe.",
-"off": false
-},
-{
-"name": "Euronews English",
-"url": "https://cdn-euronews.akamaized.net/live/eds/euronews-en/25002/index.m3u8",
-"desc": "Euronews, pan European news in English.",
-"off": false
-},
-{
-"name": "Fox 5 New York (WNYW)",
-"url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wnyw-lgus/playlist.m3u8",
-"desc": "Fox 5 New York, local TV station: local and breaking news, with ad breaks.",
-"off": false
-},
-{
-"name": "Fox 11 Los Angeles (KTTV)",
-"url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox11losangeleskttv-vizious/playlist.m3u8",
-"desc": "Fox 11 Los Angeles, local TV station: local and breaking news, with ad breaks.",
-"off": false
-},
-{
-"name": "Fox Business",
-"url": "https://tvsen6.aynaott.com/foxbusiness/index.m3u8",
-"desc": "Fox Business Network, US markets and business news with breaking news banners. Served by a reseller host.",
-"off": false
-},
-{
-"name": "Fox News",
-"url": "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8",
-"desc": "Fox News Channel live, US cable news.",
-"off": false
-},
-{
-"name": "Fox Weather",
-"url": "https://247wlive.foxweather.com/stream/index.m3u8",
-"desc": "Fox Weather, 24/7 US weather channel.",
-"off": false
-},
-{
-"name": "France 24 English",
-"url": "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8",
-"desc": "France 24, French international news in English.",
-"off": false
-},
-{
-"name": "GB News",
-"url": "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8",
-"desc": "GB News, UK news and opinion channel.",
-"off": false
-},
-{
-"name": "Global News",
-"url": "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8",
-"desc": "Global News, Canadian national news.",
-"off": false
-},
-{
-"name": "i24",
-"url": "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8",
-"desc": "i24NEWS English: Israel based international news, Middle East focus.",
-"off": false
-},
-{
-"name": "i24NEWS English World",
-"url": "https://hlspackager.akamaized.net/live/DB/i24_ENGLISH/HLS/i24_ENGLISH.m3u8",
-"desc": "i24NEWS English, second address (the international feed). Israel and Middle East news.",
-"off": false
-},
-{
-"name": "i24NEWS Hebrew",
-"url": "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8",
-"desc": "i24NEWS in Hebrew, Israeli news and talk.",
-"off": false
-},
-{
-"name": "IL13",
-"url": "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8",
-"desc": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.",
-"off": false
-},
-{
-"name": "India Today",
-"url": "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8",
-"desc": "India Today, major Indian news channel in English.",
-"off": false
-},
-{
-"name": "LiveNOW Fox",
-"url": "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8",
-"desc": "LiveNOW from Fox, Fox's streaming news channel, often carries live events and press conferences.",
-"off": false
-},
-{
-"name": "Makan 33 (Kan Arabic)",
-"url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8",
-"desc": "Makan 33, Kan's Arabic language channel, Israeli public broadcaster. News in Arabic.",
-"off": false
-},
-{
-"name": "MS NOW (ex MSNBC)",
-"url": "https://tvsen6.aynaott.com/msnbc/index.m3u8",
-"desc": "MS NOW (formerly MSNBC), US cable news. Lower quality (432p) and served by a reseller host, not the network, so it may drop.",
-"off": false
-},
-{
-"name": "NBC News NOW",
-"url": "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003",
-"desc": "NBC News NOW, NBC's 24/7 streaming news channel.",
-"off": false
-},
-{
-"name": "Newsmax 2",
-"url": "https://amg00217-newsmax-newsmax-zeasn-022k9.amagi.tv/playlist.m3u8",
-"desc": "Newsmax 2, Newsmax's second US news channel (second feed alongside Newsmax TV).",
-"off": false
-},
-{
-"name": "Newsmax TV",
-"url": "https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8",
-"desc": "Newsmax, US conservative news channel.",
-"off": false
-},
-{
-"name": "NHK World-Japan",
-"url": "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8",
-"desc": "NHK World-Japan, Japan's public international news in English.",
-"off": false
-},
-{
-"name": "Now 14 (Israel)",
-"url": "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8",
-"desc": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.",
-"off": false
-},
-{
-"name": "Reuters TV",
-"url": "https://amg00453-reuters-amg00453c1-rakuten-uk-2110.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-rakutenuk/playlist.m3u8",
-"desc": "Reuters TV, wire service video news. Mostly footage with captions.",
-"off": false
-},
-{
-"name": "RT",
-"url": "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8",
-"desc": "RT, Russian state news in English.",
-"off": false
-},
-{
-"name": "Scripps News",
-"url": "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8",
-"desc": "Scripps News, US national news.",
-"off": false
-},
-{
-"name": "Telesur English",
-"url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8",
-"desc": "teleSUR English, Latin American news (Venezuela backed).",
-"off": false
-},
-{
-"name": "TRT World",
-"url": "https://tv-trtworld.medya.trt.com.tr/master.m3u8",
-"desc": "TRT World, Turkey's state English news channel.",
-"off": false
-},
-{
-"name": "VoA TV (Voice of America)",
-"url": "https://voa-ingest.akamaized.net/hls/live/2033874/tvmc06/playlist.m3u8",
-"desc": "Voice of America TV, US government international broadcaster, English.",
-"off": false
-},
-{
-"name": "WION",
-"url": "http://vg-zeefta.akamaized.net/ptnr-yupptv/title-wion/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/20c3c0d9-0256-43fe-bca6-70fdd490b957/main.m3u8",
-"desc": "WION, Indian world news channel in English.",
-"off": false
-},
-{
-"name": "WSVN 7News",
-"url": "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web",
-"desc": "WSVN 7News, Miami local TV (Fox affiliate). Shows a 'right back' card during its own ad breaks.",
-"off": false
-}
-];
+const CHANNELS = [{"name": "ABC1", "url": "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8", "desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.", "off": false}, {"name": "ABC2", "url": "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8", "desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.", "off": false}, {"name": "ABC 10", "url": "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", "desc": "ABC News weather and extra coverage feed (the wall's CNN backup is set on this tile).", "off": false}, {"name": "ABC News Australia", "url": "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8", "desc": "ABC News Australia, the Australian public broadcaster's 24/7 news channel.", "off": false}, {"name": "ABC News Live", "url": "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8", "desc": "ABC's 24/7 US news channel.", "off": false}, {"name": "ABC News Live 1", "url": "https://abcnews-streams.akamaized.net/hls/live/2023560/abcnewshudson1/master.m3u8", "desc": "ABC News Live 1, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 2", "url": "https://abcnews-streams.akamaized.net/hls/live/2023561/abcnewshudson2/master.m3u8", "desc": "ABC News Live 2, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 3", "url": "https://abcnews-streams.akamaized.net/hls/live/2023562/abcnewshudson3/master.m3u8", "desc": "ABC News Live 3, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 4", "url": "https://abcnews-streams.akamaized.net/hls/live/2023563/abcnewshudson4/master.m3u8", "desc": "ABC News Live 4, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 5", "url": "https://abcnews-streams.akamaized.net/hls/live/2023564/abcnewshudson5/master.m3u8", "desc": "ABC News Live 5, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 6", "url": "https://abcnews-streams.akamaized.net/hls/live/2023565/abcnewshudson6/master.m3u8", "desc": "ABC News Live 6, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 7", "url": "https://abcnews-streams.akamaized.net/hls/live/2023566/abcnewshudson7/master.m3u8", "desc": "ABC News Live 7, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 8", "url": "https://abcnews-streams.akamaized.net/hls/live/2023567/abcnewshudson8/master.m3u8", "desc": "ABC News Live 8, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 9", "url": "https://abcnews-streams.akamaized.net/hls/live/2023568/abcnewshudson9/master.m3u8", "desc": "ABC News Live 9, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "ABC News Live 10", "url": "https://abcnews-streams.akamaized.net/hls/live/2023569/abcnewshudson10/master.m3u8", "desc": "ABC News Live 10, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true}, {"name": "Africanews English", "url": "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8", "desc": "Africanews, pan African news in English (from the Euronews group). Shows its logo card between items.", "off": false}, {"name": "Al Arabiya English", "url": "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8", "desc": "Al Arabiya English, Saudi owned Middle East news channel.", "off": false}, {"name": "Al Jazeera", "url": "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8", "desc": "Al Jazeera English, news from Qatar.", "off": false}, {"name": "Arirang TV", "url": "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8", "desc": "Arirang TV, Korean international channel, mostly culture, music and news in English.", "off": false}, {"name": "BBC News", "url": "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8", "desc": "BBC World News, North America feed.", "off": false}, {"name": "Bloomberg", "url": "https://www.bloomberg.com/media-manifest/streams/us.m3u8", "desc": "Bloomberg TV US, business and markets news.", "off": false}, {"name": "Bloomberg TV Asia", "url": "https://bloomberg.com/media-manifest/streams/asia.m3u8", "desc": "Bloomberg TV Asia feed, business and markets news.", "off": false}, {"name": "Bloomberg TV Asia Live Event", "url": "https://bloomberg.com/media-manifest/streams/asia-event.m3u8", "desc": "Bloomberg Asia live event feed. Shows a waiting card until an event is on.", "off": false}, {"name": "Bloomberg TV Europe", "url": "https://bloomberg.com/media-manifest/streams/eu.m3u8", "desc": "Bloomberg TV Europe feed, business and markets news.", "off": false}, {"name": "Bloomberg TV Europe Live Event", "url": "https://bloomberg.com/media-manifest/streams/eu-event.m3u8", "desc": "Bloomberg Europe, Middle East and Africa live event feed. Shows a waiting card until an event is on.", "off": false}, {"name": "Bloomberg TV Politics Live Event", "url": "https://bloomberg.com/media-manifest/streams/politics.m3u8", "desc": "Bloomberg politics live event feed. Shows a waiting card until an event is on.", "off": false}, {"name": "Bloomberg TV US Live Event", "url": "https://bloomberg.com/media-manifest/streams/us-event.m3u8", "desc": "Bloomberg US live event feed. Shows 'event livestream will start shortly' until an event is on.", "off": false}, {"name": "CBC News Network", "url": "https://aka-live1050.delivery.roku.com/0c24a9ef-e9c3-485c-bf68-3f1ae5ef3e85/t2-origin/out/v1/live.m3u8", "desc": "CBC News Network, Canada's public broadcaster, national news.", "off": false}, {"name": "CBS News", "url": "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8", "desc": "CBS News 24/7, CBS's streaming news channel.", "off": false}, {"name": "CBS News Baltimore", "url": "https://lineup.cbsivideo.com/playout/8877a7d5-b094-4ac8-bc72-75a5fed68e5b/index.m3u8", "desc": "CBS News Baltimore, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": false}, {"name": "CBS News Bay Area", "url": "https://cbsn-sf.cbsnstream.cbsnews.com/out/v1/dac63c1abb3f4a2dac9f508f44bb072a/master.m3u8", "desc": "CBS News Bay Area, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Boston", "url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8", "desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Chicago", "url": "https://cbsn-chi.cbsnstream.cbsnews.com/out/v1/b2fc0d5715d54908adf07f97d2616646/master.m3u8", "desc": "CBS News Chicago, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Colorado", "url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8", "desc": "CBS News Colorado, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Detroit", "url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8", "desc": "CBS News Detroit, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Los Angeles", "url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8", "desc": "CBS News Los Angeles, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Miami", "url": "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8", "desc": "CBS News Miami, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": false}, {"name": "CBS News Minnesota", "url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8", "desc": "CBS News Minnesota, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News New York", "url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8", "desc": "CBS News New York, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Philly", "url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8", "desc": "CBS News Philly, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Pittsburgh", "url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8", "desc": "CBS News Pittsburgh, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true}, {"name": "CBS News Sacramento", "url": "https://lineup.cbsivideo.com/playout/c1ed69db-6b71-4581-a937-a70ab4089f8a/index.m3u8", "desc": "CBS News Sacramento, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": false}, {"name": "CGTN", "url": "https://amg00405-rakutentv-cgtn-rakuten-i9tar.amagi.tv/master.m3u8", "desc": "CGTN, China's state international news channel in English.", "off": false}, {"name": "CGTN Global Business", "url": "https://fastlive.cctvplus.com/out/v1/2b3d8a0c805d437f9dc85b764c2ac599/index.m3u8", "desc": "CGTN Global Business, China's state business news in English.", "off": false}, {"name": "Cheddar News", "url": "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8", "desc": "Cheddar News, business and tech news.", "off": false}, {"name": "CNBC UK", "url": "https://amg01079-nbcuuk-amg01079c2-samsung-gb-1258.playouts.now.amagi.tv/playlist.m3u8", "desc": "CNBC UK, business and markets news.", "off": false}, {"name": "CNN", "url": "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", "desc": "CNN's free 24/7 channel, US cable news.", "off": false}, {"name": "CNN International Europe", "url": "https://d3bp6dwmpbdajl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ury0meh5m4nzm/index.m3u8", "desc": "CNN International, the Europe feed. Different schedule from the US feed.", "off": false}, {"name": "DW", "url": "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8", "desc": "Deutsche Welle, Germany's public international broadcaster. English news and reports from Europe.", "off": false}, {"name": "Euronews English", "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-en/25002/index.m3u8", "desc": "Euronews, pan European news in English.", "off": false}, {"name": "Fox 5 New York (WNYW)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wnyw-lgus/playlist.m3u8", "desc": "Fox 5 New York, local TV station: local and breaking news, with ad breaks.", "off": false}, {"name": "Fox 11 Los Angeles (KTTV)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox11losangeleskttv-vizious/playlist.m3u8", "desc": "Fox 11 Los Angeles, local TV station: local and breaking news, with ad breaks.", "off": false}, {"name": "Fox Business", "url": "https://tvsen6.aynaott.com/foxbusiness/index.m3u8", "desc": "Fox Business Network, US markets and business news with breaking news banners. Served by a reseller host.", "off": false}, {"name": "Fox News", "url": "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8", "desc": "Fox News Channel live, US cable news.", "off": false}, {"name": "Fox Weather", "url": "https://247wlive.foxweather.com/stream/index.m3u8", "desc": "Fox Weather, 24/7 US weather channel.", "off": false}, {"name": "France 24 English", "url": "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8", "desc": "France 24, French international news in English.", "off": false}, {"name": "GB News", "url": "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8", "desc": "GB News, UK news and opinion channel.", "off": false}, {"name": "Global News", "url": "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8", "desc": "Global News, Canadian national news.", "off": false}, {"name": "i24", "url": "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8", "desc": "i24NEWS English: Israel based international news, Middle East focus.", "off": false}, {"name": "i24NEWS English World", "url": "https://hlspackager.akamaized.net/live/DB/i24_ENGLISH/HLS/i24_ENGLISH.m3u8", "desc": "i24NEWS English, second address (the international feed). Israel and Middle East news.", "off": false}, {"name": "i24NEWS Hebrew", "url": "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8", "desc": "i24NEWS in Hebrew, Israeli news and talk.", "off": false}, {"name": "IL13", "url": "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8", "desc": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.", "off": false}, {"name": "India Today", "url": "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8", "desc": "India Today, major Indian news channel in English.", "off": false}, {"name": "LiveNOW Fox", "url": "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8", "desc": "LiveNOW from Fox, Fox's streaming news channel, often carries live events and press conferences.", "off": false}, {"name": "Makan 33 (Kan Arabic)", "url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8", "desc": "Makan 33, Kan's Arabic language channel, Israeli public broadcaster. News in Arabic.", "off": false}, {"name": "MS NOW (ex MSNBC)", "url": "https://tvsen6.aynaott.com/msnbc/index.m3u8", "desc": "MS NOW (formerly MSNBC), US cable news. Lower quality (432p) and served by a reseller host, not the network, so it may drop.", "off": false}, {"name": "NBC News NOW", "url": "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003", "desc": "NBC News NOW, NBC's 24/7 streaming news channel.", "off": false}, {"name": "Newsmax 2", "url": "https://amg00217-newsmax-newsmax-zeasn-022k9.amagi.tv/playlist.m3u8", "desc": "Newsmax 2, Newsmax's second US news channel (second feed alongside Newsmax TV).", "off": false}, {"name": "Newsmax TV", "url": "https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8", "desc": "Newsmax, US conservative news channel.", "off": false}, {"name": "NHK World-Japan", "url": "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8", "desc": "NHK World-Japan, Japan's public international news in English.", "off": false}, {"name": "Now 14 (Israel)", "url": "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8", "desc": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.", "off": false}, {"name": "Reuters TV", "url": "https://amg00453-reuters-amg00453c1-rakuten-uk-2110.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-rakutenuk/playlist.m3u8", "desc": "Reuters TV, wire service video news. Mostly footage with captions.", "off": false}, {"name": "RT", "url": "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8", "desc": "RT, Russian state news in English.", "off": false}, {"name": "Scripps News", "url": "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8", "desc": "Scripps News, US national news.", "off": false}, {"name": "Telesur English", "url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8", "desc": "teleSUR English, Latin American news (Venezuela backed).", "off": false}, {"name": "TRT World", "url": "https://tv-trtworld.medya.trt.com.tr/master.m3u8", "desc": "TRT World, Turkey's state English news channel.", "off": false}, {"name": "VoA TV (Voice of America)", "url": "https://voa-ingest.akamaized.net/hls/live/2033874/tvmc06/playlist.m3u8", "desc": "Voice of America TV, US government international broadcaster, English.", "off": false}, {"name": "WION", "url": "http://vg-zeefta.akamaized.net/ptnr-yupptv/title-wion/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/20c3c0d9-0256-43fe-bca6-70fdd490b957/main.m3u8", "desc": "WION, Indian world news channel in English.", "off": false}, {"name": "WSVN 7News", "url": "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web", "desc": "WSVN 7News, Miami local TV (Fox affiliate). Shows a 'right back' card during its own ad breaks.", "off": false}];
 
 /* EPG hook: { "<channel name>": "what is on now" }. Empty until a schedule source is added. */
 window.EPG = window.EPG || {};
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const KEY = "tv.lastChannel";
-let current = 0, typed = "", typeTimer = null, osdTimer = null, nowTimer = null, started = false;
+const KEY = "tv.lastChannel", CC_KEY = "tv.cc";
+let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
+let started = false, volume = 1, muted = false, ccOn = true, onAirOnly = false;
+try { ccOn = localStorage.getItem(CC_KEY) !== "0"; } catch (e) {}
 
 function playerUrl(ch) {
-  const p = new URLSearchParams({ ID: ch.name.replace(/\s+/g, ""), src: ch.url, fit: "contain", muted: "0", controls: "0", cc: "1", reload: "0" });
+  const p = new URLSearchParams({ ID: ch.name.replace(/\s+/g, ""), src: ch.url, fit: "contain", muted: "0", controls: "0", cc: ccOn ? "1" : "0", reload: "0" });
   return "player.html?" + p.toString();
 }
+function nowText(ch) { return window.EPG[ch.name] || ""; }
 
-function tune(i, { quiet = false } = {}) {
+function tune(i, { quiet = false, keepSrc = false } = {}) {
   if (!CHANNELS.length) return;
-  current = ((i % CHANNELS.length) + CHANNELS.length) % CHANNELS.length;
+  const next = ((i % CHANNELS.length) + CHANNELS.length) % CHANNELS.length;
+  if (next !== current) previous = current;
+  current = next;
   const ch = CHANNELS[current];
-  if (started) screen_.src = playerUrl(ch);   /* sound needs a tap first, so nothing loads before it */
+  if (started) screen_.src = playerUrl(ch);
   try { localStorage.setItem(KEY, String(current)); } catch (e) {}
-  const now = window.EPG[ch.name];
-  osd.innerHTML = '<span class="num">' + (current + 1) + '</span>' + ch.name + (now ? '<div class="now">' + now + '</div>' : "");
-  $("now").innerHTML = '<b>' + (current + 1) + ' ' + ch.name + '</b>' + (ch.off ? ' (off air right now)' : '') + '<br>' + (now ? 'Now: ' + now + '<br>' : '') + ch.desc;
+  $("chNum").textContent = "CH " + (current + 1);
+  $("playing").innerHTML = "<b></b> <span></span>";
+  $("playing").querySelector("b").textContent = ch.name + (ch.off ? " (off air)" : "");
+  $("playing").querySelector("span").textContent = nowText(ch) || ch.desc;
+  osd.innerHTML = '<div class="head"><span class="num"></span><span class="nm"></span></div>';
+  osd.querySelector(".num").textContent = current + 1;
+  osd.querySelector(".nm").textContent = ch.name;
+  if (ch.off) { const o = document.createElement("span"); o.className = "off"; o.textContent = "OFF AIR"; osd.querySelector(".head").appendChild(o); }
+  const d = document.createElement("div"); d.className = "desc"; d.textContent = ch.desc; osd.appendChild(d);
+  const n = nowText(ch);
+  if (n) { const x = document.createElement("div"); x.className = "now"; x.textContent = "Now: " + n; osd.appendChild(x); }
   document.title = (current + 1) + " " + ch.name + " | Red Macho Devil TV";
-  if (!quiet) { flashOsd(); showNow(); }
+  $("cc").classList.toggle("on", ccOn); $("cc").setAttribute("aria-pressed", String(ccOn));
+  if (!quiet) showBanner();
+  markGuide();
+  setStatus("Connecting", "");
   applyVolume();
-  document.querySelectorAll(".row").forEach((r, k) => r.classList.toggle("on", k === current));
 }
-function showNow() {
-  $("now").classList.add("show");
-  clearTimeout(nowTimer);
-  nowTimer = setTimeout(() => $("now").classList.remove("show"), 6000);
+
+function showBanner() {
+  osd.classList.add("show");
+  clearTimeout(osdTimer);
+  osdTimer = setTimeout(() => osd.classList.remove("show"), 6000);
+  $("top").classList.remove("hide");
+  clearTimeout(topTimer);
+  topTimer = setTimeout(() => $("top").classList.add("hide"), 4000);
 }
-/* the player's videos live inside the iframe (same site), so the volume is set on them */
+
+/* status light from the player page (same site): NO SIGNAL card, or a video that is playing */
+function playerInfo() {
+  try {
+    const d = screen_.contentDocument;
+    if (!d) return null;
+    const card = d.getElementById("offline");
+    const v = d.querySelector("video");
+    return { card: !!card && getComputedStyle(card).display === "flex", playing: !!v && !v.paused && v.currentTime > 0 };
+  } catch (e) { return null; }
+}
+function setStatus(text, cls) {
+  const s = $("status");
+  s.className = cls;
+  s.querySelector("span").textContent = text;
+}
+function refreshStatus() {
+  if (!started) return;
+  const info = playerInfo();
+  const ch = CHANNELS[current];
+  if (!info) return setStatus("Connecting", "");
+  if (info.playing) return setStatus("Live", "live");
+  if (info.card) return setStatus(ch.off ? "Off air" : "No signal", ch.off ? "off" : "nosig");
+  setStatus("Connecting", "");
+}
+
+/* volume and mute are set on the player's own video element (same site) */
 function videos() {
   try { return Array.from(screen_.contentDocument ? screen_.contentDocument.querySelectorAll("video") : []); } catch (e) { return []; }
 }
-let volume = 1, muted = false;
 function applyVolume() {
   videos().forEach((v) => { v.volume = volume; v.muted = muted; });
+  $("mute").classList.toggle("on", muted);
   $("mute").textContent = muted ? "Unmute" : "Mute";
 }
 function setVolume(v) {
@@ -630,58 +271,111 @@ function setVolume(v) {
   $("vol").value = volume;
   applyVolume();
 }
-function toggleMute() { muted = !muted; applyVolume(); }
-function flashOsd() {
-  osd.classList.add("show");
-  $("brand").classList.add("show");
-  clearTimeout(osdTimer);
-  osdTimer = setTimeout(() => { osd.classList.remove("show"); $("brand").classList.remove("show"); }, 3000);
+function toggleMute() { muted = !muted; applyVolume(); showBanner(); }
+function toggleCC() {
+  ccOn = !ccOn;
+  try { localStorage.setItem(CC_KEY, ccOn ? "1" : "0"); } catch (e) {}
+  tune(current, { quiet: true });
+}
+function nextOnAir(from, dir) {
+  for (let k = 1; k <= CHANNELS.length; k++) {
+    const idx = (from + dir * k + CHANNELS.length * 2) % CHANNELS.length;
+    if (!CHANNELS[idx].off) return idx;
+  }
+  return from;
+}
+function skipOffAir() { tune(nextOnAir(current, 1)); }
+function lastChannel() { tune(previous); }
+function toggleFull() {
+  const el = document.documentElement;
+  try {
+    if (!document.fullscreenElement) (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el);
+    else (document.exitFullscreen || (() => {})).call(document);
+  } catch (e) {}
 }
 
+/* guide */
+function markGuide() {
+  document.querySelectorAll(".row").forEach((r) => r.classList.toggle("on", Number(r.dataset.i) === current));
+}
 function buildGuide() {
   list.innerHTML = "";
   CHANNELS.forEach((ch, i) => {
+    if (onAirOnly && ch.off) return;
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "row" + (ch.off ? " off" : "");
-    b.innerHTML = '<span class="n"></span><span class="t"></span><span class="d"></span>';
-    b.querySelector(".n").textContent = i + 1;
-    b.querySelector(".t").textContent = ch.name;
-    const now = window.EPG[ch.name];
-    b.querySelector(".d").textContent = (now ? "Now: " + now + ". " : "") + ch.desc;
+    b.className = "row";
+    b.dataset.i = i;
+    const n = document.createElement("span"); n.className = "n"; n.textContent = i + 1;
+    const t = document.createElement("span"); t.className = "t"; t.textContent = ch.name;
+    const s = document.createElement("span"); s.className = "s " + (ch.off ? "off" : "on"); s.textContent = ch.off ? "Off air" : "On air";
+    const d = document.createElement("span"); d.className = "d";
+    const now = nowText(ch);
+    d.textContent = (now ? "Now: " + now + ". " : "") + ch.desc;
+    b.append(n, t, s, d);
     b.addEventListener("click", () => { tune(i); closeGuide(); });
     list.appendChild(b);
   });
-  document.querySelectorAll(".row").forEach((r, k) => r.classList.toggle("on", k === current));
+  markGuide();
 }
 function openGuide() { guide.classList.add("open"); const on = list.querySelector(".row.on"); if (on) on.scrollIntoView({ block: "center" }); }
 function closeGuide() { guide.classList.remove("open"); }
+function setTab(onAir) {
+  onAirOnly = onAir;
+  $("tabAll").classList.toggle("on", !onAir);
+  $("tabOn").classList.toggle("on", onAir);
+  buildGuide();
+}
 
-$("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
+/* clock */
+function tick() {
+  const now = new Date();
+  $("time").textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  $("date").textContent = now.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+}
+tick(); setInterval(tick, 15000);
+setInterval(refreshStatus, 1000);
+setInterval(applyVolume, 1500);
+
+/* buttons */
+$("start").addEventListener("click", () => { started = true; $("start").style.display = "none"; tune(current); });
 $("chUp").addEventListener("click", () => tune(current + 1));
 $("chDown").addEventListener("click", () => tune(current - 1));
+$("skipOff").addEventListener("click", skipOffAir);
+$("last").addEventListener("click", lastChannel);
+$("cc").addEventListener("click", toggleCC);
 $("mute").addEventListener("click", toggleMute);
 $("vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value)));
-$("info").addEventListener("click", showNow);
-screen_.addEventListener("load", applyVolume);
-setInterval(applyVolume, 1500);
+$("info").addEventListener("click", showBanner);
+$("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
+$("full").addEventListener("click", toggleFull);
 $("closeGuide").addEventListener("click", closeGuide);
-$("start").addEventListener("click", () => { started = true; $("start").style.display = "none"; tune(current); });
+$("tabAll").addEventListener("click", () => setTab(false));
+$("tabOn").addEventListener("click", () => setTab(true));
+screen_.addEventListener("load", applyVolume);
+document.addEventListener("pointermove", () => { if (started) { $("top").classList.remove("hide"); clearTimeout(topTimer); topTimer = setTimeout(() => $("top").classList.add("hide"), 4000); } });
 
-/* keyboard: arrows or Page Up/Down change channel, G toggles the guide, digits type a channel number */
+/* keys */
 document.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowUp" || e.key === "PageUp") { tune(current - 1); e.preventDefault(); }
-  else if (e.key === "ArrowDown" || e.key === "PageDown") { tune(current + 1); e.preventDefault(); }
+  if (e.target && e.target.tagName === "INPUT" && e.target.type === "range") { /* volume slider keeps its arrows */ }
+  if (e.key === "ArrowUp" || e.key === "PageUp") { tune(current + 1); e.preventDefault(); }
+  else if (e.key === "ArrowDown" || e.key === "PageDown") { tune(current - 1); e.preventDefault(); }
   else if (e.key === "g" || e.key === "G") { guide.classList.contains("open") ? closeGuide() : openGuide(); }
   else if (e.key === "Escape") { closeGuide(); }
   else if (e.key === "m" || e.key === "M") { toggleMute(); }
   else if (e.key === "+" || e.key === "=") { setVolume(volume + 0.1); }
   else if (e.key === "-") { setVolume(volume - 0.1); }
-  else if (e.key === "i" || e.key === "I") { showNow(); }
+  else if (e.key === "i" || e.key === "I") { showBanner(); }
+  else if (e.key === "s" || e.key === "S") { skipOffAir(); }
+  else if (e.key === "l" || e.key === "L") { lastChannel(); }
+  else if (e.key === "c" || e.key === "C") { toggleCC(); }
+  else if (e.key === "f" || e.key === "F") { toggleFull(); }
+  else if (e.key === "Enter" && typed) { const n = parseInt(typed, 10); typed = ""; $("entry").textContent = ""; if (n >= 1 && n <= CHANNELS.length) tune(n - 1); }
   else if (/^[0-9]$/.test(e.key)) {
-    typed += e.key;
+    typed = (typed + e.key).slice(-3);
+    $("entry").textContent = typed;
     clearTimeout(typeTimer);
-    typeTimer = setTimeout(() => { const n = parseInt(typed, 10); typed = ""; if (n >= 1 && n <= CHANNELS.length) tune(n - 1); }, 900);
+    typeTimer = setTimeout(() => { const n = parseInt(typed, 10); typed = ""; $("entry").textContent = ""; if (n >= 1 && n <= CHANNELS.length) tune(n - 1); }, 1200);
   }
 });
 
@@ -695,12 +389,11 @@ document.addEventListener("touchend", (e) => {
   touchY = null;
 });
 
-/* start: ?ch=<number> wins, else the last channel on this device, else the first */
+/* start: last channel on this device, else the first. Sound waits for a tap. */
 (function init() {
-  const q = parseInt(new URLSearchParams(location.search).get("ch"), 10);
   let start = 0;
   try { start = parseInt(localStorage.getItem(KEY), 10) || 0; } catch (e) {}
-  if (q >= 1 && q <= CHANNELS.length) start = q - 1;
+  current = start; previous = start;
   buildGuide();
   tune(start, { quiet: true });
 })();

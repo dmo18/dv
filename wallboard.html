@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v25</title>
+<title>Wallboard v26</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v26  2026-11-17  Tile status from player Rev13 (name, then LIVE or STALLED, resolution, bitrate, buffer). Small "For
+                    educational purposes only" note bottom right.
   v25  2026-11-17  Player Rev12: the resolution and bitrate now go in the browser tab title, not on the tile.
   v24  2026-11-17  Player Rev11: the tile title line now shows resolution and bitrate while a feed plays (the wall looks
                     the same otherwise).
@@ -413,5 +415,6 @@ html, body {
   <div class="bar" id="tk"><iframe id="tkFrame"></iframe></div>
   <div class="bar" id="hl"><iframe id="hlFrame"></iframe></div>
 </div>
+<div class="edu-note" style="position:fixed;right:6px;bottom:1px;font:10px/1.2 system-ui,Arial,sans-serif;color:#8a8a8a;opacity:.75;z-index:99999;pointer-events:none;letter-spacing:.02em">For educational purposes only.</div>
 </body>
 </html>

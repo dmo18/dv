@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev12</title>
+<title>Universal Player Rev13</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,8 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev13 2026-11-17  The tile label now has two lines: the channel name, then network status (LIVE, STALLED, STARTING or
+                  PAUSED, the resolution, the bitrate and the seconds of buffer). The browser tab title is unchanged.
 Rev12 2026-11-17  The browser tab title (the page's title tag) now shows name, resolution, bitrate and
                   "paused" while playing. The on-screen label shows the name only again.
 Rev11 2026-11-17  Title shows the stream name plus live stats while playing (resolution and bitrate, and "paused").
@@ -225,6 +227,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 92%;
+  line-height: 1.25;
   position: fixed;
   top: 0;
   left: 0;
@@ -371,6 +374,23 @@ const offlineEl = document.getElementById("offline");
 function setLabel(text) {
   labelEl.textContent = text;
   labelEl.style.display = text ? "block" : "none";
+}
+/* Two-line tile label: name, then network status. Built with DOM nodes (no HTML from the page). */
+function setStatusLabel(name, dot, status, detail) {
+  labelEl.textContent = "";
+  const top = document.createElement("div");
+  top.textContent = name;
+  const line = document.createElement("div");
+  line.style.fontSize = "0.85em";
+  line.style.opacity = "0.9";
+  const d = document.createElement("span");
+  d.textContent = "\u25cf ";
+  d.style.color = dot;
+  line.appendChild(d);
+  line.appendChild(document.createTextNode(status + (detail ? " \u00b7 " + detail : "")));
+  labelEl.appendChild(top);
+  labelEl.appendChild(line);
+  labelEl.style.display = "block";
 }
 function setCard(on) {
   offlineEl.querySelector(".name").textContent = label;
@@ -561,31 +581,47 @@ window.addEventListener("message", (e) => {
   applyCommand(String(e.data.cmd || ""));
 });
 
-/* Browser tab title: name, then live stats while the picture moves (or "paused"). The on-screen label stays
-   the name only. Refreshed each second. */
+/* Browser tab title and tile status, refreshed each second.
+   Tab title: name, resolution, bitrate, "paused". Tile label: name, then network status. */
 function statsText() {
   const v = currentVideo();
   const parts = [];
-  if (v && v.videoHeight) parts.push(v.videoWidth + "\u00d7" + v.videoHeight);
+  if (v && v.videoHeight) parts.push(v.videoHeight + "p");
+  const bw = bitrate();
+  if (bw) parts.push((bw / 1e6).toFixed(1) + " Mb/s");
+  return parts.join(" \u00b7 ");
+}
+function bitrate() {
   try {
     const vhs = vjsPlayer && vjsPlayer.tech && vjsPlayer.tech(true).vhs;
-    if (vhs && vhs.bandwidth) parts.push((vhs.bandwidth / 1e6).toFixed(1) + " Mb/s");
-  } catch (e) {}
-  return parts.join(" \u00b7 ");
+    return vhs && vhs.bandwidth ? vhs.bandwidth : 0;
+  } catch (e) { return 0; }
+}
+function bufferSeconds() {
+  const v = currentVideo();
+  if (!v || !v.buffered || !v.buffered.length) return null;
+  try { return Math.max(0, Math.round(v.buffered.end(v.buffered.length - 1) - v.currentTime)); } catch (e) { return null; }
 }
 setInterval(() => {
   const base = (ATTEMPTS[attempt] && ATTEMPTS[attempt].isAlt ? altLabel : label) || "";
   const live = userState === "live" && Date.now() - lastProgressAt < 5000;
   if (offlineEl.style.display === "flex" || resting) {
     document.title = base ? base + " \u00b7 no signal" : "Player";
+    setLabel(base);
     return;
   }
+  const stats = statsText();
+  const buf = bufferSeconds();
+  const detail = [stats, buf !== null && live ? buf + "s buffer" : ""].filter(Boolean).join(" \u00b7 ");
   if (userState === "paused") {
-    document.title = [base, statsText(), "paused"].filter(Boolean).join(" \u00b7 ") || "Player";
-    setLabel(base);
+    document.title = [base, stats, "paused"].filter(Boolean).join(" \u00b7 ") || "Player";
+    if (base) setStatusLabel(base, "#9aa3ad", "PAUSED", stats);
   } else if (live) {
-    document.title = [base, statsText()].filter(Boolean).join(" \u00b7 ") || "Player";
-    setLabel(base);
+    document.title = [base, stats].filter(Boolean).join(" \u00b7 ") || "Player";
+    if (base) setStatusLabel(base, "#3ddc84", "LIVE", detail);
+  } else if (userState === "live") {
+    document.title = base || "Player";
+    if (base) setStatusLabel(base, "#ffb000", "STARTING", "");
   }
 }, 1000);
 

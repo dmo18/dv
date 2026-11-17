@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev22</title>
+<title>Encoder Rev23</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev23  2026-11-17  Small "For educational purposes only" note at the bottom. Tile status now shows in the player (Rev13).
   Rev22  2026-11-17  Control bar above the grid: Play all, Pause all (last picture stays on screen), Stop all (releases the
                      streams). Each tile also shows its number and name. Page cleaned up: sticky control bar, larger touch
                      targets, responsive grid for phones, and the long "build a link by hand" and decoder sections are
@@ -315,7 +316,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev22</h1>
+  <h1>Wallboard URL Encoder Rev23</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL with no controls. Open uses a separate URL with sound on and full player controls.
@@ -1010,5 +1011,6 @@ $("fullUrl").addEventListener("input", decodeFullUrl);
 
 renderSnapshotGrid();
 </script>
+<div class="edu-note" style="position:fixed;right:6px;bottom:1px;font:10px/1.2 system-ui,Arial,sans-serif;color:#8a8a8a;opacity:.75;z-index:99999;pointer-events:none;letter-spacing:.02em">For educational purposes only.</div>
 </body>
 </html>
