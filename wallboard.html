@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v28</title>
+<title>Wallboard v27</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
-  v28  2026-11-17  Small tiles fill their box (fit cover), so no bars at the side. Large tiles unchanged (fit contain).
   v27  2026-11-17  TEMPORARY layout A: 24 feeds. Row 1 has four large tiles (480x270, was 640x360), rows 2 to 5
                     have five small tiles each (384x184.5, was 384x216). Feeds are the 24 rated Good in the encoder
                     list: removed IL13, RT, ABC News Live, Scripps News, Fox Weather. Added ABC News Australia,
@@ -209,8 +208,7 @@ html, body {
     if (t.kind === "page") return t.url;
     const q = new URLSearchParams({ ID: t.id, label: t.label, src: t.stream });
     if (t.opts.alt) { q.set("alt", t.opts.alt); q.set("altlabel", t.opts.altLabel || t.label); }
-    // large tiles are exact 16:9 (contain); small tiles are shorter than 16:9, so they fill the tile and crop the top and bottom edges (no side bars)
-    q.set("fit", n < LARGE_COUNT ? "contain" : "cover"); q.set("muted", "1");
+    q.set("fit", "contain"); q.set("muted", "1");
     q.set("reload", String(BASE_RELOAD_MINUTES + 2 * n));
     q.set("cc", t.opts.cc === false ? "0" : "1");   // captions on every tile; the player sizes them to the tile
     return "player.html?" + q.toString();
