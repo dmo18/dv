@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev9</title>
+<title>Universal Player Rev10</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -53,6 +53,10 @@ Optional:
   fit     contain | cover
           contain = no cropping, may show black bars if aspect does not match the tile
           cover   = crop-fill, no bars, edges may be cut off
+
+  controls 1 | 0
+          1 = show play, volume and full screen controls (used by the encoder's Open button)
+          0 = none (default, the wall)
 
   muted   1 | 0
           1 = muted (recommended for autoplay)
@@ -145,6 +149,8 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev10 2026-11-17  New option controls=1: shows the full player controls (play, volume, full screen) and turns
+                  Clappr's own controls on. Default is unchanged (no controls), so the wall looks the same.
 Rev9  2026-11-17  Channel label smaller (font 2.3vw, 8 to 14 px, was 3.2vw up to 22 px), less padding and a
                   lighter box, so it takes less of the picture.
 Rev8  2026-11-16  Clappr pinned to 0.4.7 (was "latest", same file); integrity hashes on Clappr
@@ -274,16 +280,18 @@ html, body {
 
 /* Kiosk: hide Video.js UI */
 .vjs-text-track-display,   /* captions are drawn by this page instead, see #captions */
-.vjs-control-bar,
-.vjs-big-play-button,
-.vjs-loading-spinner,
 .vjs-modal-dialog {
+  display: none !important;
+}
+html:not(.ctl) .vjs-control-bar,
+html:not(.ctl) .vjs-big-play-button,
+html:not(.ctl) .vjs-loading-spinner {
   display: none !important;
 }
 
 /* Kiosk: hide Clappr overlays if present */
-#clappr .media-control,
-#clappr .spinner {
+html:not(.ctl) #clappr .media-control,
+html:not(.ctl) #clappr .spinner {
   display: none !important;
 }
 </style>
@@ -319,6 +327,8 @@ const fit = (param("fit", "contain") || "contain").toLowerCase();
 document.documentElement.style.setProperty("--fit", fit === "cover" ? "cover" : "contain");
 
 const muted = param("muted", "1") !== "0";
+const withControls = param("controls", "0") === "1";
+if (withControls) document.documentElement.classList.add("ctl");
 const reloadMin = parseInt(param("reload", "0"), 10) || 0;
 
 /* -----------------------------
@@ -385,7 +395,7 @@ function startVjs(url) {
   vjsPlayer = videojs(v, {
     autoplay: true,
     muted: muted,
-    controls: false,
+    controls: withControls,
     liveui: true,
     preload: "auto",
     /* match quality to the tile size, counting the screen's pixel density */
@@ -457,7 +467,7 @@ function startClappr(url) {
     parentId: "#clappr",
     autoPlay: true,
     mute: muted,
-    chromeless: true,
+    chromeless: !withControls,
     loop: true,
     width: "100%",
     height: "100%",
