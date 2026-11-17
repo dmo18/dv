@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev20</title>
+<title>Encoder Rev21</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev21  2026-11-17  ABC News Live 1 to 10 and ten CBS city streams (all "not found" when idle) no longer auto load a preview, so the
+                     grid is not full of "No signal. Retrying" tiles. They show "Off air right now" with a Try preview button.
   Rev20  2026-11-17  Feeds are alphabetical and numbered (79 in all). Open now has sound and full player controls
                      (play, volume, full screen); the preview tiles stay muted with no controls. Removed dead or low value
                      feeds: IRINN and Kan 11 (blocked in the US), LiveNOW Fox 720, Global News 720p, ABC10 old address
@@ -275,7 +277,7 @@ hr {
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev20</h1>
+  <h1>Wallboard URL Encoder Rev21</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL with no controls. Open uses a separate URL with sound on and full player controls.
@@ -492,6 +494,10 @@ const STREAMS = [
   { name: "WION", url: "http://vg-zeefta.akamaized.net/ptnr-yupptv/title-wion/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/20c3c0d9-0256-43fe-bca6-70fdd490b957/main.m3u8" },
   { name: "WSVN 7News", url: "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web" },
 ];
+
+// Feeds that return "not found" while ABC or CBS has nothing on them. They are kept so the address is saved,
+// but the preview is not loaded automatically (it would only say "No signal"). Press "Try preview" to check one.
+const OFF_AIR = new Set(["ABC News Live 1", "ABC News Live 2", "ABC News Live 3", "ABC News Live 4", "ABC News Live 5", "ABC News Live 6", "ABC News Live 7", "ABC News Live 8", "ABC News Live 9", "ABC News Live 10", "CBS News Bay Area", "CBS News Boston", "CBS News Chicago", "CBS News Colorado", "CBS News Detroit", "CBS News Los Angeles", "CBS News Minnesota", "CBS News New York", "CBS News Philly", "CBS News Pittsburgh"]);
 
 const DESCRIPTIONS = {
   "ABC1": "ABC News event feed (older address). Only carries video while ABC has a live event on air.",
@@ -738,11 +744,31 @@ function renderSnapshotGrid() {
     const frame = document.createElement("iframe");
     frame.className = "snapshotFrame";
     frame.loading = "lazy";
-    frame.src = previewUrl;
+    if (OFF_AIR.has(stream.name)) {
+      frame.dataset.src = previewUrl;
+    } else {
+      frame.src = previewUrl;
+    }
 
     const fallback = document.createElement("div");
     fallback.className = "snapshotFallback";
     fallback.textContent = "Preview unavailable. Click to open player.";
+    if (OFF_AIR.has(stream.name)) {
+      fallback.style.display = "flex";
+      fallback.style.flexDirection = "column";
+      fallback.style.gap = "8px";
+      fallback.style.zIndex = "5";
+      fallback.textContent = "Off air right now (standby)";
+      const tryBtn = document.createElement("button");
+      tryBtn.textContent = "Try preview";
+      tryBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fallback.style.display = "none";
+        frame.src = frame.dataset.src;
+      });
+      fallback.appendChild(tryBtn);
+    }
 
     const overlay = document.createElement("div");
     overlay.className = "snapshotOverlay";
@@ -760,6 +786,7 @@ function renderSnapshotGrid() {
     status.textContent = "Preview uses muted=1. Open has sound and full controls.";
 
     frame.addEventListener("load", () => {
+      if (!frame.getAttribute("src")) return;
       fallback.style.display = "none";
       status.textContent = "Preview loaded. Open has sound and full controls.";
     });
