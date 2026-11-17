@@ -1,15 +1,17 @@
 # Status
 
-Updated 2026-11-16.
+Updated 2026-11-17.
 
 ## Done
 - Moved from old repo, Pages live, links repointed.
-- Streams repaired, daily stream check, ABC 10 backup, labels, No signal card, quality cap.
-- Headlines redesigned (no timeouts), feed list in headlines-feeds.json.
-- Captions on streams that carry them, 26% smaller, transparent box.
+- Streams repaired, daily stream check, ABC 10 backup, labels, No signal card, quality cap, captions (26% smaller).
+- Headlines redesigned (no timeouts, now refreshed every 15 minutes by the Data relay), sized for a 40 px bar.
+- Milestone 1: new ticker (no third-party widget), price script, Data relay, player Rev8, encoder Rev17 (25 streams).
+- Milestone 2: 18-tile wall v20 on an exact 1920x1080 grid, older pages pinned to Clappr 0.4.7.
+- Milestone 3 (in this change): freshness alarm in the daily check, docs rewritten.
 
 ## In progress
-- Takeover audit finished. Plan for 1080p layout and new ticker awaiting approval.
+- Soak test of the live wall (30 minutes, headless) and the photo check on the wall PC (needs the user, see README).
 
 ## Decisions
 - Stock data: Stooq now blocks bots. Candidate source is Yahoo chart endpoint (no key). Crypto live from Coinbase.
@@ -41,7 +43,7 @@ Updated 2026-11-16.
   Rule added to CLAUDE.md: tests stay local.
 - Task 2 relay Rev2 passed the focused Fable re-check. Open low items for Rev3: two stop signals under 1 ms apart can
   deadlock the handler (fix known, the runner sends them seconds apart), a run shorter than the 10 minute lead
-  starts its successor at second 0, headlines.yml still uses unpinned checkout@v4.
+  starts its successor at second 0. (headlines.yml checkout is now pinned, fixed in milestone 3.)
 
 - Milestone 1 merged 2026-11-16 (new ticker, relay, price script, player Rev8, encoder Rev17, wallboard v19).
   Restore point before the merge: main at baef2bd6b1ffb6564fafe30cfa615a5b6d2be81c (wallboard v18).
@@ -66,4 +68,4 @@ Updated 2026-11-16.
 See docs/TAKEOVER.md.
 
 ## Open security findings
-- clappr@latest unpinned on 14 pages (medium).
+- None open. (Clappr is now pinned to 0.4.7 with integrity hashes everywhere; checkout is pinned in all three workflows.)

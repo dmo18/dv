@@ -1,6 +1,7 @@
 name: Update headlines
 
-# headlines.yml Rev 2
+# headlines.yml Rev 3
+# - Rev 3 2026-11-16: checkout pinned to a commit.
 # - Rev 2 2026-11-16: schedule reduced to a safety net, the relay refreshes headlines.
 # - Rev 1: as built before.
 #
@@ -33,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Fetch feeds
         run: |

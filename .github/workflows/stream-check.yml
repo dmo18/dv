@@ -1,8 +1,15 @@
 name: Check streams
 
-# Once a day, checks every stream used by the wallboard and the encoder.
-# If any is not playing, it opens (or updates) one issue listing them, which GitHub
-# emails to the repository owner. When everything plays again, it closes that issue.
+# stream-check.yml Rev 2
+# - Rev 2 2026-11-16: also checks that the prices and headlines files published by the Data relay are
+#   fresh (under 60 minutes old); checkout pinned to a commit; issue title now covers streams and data;
+#   only wall problems keep the issue open (encoder-only spares are listed for information); a changed list is
+#   posted as a comment so GitHub sends an email; a leftover issue with the old title is closed once.
+# - Rev 1: streams only.
+#
+# Once a day, checks every stream used by the wallboard and the encoder, and that the data files the
+# wall reads (prices and headlines) are fresh. If anything is wrong it opens (or updates) one issue
+# listing it, which GitHub emails to the repository owner. When everything is fine again, it closes it.
 
 on:
   schedule:
@@ -29,9 +36,10 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TITLE: "Wallboard: streams not playing"
+      TITLE: "Wallboard: streams or data need attention"
+      OLD_TITLE: "Wallboard: streams not playing"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check every stream
         id: check
@@ -42,14 +50,25 @@ jobs:
 
       - name: Open, update or close the issue
         run: |
-          number=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number,title \
-                   --jq "map(select(.title == \"$TITLE\")) | .[0].number // empty")
+          find_issue() {
+            gh issue list --state open --search "in:title \"$1\"" --json number,title \
+              --jq "map(select(.title == \"$1\")) | .[0].number // empty"
+          }
+          number=$(find_issue "$TITLE")
           if [ "${{ steps.check.outputs.dead }}" != "0" ]; then
             if [ -n "$number" ]; then
+              # A changed list is posted as a new comment: GitHub emails comments, not edits.
+              if [ "$(gh issue view "$number" --json body --jq .body)" != "$(cat report.md)" ]; then
+                gh issue comment "$number" --body-file report.md
+              fi
               gh issue edit "$number" --body-file report.md
             else
               gh issue create --title "$TITLE" --body-file report.md
             fi
           elif [ -n "$number" ]; then
-            gh issue close "$number" --comment "All streams are playing again."
+            gh issue close "$number" --comment "Everything is fine again: wall streams play and the data files are fresh."
           fi
+          # The title used before Rev 2: close a leftover issue once, it is replaced by the one above.
+          for old_number in $(find_issue "$OLD_TITLE"); do
+            gh issue close "$old_number" --comment "Replaced by the issue titled: $TITLE"
+          done
