@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev10</title>
+<title>Universal Player Rev11</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,9 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev11 2026-11-17  Title shows the stream name plus live stats while playing (resolution and bitrate, and "paused").
+                  Remote commands from the encoder's Play all / Pause all / Stop all buttons (postMessage type "tilectl",
+                  cmd play | pause | stop). Paused and stopped tiles do not reload, restart or switch streams.
 Rev10 2026-11-17  New option controls=1: shows the full player controls (play, volume, full screen) and turns
                   Clappr's own controls on. Default is unchanged (no controls), so the wall looks the same.
 Rev9  2026-11-17  Channel label smaller (font 2.3vw, 8 to 14 px, was 3.2vw up to 22 px), less padding and a
@@ -216,6 +219,10 @@ html, body {
 
 /* Channel label, top-left of the tile */
 #label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 92%;
   position: fixed;
   top: 0;
   left: 0;
@@ -365,6 +372,7 @@ function setLabel(text) {
 }
 function setCard(on) {
   offlineEl.querySelector(".name").textContent = label;
+  offlineEl.querySelector(".msg").textContent = userState === "stopped" ? "Stopped" : "No signal. Retrying.";
   offlineEl.style.display = on ? "flex" : "none";
   if (on) setLabel("");
 }
@@ -522,8 +530,58 @@ function currentVideo() {
   return Array.from(document.querySelectorAll("video")).find((v) => v.readyState >= 2) || null;
 }
 
+/* Remote control (from the encoder page): "live" plays normally, "paused" keeps the last picture,
+   "stopped" releases the stream. While not live, nothing restarts the stream on its own. */
+let userState = "live";
+function setUserState(next) { userState = next; }
+function applyCommand(cmd) {
+  const v = currentVideo();
+  if (cmd === "pause") {
+    if (userState === "stopped") return;
+    setUserState("paused");
+    if (v) v.pause();
+    if (clapprPlayer && clapprPlayer.pause) clapprPlayer.pause();
+  } else if (cmd === "play") {
+    if (userState === "stopped") { setUserState("live"); start(); return; }
+    setUserState("live");
+    lastProgressAt = Date.now();
+    if (vjsPlayer && vjsPlayer.liveTracker) { try { vjsPlayer.liveTracker.seekToLiveEdge(); } catch (e) {} }
+    if (v) v.play().catch(() => {});
+    if (clapprPlayer && clapprPlayer.play) clapprPlayer.play();
+  } else if (cmd === "stop") {
+    setUserState("stopped");
+    destroyPlayers();
+    setCard(true);
+  }
+}
+window.addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "tilectl") return;
+  applyCommand(String(e.data.cmd || ""));
+});
+
+/* Title line: name, then live stats while the picture moves (or "paused"). Refreshed each second. */
+function statsText() {
+  const v = currentVideo();
+  const parts = [];
+  if (v && v.videoHeight) parts.push(v.videoWidth + "\u00d7" + v.videoHeight);
+  try {
+    const vhs = vjsPlayer && vjsPlayer.tech && vjsPlayer.tech(true).vhs;
+    if (vhs && vhs.bandwidth) parts.push((vhs.bandwidth / 1e6).toFixed(1) + " Mb/s");
+  } catch (e) {}
+  return parts.join(" \u00b7 ");
+}
 setInterval(() => {
-  if (resting) return;
+  if (offlineEl.style.display === "flex" || resting) return;
+  const base = ATTEMPTS[attempt] && ATTEMPTS[attempt].isAlt ? altLabel : label;
+  if (userState === "paused") {
+    setLabel([base, statsText(), "paused"].filter(Boolean).join(" \u00b7 "));
+  } else if (userState === "live" && Date.now() - lastProgressAt < 5000) {
+    setLabel([base, statsText()].filter(Boolean).join(" \u00b7 "));
+  }
+}, 1000);
+
+setInterval(() => {
+  if (resting || userState !== "live") return;
   const v = currentVideo();
   const t = v ? v.currentTime : null;
   const now = Date.now();
@@ -532,7 +590,6 @@ setInterval(() => {
     /* picture is moving */
     lastProgressAt = now;
     setCard(false);
-    setLabel(ATTEMPTS[attempt].isAlt ? altLabel : label);
     if (!ATTEMPTS[attempt].isAlt) returnedByProbe = false;
   }
   lastTime = t;
@@ -567,6 +624,7 @@ async function primaryIsBack() {
 
 if (alt) {
   setInterval(async () => {
+    if (userState !== "live") return;                   /* paused or stopped by the encoder */
     if (!ATTEMPTS[attempt].isAlt && !resting) return;   /* already on the main stream */
     if (probeStrikes >= 2) return;                      /* wait for the periodic reload instead */
     if (await primaryIsBack()) {
@@ -578,7 +636,7 @@ if (alt) {
 }
 
 /* Health report to the wallboard, once every 5 seconds (see "Health report" at the top).
-   Only reads the state above; it changes nothing. Sent only when this page is in a frame. */
+   Only reads the state above; it changes nothing. state may also be "paused" or "stopped" (encoder controls). Sent only when this page is in a frame. */
 if (window.parent && window.parent !== window) {
   const tileId = String(param("ID", "")).slice(0, 40);
   const MOVING_MS = 2000;            /* picture advanced within this time: "playing" */
@@ -618,7 +676,8 @@ if (window.parent && window.parent !== window) {
       }
       const a = ATTEMPTS[attempt] || ATTEMPTS[0];
       const advancedAt = v ? lastAdvance.get(v) : undefined;
-      const state = resting ? "resting"
+      const state = userState !== "live" ? userState
+        : resting ? "resting"
         : offlineEl.style.display === "flex" ? "nosignal"
         : advancedAt === undefined ? "starting"
         : Date.now() - advancedAt <= MOVING_MS ? "playing" : "stalled";
@@ -643,7 +702,9 @@ if (window.parent && window.parent !== window) {
 start();
 
 if (reloadMin > 0) {
-  setTimeout(() => location.reload(), reloadMin * 60 * 1000);
+  /* a paused or stopped tile waits for its next turn rather than restarting */
+  const reloadWhenLive = () => (userState === "live" ? location.reload() : setTimeout(reloadWhenLive, 30000));
+  setTimeout(reloadWhenLive, reloadMin * 60 * 1000);
 }
 </script>
 

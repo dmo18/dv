@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev21</title>
+<title>Encoder Rev22</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev22  2026-11-17  Control bar above the grid: Play all, Pause all (last picture stays on screen), Stop all (releases the
+                     streams). Each tile also shows its number and name. Page cleaned up: sticky control bar, larger touch
+                     targets, responsive grid for phones, and the long "build a link by hand" and decoder sections are
+                     folded into panels so the grid comes first. Needs player.html Rev11 (its controls setting and remote commands).
   Rev21  2026-11-17  ABC News Live 1 to 10 and ten CBS city streams (all "not found" when idle) no longer auto load a preview, so the
                      grid is not full of "No signal. Retrying" tiles. They show "Off air right now" with a Try preview button.
   Rev20  2026-11-17  Feeds are alphabetical and numbered (79 in all). Open now has sound and full player controls
@@ -272,12 +276,46 @@ hr {
 @media (max-width: 480px) {
   .snapshotGrid { grid-template-columns: 1fr; }
 }
+
+/* ---- Rev22 presentation ---- */
+html { scroll-behavior: smooth; }
+body { -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 16px; box-sizing: border-box; }
+h1 { font-size: clamp(20px, 4vw, 28px); line-height: 1.2; margin: 8px 0 6px; }
+h2 { font-size: clamp(16px, 3vw, 20px); margin: 14px 0 6px; }
+button { min-height: 42px; border-radius: 10px; padding: 0 16px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease; }
+button:active { transform: scale(0.97); }
+button:focus-visible { outline: 2px solid #5b9dff; outline-offset: 2px; }
+input, select, textarea { font-size: 16px; border-radius: 10px; }
+.ctlbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 0; margin: 8px 0 12px; background: rgba(10, 10, 10, 0.92); backdrop-filter: blur(6px); }
+.ctlbar button { flex: 1 1 auto; min-width: 120px; }
+.ctlstatus { flex: 1 1 100%; font-size: 13px; opacity: 0.75; min-height: 1em; }
+.snapshotGrid { gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.snapshotCard { border-radius: 14px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.snapshotCard:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.panel { margin: 14px 0; border-radius: 12px; background: #141414; padding: 4px 14px; }
+.panel[open] { padding-bottom: 14px; }
+.panel > summary { cursor: pointer; font-weight: 600; font-size: 16px; padding: 12px 0; list-style: none; }
+.panel > summary::-webkit-details-marker { display: none; }
+.panel > summary::after { content: "+"; float: right; opacity: 0.6; }
+.panel[open] > summary::after { content: "\2212"; }
+hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
+@media (max-width: 600px) {
+  .wrap { padding: 12px; }
+  .snapshotGrid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .snapshotName { font-size: 14px; }
+  .snapshotDesc { font-size: 12px; }
+  .ctlbar { position: sticky; }
+  .ctlbar button { min-width: 0; font-size: 14px; padding: 0 10px; }
+}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev21</h1>
+  <h1>Wallboard URL Encoder Rev22</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL with no controls. Open uses a separate URL with sound on and full player controls.
@@ -293,9 +331,17 @@ hr {
     Use Copy open for the preview click / Open URL.
   </small>
 
+  <div class="ctlbar" role="toolbar" aria-label="Control all feeds">
+    <button id="playAll" type="button">&#9654; Play all</button>
+    <button id="pauseAll" type="button" class="secondary">&#10074;&#10074; Pause all</button>
+    <button id="stopAll" type="button" class="secondary">&#9632; Stop all</button>
+    <span id="ctlStatus" class="ctlstatus" aria-live="polite"></span>
+  </div>
+
   <div id="snapshotGrid" class="snapshotGrid"></div>
 
-  <hr />
+  <details class="panel">
+  <summary>Build a player link by hand</summary>
 
   <label for="base">Player base URL</label>
   <input id="base" type="text" value="" />
@@ -340,7 +386,10 @@ hr {
     <span class="code">URL7: "&lt;output&gt;"</span>
   </small>
 
-  <hr />
+  </details>
+
+  <details class="panel">
+  <summary>Decoder / reverse check</summary>
 
   <h2>Decoder / Reverse Check</h2>
   <small>
@@ -370,6 +419,7 @@ hr {
     If <span class="code">srcRaw</span> contains <span class="code">%253A</span> or <span class="code">%252F</span>, it is double-encoded.
     Correct encoding should have <span class="code">%3A</span> and <span class="code">%2F</span> only.
   </small>
+  </details>
 </div>
 
 <script>
@@ -719,6 +769,24 @@ function loadStreamToEncoder(stream) {
     window.scrollTo({ top: baseLabel.offsetTop - 20, behavior: "smooth" });
   }
 }
+
+/* Play all / Pause all / Stop all: sends a command to every loaded preview tile (player.html Rev11+).
+   Works on the live site, where the players and this page share an origin. */
+function ctlAll(cmd) {
+  const label = { play: "Playing", pause: "Paused", stop: "Stopped" }[cmd];
+  let n = 0;
+  document.querySelectorAll(".snapshotFrame").forEach((f) => {
+    if (!f.getAttribute("src") || !f.contentWindow) return;   /* off-air tiles are not loaded */
+    let origin;
+    try { origin = new URL(f.getAttribute("src"), location.href).origin; } catch (e) { return; }
+    try { f.contentWindow.postMessage({ type: "tilectl", cmd: cmd }, origin); n += 1; } catch (e) {}
+    f.dataset.state = cmd === "play" ? "live" : cmd === "pause" ? "paused" : "stopped";
+  });
+  $("ctlStatus").textContent = label + " " + n + " feed" + (n === 1 ? "" : "s");
+}
+$("playAll").addEventListener("click", () => ctlAll("play"));
+$("pauseAll").addEventListener("click", () => ctlAll("pause"));
+$("stopAll").addEventListener("click", () => ctlAll("stop"));
 
 function renderSnapshotGrid() {
   const host = $("snapshotGrid");
