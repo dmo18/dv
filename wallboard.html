@@ -3,17 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v28</title>
+<title>Wallboard v29</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
-  v28  2026-11-17  Small tiles fill their box (fit cover), so no bars at the side. Large tiles unchanged (fit contain).
-  v27  2026-11-17  TEMPORARY layout A: 24 feeds. Row 1 has four large tiles (480x270, was 640x360), rows 2 to 5
-                    have five small tiles each (384x184.5, was 384x216). Feeds are the 24 rated Good in the encoder
-                    list: removed IL13, RT, ABC News Live, Scripps News, Fox Weather. Added ABC News Australia,
-                    Africanews English, Al Arabiya English, CBS News Miami, France 24 English, GB News, i24NEWS Hebrew,
-                    India Today, MS NOW, NBC News NOW, NHK World-Japan. To go back: revert this PR (v26 had 18 tiles).
+  v29  2026-11-17  Back to the 18-tile layout (3 large 640x360, 15 small 384x216). Layout A (v27, v28) reverted.
   v26  2026-11-17  Tile status from player Rev13 (name, then LIVE or STALLED, resolution, bitrate, buffer). Small "For
                     educational purposes only" note bottom right.
   v25  2026-11-17  Player Rev12: the resolution and bitrate now go in the browser tab title, not on the tile.
@@ -57,7 +52,7 @@
   v11              Version as moved from the previous repository (earlier history not recorded).
 
   HOW TO EDIT
-    - Tiles: the TILES list in the script. Order = screen order (4 in row 1, then 5 per row).
+    - Tiles: the TILES list in the script. Order = screen order (3 in row 1, then 5 per row).
     - MAX_LIVE (top of the script): 18 = every tile plays. A lower number (for example 14) keeps the
       3 large tiles playing and lets the other tiles take turns: resting tiles show a name card, and the
       set rotates every 2 minutes so every small tile gets airtime.
@@ -103,8 +98,8 @@ html, body {
 #tk{ height: var(--tk); }
 #hl{ height: var(--hl); }
 .row{ display: flex; width: 100%; }
-.row.big{ height: calc(var(--u) * 270); }
-.row.small{ height: calc(var(--u) * 184.5); }
+.row.big{ height: calc(var(--u) * 360); }
+.row.small{ height: calc(var(--u) * 216); }
 
 .tile {
   position: relative;
@@ -112,8 +107,8 @@ html, body {
   overflow: hidden;
   background: #000;
 }
-.big .tile{ width: calc(var(--u) * 480); height: calc(var(--u) * 270); }
-.small .tile{ width: calc(var(--u) * 384); height: calc(var(--u) * 184.5); }
+.big .tile{ width: calc(var(--u) * 640); height: calc(var(--u) * 360); }
+.small .tile{ width: calc(var(--u) * 384); height: calc(var(--u) * 216); }
 
 .tile iframe, .bar iframe {
   width: 100%;
@@ -187,11 +182,11 @@ html, body {
   // ---------- Settings (plain values, edit here) ----------
   // Decode cap. 18 = all tiles play (cap off). A lower number keeps the first 3 tiles
   // (row 1) always playing and rotates the other tiles every 2 minutes, see HOW TO EDIT above.
-  const MAX_LIVE = 24;
+  const MAX_LIVE = 18;
   const ROTATE_SECONDS = 120;       // how long a set of small tiles rests
   const STAGGER_SECONDS = 0.7;      // one small tile starts every 0.7 s
-  const LARGE_COUNT = 4;            // tiles 0 to 3 are the large tiles of row 1
-  const ROW_SIZES = [4, 5, 5, 5, 5];   // tiles per row, in TILES order
+  const LARGE_COUNT = 3;            // tiles 0, 1, 2 are the large tiles of row 1
+  const ROW_SIZES = [3, 5, 5, 5];   // tiles per row, in TILES order
   const BASE_RELOAD_MINUTES = 60;   // tile n reloads every 60 + 2n minutes
 
   // Builds a tile that plays a stream in player.html: player(ID, label, stream address, options).
@@ -209,14 +204,13 @@ html, body {
     if (t.kind === "page") return t.url;
     const q = new URLSearchParams({ ID: t.id, label: t.label, src: t.stream });
     if (t.opts.alt) { q.set("alt", t.opts.alt); q.set("altlabel", t.opts.altLabel || t.label); }
-    // large tiles are exact 16:9 (contain); small tiles are shorter than 16:9, so they fill the tile and crop the top and bottom edges (no side bars)
-    q.set("fit", n < LARGE_COUNT ? "contain" : "cover"); q.set("muted", "1");
+    q.set("fit", "contain"); q.set("muted", "1");
     q.set("reload", String(BASE_RELOAD_MINUTES + 2 * n));
     q.set("cc", t.opts.cc === false ? "0" : "1");   // captions on every tile; the player sizes them to the tile
     return "player.html?" + q.toString();
   };
 
-  // One entry per tile, in screen order: row 1 (4 large), then rows 2 to 5 (5 small each).
+  // One entry per tile, in screen order: row 1 (3 large), then rows 2 to 4 (5 small each).
   // Fox News is only available at low resolution (240p): keep it in a small tile.
   // ABC 10 is an event feed that goes dark between events, so it has CNN as its backup.
   // ABC 10 stays on its fixed 720p address: its lower quality level has black borders baked in.
@@ -224,27 +218,24 @@ html, body {
     player("BBCNews", "BBC News", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
     player("WSVN", "WSVN 7News", "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web"),
     player("Livenowfox", "LiveNOW Fox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8"),
+
     player("CNN", "CNN", "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8"),
-    player("ABC10", "ABC 10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", { alt: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", altLabel: "CNN" }),
-    player("ABCAUS", "ABC News Australia", "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8"),
-    player("Africanews", "Africanews English", "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8"),
-    player("AlArabiya", "Al Arabiya English", "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8"),
-    player("AlJazeera", "Al Jazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8"),
-    player("Bloomberg", "Bloomberg", "https://www.bloomberg.com/media-manifest/streams/us.m3u8"),
-    player("CBSNews", "CBS News", "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8"),
-    player("CBSMiami", "CBS News Miami", "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8"),
-    player("DW", "DW", "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8"),
     player("FoxNews", "Fox News", "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8"),
-    player("France24", "France 24 English", "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8"),
-    player("GBNews", "GB News", "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8"),
-    player("GlobalNews", "Global News", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8"),
+    player("ABCNewsLive", "ABC News Live", "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8"),
+    player("CBSNews", "CBS News", "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8"),
+    player("Bloomberg", "Bloomberg", "https://www.bloomberg.com/media-manifest/streams/us.m3u8"),
+
+    player("IL13", "IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
     player("i24", "i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
-    player("i24Hebrew", "i24NEWS Hebrew", "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8"),
-    player("IndiaToday", "India Today", "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8"),
-    player("MSNOW", "MS NOW", "https://tvsen6.aynaott.com/msnbc/index.m3u8"),
-    player("NBCNOW", "NBC News NOW", "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003"),
-    player("NHK", "NHK World-Japan", "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8"),
-    player("TRTWorld", "TRT World", "https://tv-trtworld.medya.trt.com.tr/master.m3u8")
+    player("TRTWorld", "TRT World", "https://tv-trtworld.medya.trt.com.tr/master.m3u8"),
+    player("AlJazeera", "Al Jazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8"),
+    player("RT", "RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
+
+    player("ABC10", "ABC 10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", { alt: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", altLabel: "CNN" }),
+    player("GlobalNews", "Global News", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8"),
+    player("ScrippsNews", "Scripps News", "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8"),
+    player("DW", "DW", "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8"),
+    player("FoxWeather", "Fox Weather", "https://247wlive.foxweather.com/stream/index.m3u8")
   ];
 
   // ---------- Page parameters ----------
