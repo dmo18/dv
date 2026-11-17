@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev8</title>
+<title>Universal Player Rev9</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -145,6 +145,8 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev9  2026-11-17  Channel label smaller (font 2.3vw, 8 to 14 px, was 3.2vw up to 22 px), less padding and a
+                  lighter box, so it takes less of the picture.
 Rev8  2026-11-16  Clappr pinned to 0.4.7 (was "latest", same file); integrity hashes on Clappr
                   and Video.js. Captions at most 2 lines (newest shown), never under 12px.
                   Health report to the wallboard every 5 seconds (see "Health report"), with
@@ -213,11 +215,11 @@ html, body {
   left: 0;
   z-index: 20;
   display: none;
-  padding: 0.35em 0.7em;
-  font: 600 clamp(10px, 3.2vw, 22px) Arial, Helvetica, sans-serif;
+  padding: 0.2em 0.5em;
+  font: 600 clamp(8px, 2.3vw, 14px) Arial, Helvetica, sans-serif;
   color: #fff;
-  background: rgba(0, 0, 0, 0.6);
-  border-bottom-right-radius: 0.4em;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom-right-radius: 0.3em;
   letter-spacing: 0.02em;
   pointer-events: none;
 }
