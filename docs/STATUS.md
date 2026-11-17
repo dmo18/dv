@@ -43,7 +43,7 @@ Updated 2026-11-17.
   Rule added to CLAUDE.md: tests stay local.
 - Task 2 relay Rev2 passed the focused Fable re-check. Open low items for Rev3: two stop signals under 1 ms apart can
   deadlock the handler (fix known, the runner sends them seconds apart), a run shorter than the 10 minute lead
-  starts its successor at second 0, headlines.yml still uses unpinned checkout@v4.
+  starts its successor at second 0. (headlines.yml checkout is now pinned, fixed in milestone 3.)
 
 - Milestone 1 merged 2026-11-16 (new ticker, relay, price script, player Rev8, encoder Rev17, wallboard v19).
   Restore point before the merge: main at baef2bd6b1ffb6564fafe30cfa615a5b6d2be81c (wallboard v18).
@@ -68,4 +68,4 @@ Updated 2026-11-17.
 See docs/TAKEOVER.md.
 
 ## Open security findings
-- clappr@latest unpinned on 14 pages (medium).
+- None open. (Clappr is now pinned to 0.4.7 with integrity hashes everywhere; checkout is pinned in all three workflows.)

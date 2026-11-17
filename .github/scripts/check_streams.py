@@ -20,7 +20,11 @@ string) must also be saved in encoder.html. Missing ones are listed and counted 
 script exits with status 1.
 
 Changelog:
-  2026-11-16  Freshness alarm: prices.json and headlines.json older than 60 minutes are reported and counted.
+  2026-11-17  Review fixes: only problems that affect the wall are counted in DEAD (wall streams, wall addresses
+              missing from encoder.html, stale data, unreadable tiles); encoder-only spares that fail (for
+              example IRINN, Kan 11) are listed for information and no longer keep the issue open. A NaN time
+              stamp or age limit is rejected. A backup address written with single quotes is reported.
+  2026-11-16  Freshness alarm: ticker.json and headlines.json older than 60 minutes are reported and counted.
               Also reports wall tiles it could not read (written differently from the expected pattern),
               and the summary now separates not playing, missing from encoder.html and stale data.
               New options: --ticker-url, --headlines-url, --max-age-min, --data-only (data check only).
@@ -32,6 +36,7 @@ Usage: check_streams.py <wallboard.html> <encoder.html> <report.md>
 """
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -70,6 +75,8 @@ def collect(wallboard_path, encoder_path):
     for m in call.finditer(wall):
         opts = m.group(4) or ""
         alt = re.search(r'\balt\s*:\s*"([^"]+)"', opts)
+        if re.search(r"\balt\s*:", opts) and not alt:
+            UNREAD_TILES += 1      # a backup address written in a form this check cannot read
         alt_label = re.search(r'\baltLabel\s*:\s*"([^"]+)"', opts)
         add("Wallboard", m.group(2), m.group(3))
         if alt:
@@ -145,15 +152,14 @@ def data_freshness(sources, max_age_s):
             with urllib.request.urlopen(req, timeout=TIMEOUT_S) as res:
                 doc = json.loads(res.read(4_000_000).decode("utf-8", "replace"))
             gen = doc.get("generated") if isinstance(doc, dict) else None
-            if isinstance(gen, bool) or not isinstance(gen, (int, float)) or gen <= 0:
+            if isinstance(gen, bool) or not isinstance(gen, (int, float)) or not math.isfinite(gen) or gen <= 0:
                 problems.append((label, "file has no valid time stamp"))
                 continue
             age = time.time() - gen
             if age < -600:
                 problems.append((label, "time stamp is in the future"))
             elif age > max_age_s:
-                hours = age / 3600
-                problems.append((label, f"last updated {hours:.1f} hours ago" if hours >= 1 else f"last updated {int(age / 60)} minutes ago"))
+                problems.append((label, f"last updated {age / 3600:.1f} hours ago" if age >= 7200 else f"last updated {int(age / 60)} minutes ago"))
         except Exception as exc:
             problems.append((label, f"could not be read: {str(exc)[:80]}"))
     return problems
@@ -170,6 +176,8 @@ def main():
     ap.add_argument("--max-age-min", type=float, default=60)
     ap.add_argument("--data-only", action="store_true", help="only check the data files (for tests)")
     args = ap.parse_args()
+    if not (math.isfinite(args.max_age_min) and args.max_age_min > 0):
+        ap.error("--max-age-min must be a finite number above 0")
     wallboard_path, encoder_path, report_path = args.wallboard, args.encoder, args.report
 
     stale = data_freshness([("Prices file (ticker-data)", args.ticker_url),
@@ -207,17 +215,21 @@ def main():
         event = any(k in url for k in EVENT_FEED_MARKERS)
         results.append((where, name, url, state, detail, event))
 
-    not_playing = [r for r in results if r[3] != "ok" and not r[5]]
+    bad = [r for r in results if r[3] != "ok" and not r[5]]
+    # Only streams the wall actually plays count as problems. Encoder-only spares (for example IRINN, Kan 11) are
+    # listed for information: they must not keep the issue open, or a later data outage would raise no new email.
+    not_playing = [r for r in bad if r[0].startswith("Wallboard")]
+    spares = [r for r in bad if not r[0].startswith("Wallboard")]
     off_air = [r for r in results if r[3] != "ok" and r[5]]
-    playing = len(results) - len(not_playing) - len(off_air)
+    playing = len(results) - len(bad) - len(off_air)
     # Standing rule: a wall address missing from the encoder counts as a failure.
     missing = [(w, n, u, "dead", "address is not saved in encoder.html", False) for w, n, u in unsaved]
     dead = not_playing + missing
     problems = len(dead) + len(stale) + (1 if UNREAD_TILES else 0)
 
-    lines = [f"Checked {len(results)} streams: {playing} playing, {len(not_playing)} not playing, "
-             f"{len(missing)} wall addresses missing from encoder.html, {len(off_air)} event feeds off air. "
-             f"Data files stale: {len(stale)}.", ""]
+    lines = [f"Checked {len(results)} streams: {playing} playing, {len(not_playing)} wall streams not playing, "
+             f"{len(missing)} wall address(es) missing from encoder.html, {len(spares)} spare stream(s) not playing "
+             f"(encoder only, not counted), {len(off_air)} event feeds off air. Data files stale: {len(stale)}.", ""]
     if UNREAD_TILES:
         lines += ["### Wall tiles not recognised", "",
                   f"{UNREAD_TILES} tile(s) in wallboard.html are written in a form this check cannot read "
@@ -227,6 +239,9 @@ def main():
         lines += ["### Not playing or not saved", "", "| Used in | Channel | Problem |", "|---|---|---|"]
         lines += [f"| {w} | {n} | {d or s} |" for w, n, _, s, d, _ in dead]
         lines.append("")
+    if spares:
+        lines += ["### Spare streams not playing (encoder only, for information)", "", "| Channel | Problem |", "|---|---|"]
+        lines += [f"| {n} | {d or s} |" for w, n, _, s, d, _ in spares] + [""]
     if off_air:
         lines += ["### Event feeds off air (normal between events)", ""]
         lines += [f"- {n} ({w})" for w, n, *_ in off_air] + [""]

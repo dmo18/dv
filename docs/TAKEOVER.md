@@ -12,9 +12,10 @@ GitHub Pages at https://dmo18.github.io/dv/. No build step, no package manager.
 | Ticker | ticker.html, ticker-symbols.json | Prices with no third-party widget: smooth scroll, live crypto, stale and closed states |
 | Headlines | headlines.html, headlines-feeds.json | Scrolling news strip sized from its bar height |
 | Data relay | .github/workflows/relay.yml, .github/scripts/relay_loop.py, fetch_prices.py, fetch_headlines.py | Cloud job that publishes prices (2 min) and headlines (15 min) to branches ticker-data and headlines-data |
-| Safety nets | headlines.yml (every 6 h), relay.yml schedule (every 5 h) | Restart the data if the relay ever stops |
+| Safety nets | relay.yml schedule (every 5 h) restarts the relay (prices and headlines); headlines.yml (every 6 h) refreshes headlines only | Keep the data going if the relay ever stops |
 | Daily check | stream-check.yml, check_streams.py | Plays every stream, checks data freshness, opens one issue if anything is wrong |
-| Older pages | abc1-3, bloomberg, sky, i24, IL13, rt, wsvn, livenow, globalnews, fnc, stock, nvda, flights, weather, myticker, others | Standalone pages, not used by the wall; 13 now load the pinned player library |
+| WSVN tile | wsvn.html | The one tile that is its own page (Brightcove player with the station's ads), not player.html |
+| Older pages | abc1-3, bloomberg, sky, i24, IL13, rt, livenow, globalnews, fnc, stock, nvda, flights, weather, myticker, others | Standalone pages, not used by the wall; 13 now load the pinned player library |
 
 ## How the data flows (plain words)
 The Data relay runs on GitHub for about 5.5 hours, then starts its own replacement (a second run waits in line,
@@ -29,7 +30,7 @@ Live: merging to main publishes to GitHub Pages in about a minute. Restart the r
 ## Baseline (measured)
 - Pages: 29 HTML files, all load. Wall: 18 of 18 tiles moving over a 310 second headless run; CPU 1.74 cores
   (headless, no graphics card) vs 1.21 for the old 11-tile wall.
-- Streams: daily check; the two encoder-only entries IRINN and Kan 11 fail from the US test sandbox.
+- Streams: daily check. Two encoder-only spares, IRINN and Kan 11, fail from US servers; they are listed in the report but do not count as problems because the wall does not use them.
 - No test suite in the repo; checks are run by hand with Playwright against a local server.
 - Secrets: none. The WSVN entry in the encoder carries a public playback token that wsvn.com gives every visitor.
 
@@ -49,4 +50,4 @@ Live: merging to main publishes to GitHub Pages in about a minute. Restart the r
 ## Third-party code loaded by pages
 Video.js 8.10.0 and Clappr 0.4.7 (both pinned with integrity hashes in the player and the 13 older pages),
 Leaflet 1.9.4 (flights page), TradingView widgets (stock pages only), Fox and Brightcove embeds, Flashphoner (dead page).
-The wall itself loads no third-party scripts apart from the two player libraries.
+The wall loads no third-party scripts apart from the two player libraries and, for the WSVN tile only, the Brightcove player (players.brightcove.net) inside wsvn.html.
