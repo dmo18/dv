@@ -24,8 +24,8 @@ back-ups) and publishes one file; every 15 minutes it also refreshes headlines. 
 background and always keep the last good copy, so a slow or failed fetch changes nothing on screen.
 
 ## How to run
-Local preview: `python3 -m http.server 8765` in the repo root, open http://localhost:8765/wallboard.html.
-Live: merging to main publishes to GitHub Pages in about a minute. Restart the relay by hand: Actions, "Data relay", Run workflow.
+Everything is hosted on GitHub only (no local hosting). Merging to main publishes to GitHub Pages in about a minute;
+open https://dmo18.github.io/dv/wallboard.html. Restart the relay by hand: Actions, "Data relay", Run workflow.
 
 ## Baseline (measured)
 - Pages: 29 HTML files, all load. Wall: 18 of 18 tiles moving over a 310 second headless run; CPU 1.74 cores
