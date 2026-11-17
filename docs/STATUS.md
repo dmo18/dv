@@ -11,7 +11,19 @@ Updated 2026-11-17.
 - Milestone 3 (in this change): freshness alarm in the daily check, docs rewritten.
 
 ## In progress
-- Soak test of the live wall (30 minutes, headless) and the photo check on the wall PC (needs the user, see README).
+- Photo check on the wall PC (needs the user, steps in README): ?diag=1 for 10 minutes, photo of the screen, CPU and memory from Task Manager.
+
+## Soak test of the live wall (2026-11-17, headless Chromium on a build machine with no graphics card, so a worst case)
+Plan pass marks (section 9): 18 of 18 moving, no tile on No signal over 60 s, dropped frames under 2 percent, memory growth under 15 percent after minute 5.
+| Measure | Result | Mark |
+|---|---|---|
+| Player tiles playing | 17 of 17 almost always; one 30 second dip to 16 (TRT World) | pass (the 18th tile is the WSVN page) |
+| Longest No signal | 30 seconds | pass |
+| Worst dropped frames, any tile | 1.3 percent | pass |
+| CPU | about 1.8 cores (old 11-tile wall: 1.2) | no mark |
+| Memory | 1.8 GB at start, 2.3 GB after 30 minutes | grew 13 percent (diagnostic run, 28 min) and 22.6 percent (first run, 30 min) after minute 5: borderline, see below |
+- Memory growth is steady, about 15 MB per minute, all in the page-rendering processes (graphics, utility and browser processes are flat). It is bounded by the wall's tile reloads: each tile restarts every 60 to 94 minutes and frees its memory. Needs a reading from the real PC. If it is too high there, shorten the reload (the 60 + 2n minutes in the TILES list).
+- Errors: none from our own code in the latest 15 minute capture. The only errors are the RT stream host intermittently serving segments without the cross-origin permission header (a few times per 15 minutes); the RT tile recovers. In two earlier runs a burst of 9 to 12 uncaught errors appeared around minute 11, at the same moment as an RT failure (message text not captured). If RT keeps being noisy, replace it with another channel.
 
 ## Decisions
 - Rule from the user (2026-11-17): never host locally, GitHub only. Pages are tested on the live github.io site, workflows by
