@@ -3,17 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v20</title>
+<title>Wallboard v21</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v21  2026-11-17  Closed captions on every tile (the player sizes them to the tile: 12 px minimum, at most 2 lines),
+                   channel labels smaller (player.html Rev9; the WSVN label to match).
   v20  2026-11-16  18 tiles (3 large + 15 small) on an exact 1920x1080 grid: ticker bar 32 px,
                    headlines bar 40 px, row 1 three tiles of 640x360, rows 2 to 4 five tiles of 384x216.
                    On other screens the wall scales as one 16:9 stage (see GEOMETRY below). New feeds:
                    CNN, CBS News, Bloomberg, TRT World, Scripps News, DW, Fox Weather. Staggered start
                    (one small tile every 0.7 s) and staggered hourly reload (tile n reloads at 60 + 2n
-                   minutes). Captions only on the 3 large tiles unless a tile has cc: true. Optional
+                   minutes). Captions on every tile since v21 (cc: false switches one off). Optional
                    decode cap MAX_LIVE (off) and a check view, wallboard.html?diag=1.
                    Review follow-ups: the check view counts player tiles only ("playing 17/17 (+1 page tile)");
                    test-only maxlive and rot values are clamped. Known limit: at Windows display scaling of
@@ -111,11 +113,11 @@ html, body {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 0.35em 0.7em;
-  font: 600 calc(var(--u) * 20.5) Arial, Helvetica, sans-serif;
+  padding: 0.2em 0.5em;
+  font: 600 calc(var(--u) * 14) Arial, Helvetica, sans-serif;
   color: #fff;
-  background: rgba(0, 0, 0, 0.6);
-  border-bottom-right-radius: 0.4em;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom-right-radius: 0.3em;
   letter-spacing: 0.02em;
   pointer-events: none;
 }
@@ -180,7 +182,7 @@ html, body {
   // Builds a tile that plays a stream in player.html: player(ID, label, stream address, options).
   // Paste stream addresses in plain form; they are encoded when the tile loads.
   // Options: { alt: backup stream used when the main one will not play, altLabel: its label,
-  //            cc: true to show closed captions on a small tile (large tiles always show them) }.
+  //            cc: false to hide closed captions on one tile (every tile shows them when its stream carries them) }.
   // Use a stream's "master" address where one exists, so the player can match quality to tile size.
   const player = (id, label, stream, opts = {}) => ({ kind: "player", id, label, stream, opts });
   // A tile that shows one of our own pages.
@@ -194,7 +196,7 @@ html, body {
     if (t.opts.alt) { q.set("alt", t.opts.alt); q.set("altlabel", t.opts.altLabel || t.label); }
     q.set("fit", "contain"); q.set("muted", "1");
     q.set("reload", String(BASE_RELOAD_MINUTES + 2 * n));
-    q.set("cc", (n < LARGE_COUNT || t.opts.cc) ? "1" : "0");
+    q.set("cc", t.opts.cc === false ? "0" : "1");   // captions on every tile; the player sizes them to the tile
     return "player.html?" + q.toString();
   };
 
