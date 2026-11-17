@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev2</title>
+<title>Red Macho Devil TV Rev3</title>
 <!--
   TV PAGE (framework). Full-screen channel changer built on player.html.
   Rev1  2026-11-17  First version: channel guide with descriptions, change channel (arrows, Page Up/Down, number keys,
@@ -13,6 +13,9 @@
                     Real programme schedules are NOT included yet.
   Rev2  2026-11-17  Theme: Red Macho Devil TV. Black and blood red, flame edges, bold caps, pulsing devil-horn start screen,
                     brand bar on screen, guide with flame header, live channel badge.
+  Rev3  2026-11-17  Controls bar: channel down and up, guide, volume slider, mute, info. Now-playing line with the
+                    channel's description. Browser tab title shows the channel. Keys: arrows, Page Up/Down, digits, G, M,
+                    +/- for volume. Volume is set on the player's own video element (same site).
   Rule: every address here must also be in encoder.html (see CLAUDE.md).
 -->
 <style>
@@ -41,7 +44,17 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-
   text-shadow:0 4px 0 var(--red2); }
 #start .sub { font-size:clamp(13px,2vw,18px); color:var(--dim); text-transform:uppercase; letter-spacing:.2em; }
 @keyframes pulse { 50% { transform:scale(1.08); filter:drop-shadow(0 0 30px var(--red)); } }
-#guideBtn { position:fixed; right:14px; bottom:14px; z-index:4; min-height:46px; padding:0 20px; border:0; border-radius:6px;
+#bar { position:fixed; right:12px; bottom:12px; z-index:4; display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;
+  max-width:calc(100vw - 24px); padding:8px; border-radius:10px; background:rgba(10,0,0,.8); border:1px solid #5a0000; }
+#bar button, #bar select { min-height:42px; min-width:42px; padding:0 12px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
+  font-weight:900; font-size:16px; cursor:pointer; }
+#bar button:hover { background:#5a0000; }
+#bar input[type=range] { width:clamp(90px,16vw,160px); accent-color:var(--red); }
+#now { position:fixed; left:14px; top:50px; z-index:3; max-width:min(560px,calc(100vw - 28px)); padding:8px 12px; border-radius:8px;
+  background:rgba(0,0,0,.6); border-left:4px solid var(--gold); font-size:14px; color:var(--dim); opacity:0; transition:opacity .4s ease; pointer-events:none; }
+#now.show { opacity:1; }
+#now b { color:var(--fg); text-transform:uppercase; letter-spacing:.03em; }
+#guideBtn { min-height:46px; padding:0 20px; border:0; border-radius:6px;
   background:linear-gradient(180deg,#ff1a10,#a00000); color:#fff; font-weight:900; font-size:16px; text-transform:uppercase;
   letter-spacing:.06em; box-shadow:0 0 16px rgba(225,6,0,.6); cursor:pointer; }
 #guide { position:fixed; left:0; right:0; bottom:0; z-index:6; max-height:66vh; display:flex; flex-direction:column;
@@ -76,7 +89,16 @@ html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-
   <span class="sub">Red Macho Devil TV</span>
 </button>
 <div id="osd"></div>
-<button id="guideBtn" type="button">Guide</button>
+<div id="now"></div>
+<div id="bar">
+  <button id="chDown" type="button" aria-label="Channel down">&#9660;</button>
+  <button id="chUp" type="button" aria-label="Channel up">&#9650;</button>
+  <button id="mute" type="button" aria-label="Mute">Mute</button>
+  <input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+  <button id="info" type="button">Info</button>
+  <button id="guideBtn" type="button">Guide</button>
+</div>
+
 <section id="guide" aria-label="Channel guide">
   <header><b>Red Macho Devil TV</b><button id="closeGuide" type="button">Close</button></header>
   <div id="list"></div>
@@ -567,7 +589,7 @@ window.EPG = window.EPG || {};
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
 const KEY = "tv.lastChannel";
-let current = 0, typed = "", typeTimer = null, osdTimer = null, started = false;
+let current = 0, typed = "", typeTimer = null, osdTimer = null, nowTimer = null, started = false;
 
 function playerUrl(ch) {
   const p = new URLSearchParams({ ID: ch.name.replace(/\s+/g, ""), src: ch.url, fit: "contain", muted: "0", controls: "0", cc: "1", reload: "0" });
@@ -582,9 +604,33 @@ function tune(i, { quiet = false } = {}) {
   try { localStorage.setItem(KEY, String(current)); } catch (e) {}
   const now = window.EPG[ch.name];
   osd.innerHTML = '<span class="num">' + (current + 1) + '</span>' + ch.name + (now ? '<div class="now">' + now + '</div>' : "");
-  if (!quiet) flashOsd();
+  $("now").innerHTML = '<b>' + (current + 1) + ' ' + ch.name + '</b>' + (ch.off ? ' (off air right now)' : '') + '<br>' + (now ? 'Now: ' + now + '<br>' : '') + ch.desc;
+  document.title = (current + 1) + " " + ch.name + " | Red Macho Devil TV";
+  if (!quiet) { flashOsd(); showNow(); }
+  applyVolume();
   document.querySelectorAll(".row").forEach((r, k) => r.classList.toggle("on", k === current));
 }
+function showNow() {
+  $("now").classList.add("show");
+  clearTimeout(nowTimer);
+  nowTimer = setTimeout(() => $("now").classList.remove("show"), 6000);
+}
+/* the player's videos live inside the iframe (same site), so the volume is set on them */
+function videos() {
+  try { return Array.from(screen_.contentDocument ? screen_.contentDocument.querySelectorAll("video") : []); } catch (e) { return []; }
+}
+let volume = 1, muted = false;
+function applyVolume() {
+  videos().forEach((v) => { v.volume = volume; v.muted = muted; });
+  $("mute").textContent = muted ? "Unmute" : "Mute";
+}
+function setVolume(v) {
+  volume = Math.min(1, Math.max(0, v));
+  if (volume > 0) muted = false;
+  $("vol").value = volume;
+  applyVolume();
+}
+function toggleMute() { muted = !muted; applyVolume(); }
 function flashOsd() {
   osd.classList.add("show");
   $("brand").classList.add("show");
@@ -612,6 +658,13 @@ function openGuide() { guide.classList.add("open"); const on = list.querySelecto
 function closeGuide() { guide.classList.remove("open"); }
 
 $("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
+$("chUp").addEventListener("click", () => tune(current + 1));
+$("chDown").addEventListener("click", () => tune(current - 1));
+$("mute").addEventListener("click", toggleMute);
+$("vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value)));
+$("info").addEventListener("click", showNow);
+screen_.addEventListener("load", applyVolume);
+setInterval(applyVolume, 1500);
 $("closeGuide").addEventListener("click", closeGuide);
 $("start").addEventListener("click", () => { started = true; $("start").style.display = "none"; tune(current); });
 
@@ -621,6 +674,10 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "ArrowDown" || e.key === "PageDown") { tune(current + 1); e.preventDefault(); }
   else if (e.key === "g" || e.key === "G") { guide.classList.contains("open") ? closeGuide() : openGuide(); }
   else if (e.key === "Escape") { closeGuide(); }
+  else if (e.key === "m" || e.key === "M") { toggleMute(); }
+  else if (e.key === "+" || e.key === "=") { setVolume(volume + 0.1); }
+  else if (e.key === "-") { setVolume(volume - 0.1); }
+  else if (e.key === "i" || e.key === "I") { showNow(); }
   else if (/^[0-9]$/.test(e.key)) {
     typed += e.key;
     clearTimeout(typeTimer);
