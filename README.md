@@ -28,10 +28,9 @@ Live: https://dmo18.github.io/dv/wallboard.html
 5. Windows display scaling should read 100 percent (right-click the desktop, Display settings, Scale). A 1080p
    screen does not need more.
 
-## Run it locally
-1. Open a terminal in this folder.
-2. Run `python3 -m http.server 8765`
-3. Open http://localhost:8765/wallboard.html
+## Open it
+There is no local copy to run: everything is hosted on GitHub. Open https://dmo18.github.io/dv/wallboard.html
+(or ticker.html, headlines.html, encoder.html in the same place).
 
 ## Change it
 - Every page has a version in its title. Raise it on every change and add a line to the changelog at the top of the file.

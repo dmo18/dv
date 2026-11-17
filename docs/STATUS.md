@@ -14,6 +14,9 @@ Updated 2026-11-17.
 - Soak test of the live wall (30 minutes, headless) and the photo check on the wall PC (needs the user, see README).
 
 ## Decisions
+- Rule from the user (2026-11-17): never host locally, GitHub only. Pages are tested on the live github.io site, workflows by
+  running them on GitHub. Until then, pre-merge browser tests of this project ran on a throwaway local test server inside the
+  build sandbox (never published or served to the user); that practice has stopped.
 - Stock data: Stooq now blocks bots. Candidate source is Yahoo chart endpoint (no key). Crypto live from Coinbase.
 
 - Ticker Rev2 (task 3), accepted points: at the temporary 108px slot the ticker looks close to the 32px
