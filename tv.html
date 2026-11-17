@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>TV Rev1</title>
+<title>Red Macho Devil TV Rev2</title>
 <!--
   TV PAGE (framework). Full-screen channel changer built on player.html.
   Rev1  2026-11-17  First version: channel guide with descriptions, change channel (arrows, Page Up/Down, number keys,
@@ -11,45 +11,74 @@
                     Channels are the encoder's list (copied in below; regenerate when the encoder list changes).
                     EPG hook: set window.EPG = { "<channel name>": "what is on now" } in a script to show it in the guide.
                     Real programme schedules are NOT included yet.
+  Rev2  2026-11-17  Theme: Red Macho Devil TV. Black and blood red, flame edges, bold caps, pulsing devil-horn start screen,
+                    brand bar on screen, guide with flame header, live channel badge.
   Rule: every address here must also be in encoder.html (see CLAUDE.md).
 -->
 <style>
-:root { --bg:#000; --panel:#111; --fg:#f2f2f2; --dim:#9aa3ad; --accent:#3d8bff; }
+:root { --bg:#000; --panel:#0c0606; --fg:#fff3f0; --dim:#c9a7a2; --red:#e10600; --red2:#7a0000; --gold:#ffb000; }
 html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow:hidden; }
 #screen { position:fixed; inset:0; width:100%; height:100%; border:0; background:#000; }
-#osd { position:fixed; left:16px; bottom:16px; padding:8px 12px; border-radius:10px; background:rgba(0,0,0,.55);
+/* flame edge: a moving red-orange-black band along the top of the picture */
+#flame { position:fixed; left:0; right:0; top:0; height:10px; pointer-events:none; z-index:3;
+  background:linear-gradient(90deg,#7a0000,#e10600,#ff4d00,#ffb000,#e10600,#7a0000,#e10600,#ff4d00,#7a0000);
+  background-size:200% 100%; animation:flow 2.5s linear infinite; box-shadow:0 0 18px #e10600; }
+@keyframes flow { to { background-position:-200% 0; } }
+#brand { position:fixed; left:14px; top:22px; z-index:3; font-weight:900; font-style:italic; text-transform:uppercase;
+  letter-spacing:.04em; font-size:clamp(14px,2.2vw,22px); color:var(--fg); text-shadow:0 2px 0 var(--red2),0 0 14px rgba(225,6,0,.8);
+  opacity:0; transition:opacity .4s ease; pointer-events:none; }
+#brand.show { opacity:1; }
+#brand span { color:var(--red); }
+#osd { position:fixed; left:16px; bottom:16px; padding:8px 14px 8px 10px; border-left:6px solid var(--red);
+  background:linear-gradient(90deg,rgba(122,0,0,.9),rgba(0,0,0,.75)); text-transform:uppercase; font-weight:800;
   font-size:clamp(14px,2.4vw,20px); opacity:0; transition:opacity .4s ease; pointer-events:none; }
 #osd.show { opacity:1; }
-#osd .num { color:var(--accent); font-weight:700; margin-right:8px; }
-#start { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.8);
-  border:0; color:var(--fg); font-size:clamp(18px,3vw,26px); cursor:pointer; }
-#guideBtn { position:fixed; right:14px; bottom:14px; min-height:44px; padding:0 16px; border:0; border-radius:12px;
-  background:rgba(20,20,20,.8); color:var(--fg); font-weight:600; font-size:16px; cursor:pointer; }
-#guide { position:fixed; left:0; right:0; bottom:0; max-height:62vh; display:flex; flex-direction:column;
-  background:var(--panel); border-radius:16px 16px 0 0; transform:translateY(100%); transition:transform .3s ease; }
+#osd .num { color:var(--gold); font-weight:900; margin-right:10px; font-size:1.3em; }
+#start { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  background:radial-gradient(circle at center,rgba(122,0,0,.85) 0%,#000 70%); border:0; color:var(--fg); cursor:pointer; }
+#start .horns { width:clamp(90px,14vw,160px); fill:var(--red); filter:drop-shadow(0 0 16px var(--red)); animation:pulse 1.4s ease-in-out infinite; }
+#start .big { font-size:clamp(28px,6vw,64px); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em;
+  text-shadow:0 4px 0 var(--red2); }
+#start .sub { font-size:clamp(13px,2vw,18px); color:var(--dim); text-transform:uppercase; letter-spacing:.2em; }
+@keyframes pulse { 50% { transform:scale(1.08); filter:drop-shadow(0 0 30px var(--red)); } }
+#guideBtn { position:fixed; right:14px; bottom:14px; z-index:4; min-height:46px; padding:0 20px; border:0; border-radius:6px;
+  background:linear-gradient(180deg,#ff1a10,#a00000); color:#fff; font-weight:900; font-size:16px; text-transform:uppercase;
+  letter-spacing:.06em; box-shadow:0 0 16px rgba(225,6,0,.6); cursor:pointer; }
+#guide { position:fixed; left:0; right:0; bottom:0; z-index:6; max-height:66vh; display:flex; flex-direction:column;
+  background:var(--panel); border-top:5px solid var(--red); box-shadow:0 -10px 40px rgba(225,6,0,.45);
+  transform:translateY(100%); transition:transform .3s ease; }
 #guide.open { transform:translateY(0); }
-#guide header { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid #222; }
-#guide header b { font-size:17px; }
-#guide header button { min-height:40px; padding:0 14px; border:0; border-radius:10px; background:#222; color:var(--fg); font-size:15px; cursor:pointer; }
+#guide header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px;
+  background:linear-gradient(90deg,#e10600,#7a0000); }
+#guide header b { font-size:20px; font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.05em; }
+#guide header button { min-height:40px; padding:0 14px; border:2px solid #000; border-radius:6px; background:#000; color:var(--fg);
+  font-size:14px; font-weight:800; text-transform:uppercase; cursor:pointer; }
 #list { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:6px 0 18px; }
 .row { display:grid; grid-template-columns:52px 1fr; gap:4px 12px; padding:10px 16px; border:0; width:100%; text-align:left;
   background:none; color:var(--fg); cursor:pointer; transition:background .15s ease; }
-.row:hover, .row:focus-visible { background:#1d1d1d; outline:none; }
-.row.on { background:#15263d; }
-.row .n { grid-row:span 2; font-weight:700; color:var(--accent); font-size:18px; padding-top:2px; }
-.row .t { font-size:16px; font-weight:600; }
+.row { border-bottom:1px solid #2a0c0c; }
+.row:hover, .row:focus-visible { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
+.row.on { background:linear-gradient(90deg,#5c0000,#1a0404); box-shadow:inset 6px 0 0 var(--gold); }
+.row .n { grid-row:span 2; font-weight:900; font-style:italic; color:var(--gold); font-size:20px; padding-top:2px; }
+.row .t { font-size:16px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
 .row .d { font-size:13px; color:var(--dim); line-height:1.35; }
-.row.off .t::after { content:"  off air"; color:#e0a040; font-weight:400; font-size:12px; }
-.now { font-size:12px; color:#7fd0a0; }
+.row.off .t::after { content:"  off air"; color:var(--gold); font-weight:700; font-size:11px; letter-spacing:.1em; }
+.now { font-size:12px; color:#ff8a80; font-weight:700; }
 </style>
 </head>
 <body>
+<div id="flame" aria-hidden="true"></div>
 <iframe id="screen" allow="autoplay; fullscreen" title="Channel"></iframe>
-<button id="start" type="button">Tap to start</button>
+<div id="brand">Red Macho <span>Devil</span> TV</div>
+<button id="start" type="button">
+  <svg class="horns" viewBox="0 0 120 80" aria-hidden="true"><path d="M8 78C4 50 14 18 36 6c-2 14 0 24 8 32 6-12 14-18 26-20-6 10-6 20 0 30 6-8 14-12 26-10-8 4-12 10-12 18 6 4 12 6 16 4C100 40 96 60 80 78H62c4-14 2-26-6-34-8 8-10 20-6 34H8z"/></svg>
+  <span class="big">Tap to rock</span>
+  <span class="sub">Red Macho Devil TV</span>
+</button>
 <div id="osd"></div>
 <button id="guideBtn" type="button">Guide</button>
 <section id="guide" aria-label="Channel guide">
-  <header><b>Channels</b><button id="closeGuide" type="button">Close</button></header>
+  <header><b>Red Macho Devil TV</b><button id="closeGuide" type="button">Close</button></header>
   <div id="list"></div>
 </section>
 
@@ -558,8 +587,9 @@ function tune(i, { quiet = false } = {}) {
 }
 function flashOsd() {
   osd.classList.add("show");
+  $("brand").classList.add("show");
   clearTimeout(osdTimer);
-  osdTimer = setTimeout(() => osd.classList.remove("show"), 3000);
+  osdTimer = setTimeout(() => { osd.classList.remove("show"); $("brand").classList.remove("show"); }, 3000);
 }
 
 function buildGuide() {
