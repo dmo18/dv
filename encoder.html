@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev17</title>
+<title>Encoder Rev18</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev18  2026-11-17  Nine more stations (34 in all): Euronews English, France 24 English, Newsmax TV, NHK World-Japan,
+                     NBC News NOW, Cheddar News, Court TV, Arirang TV, GB News. Each played a real programme on the live
+                     player at 384x216 (free or official channel streams, spares for the wall).
   Rev17  2026-11-16  Wall feeds: added CBS News, Fox Weather, Scripps News, DW and TRT World (CNN already here).
                      Bloomberg now uses the multi-quality master playlist (smallest 480x272) instead of the fixed 1080p one.
                      Added Kan 11 (multi-quality address, 640x360 up to 1080p, the player picks the small level; replaces the 4K-only address) and WSVN 7News (the stream the
@@ -262,7 +265,7 @@ hr {
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev17</h1>
+  <h1>Wallboard URL Encoder Rev18</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL. Open uses a separate URL with no muted parameter.
@@ -423,7 +426,16 @@ const STREAMS = [
   { name: "DW", url: "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8" },
   { name: "TRT World", url: "https://tv-trtworld.medya.trt.com.tr/master.m3u8" },
   { name: "Kan 11", url: "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8" },
-  { name: "WSVN 7News", url: "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web" }
+  { name: "WSVN 7News", url: "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web" },
+  { name: "Euronews English", url: "https://cdn-euronews.akamaized.net/live/eds/euronews-en/25002/index.m3u8" },
+  { name: "France 24 English", url: "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8" },
+  { name: "Newsmax TV", url: "https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8" },
+  { name: "NHK World-Japan", url: "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8" },
+  { name: "NBC News NOW", url: "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003" },
+  { name: "Cheddar News", url: "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8" },
+  { name: "Court TV", url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-courttv-tablo/playlist.m3u8" },
+  { name: "Arirang TV", url: "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8" },
+  { name: "GB News", url: "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8" }
 ];
 
 function buildCustom(opts) {

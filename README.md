@@ -22,7 +22,7 @@ Live: https://dmo18.github.io/dv/wallboard.html
 ## Check the wall on the PC
 1. On the wall PC open https://dmo18.github.io/dv/wallboard.html?diag=1 in the browser and press F11 for full screen.
 2. Wait 10 minutes. Each video tile now shows a small line with its picture size, dropped frames and state, and the
-   corner shows "playing 17/17 (+1 page tile)". The WSVN tile is its own page and shows "page tile, no data".
+   corner shows "playing 18/18". 
 3. Take a photo of the screen with your phone. Also open Task Manager (Ctrl+Shift+Esc) and note the CPU percentage.
 4. Send both to Claude. Good result: every tile under 5 percent dropped frames and CPU under 70 percent.
 5. Windows display scaling should read 100 percent (right-click the desktop, Display settings, Scale). A 1080p

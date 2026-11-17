@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v21</title>
+<title>Wallboard v22</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v22  2026-11-17  WSVN now plays through the same player as every other tile (its stream address from the encoder),
+                   so it recovers by itself after an outage (No signal card, retries, backup logic) and no longer
+                   shows the Brightcove controls and ads. The station fills its own ad breaks with a "right back" card.
   v21  2026-11-17  Closed captions on every tile (the player sizes them to the tile: 12 px minimum, at most 2 lines),
                    channel labels smaller (player.html Rev9; the WSVN label to match).
   v20  2026-11-16  18 tiles (3 large + 15 small) on an exact 1920x1080 grid: ticker bar 32 px,
@@ -206,7 +209,7 @@ html, body {
   // ABC 10 stays on its fixed 720p address: its lower quality level has black borders baked in.
   const TILES = [
     player("BBCNews", "BBC News", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
-    page("WSVN 7News", "wsvn.html"),
+    player("WSVN", "WSVN 7News", "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web"),
     player("Livenowfox", "LiveNOW Fox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8"),
 
     player("CNN", "CNN", "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8"),
