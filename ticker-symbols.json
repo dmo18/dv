@@ -8,7 +8,7 @@
    "source": "yahoo",
    "symbol": "^DJI",
    "decimals": 2,
-   "pinned": true
+   "pinned": false
   },
   {
    "id": "SPX",
@@ -17,7 +17,7 @@
    "source": "yahoo",
    "symbol": "^GSPC",
    "decimals": 2,
-   "pinned": true
+   "pinned": false
   },
   {
    "id": "NDX",
@@ -26,7 +26,7 @@
    "source": "yahoo",
    "symbol": "^NDX",
    "decimals": 2,
-   "pinned": true
+   "pinned": false
   },
   {
    "id": "AAPL",

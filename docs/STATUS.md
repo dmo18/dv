@@ -26,6 +26,9 @@ Plan pass marks (section 9): 18 of 18 moving, no tile on No signal over 60 s, dr
 - Errors: none from our own code in the latest 15 minute capture. The only errors are the RT stream host intermittently serving segments without the cross-origin permission header (a few times per 15 minutes); the RT tile recovers. In two earlier runs a burst of 9 to 12 uncaught errors appeared around minute 11, at the same moment as an RT failure (message text not captured). If RT keeps being noisy, replace it with another channel.
 
 ## Decisions
+- 2026-11-17: the three indexes (Dow, S&P 500, Nasdaq 100) no longer sit in a fixed block at the left of the ticker: they scroll with
+  everything else, so line 1 is one scroller (the owner saw the fixed block plus the scroller as two tickers). Only the "as of"
+  clock chip stays fixed. Set "pinned": true in ticker-symbols.json to bring a fixed block back.
 - Rule from the user (2026-11-17): never host locally, GitHub only. Pages are tested on the live github.io site, workflows by
   running them on GitHub. Until then, pre-merge browser tests of this project ran on a throwaway local test server inside the
   build sandbox (never published or served to the user); that practice has stopped.
