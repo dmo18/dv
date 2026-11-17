@@ -26,6 +26,9 @@ Plan pass marks (section 9): 18 of 18 moving, no tile on No signal over 60 s, dr
 - Errors: none from our own code in the latest 15 minute capture. The only errors are the RT stream host intermittently serving segments without the cross-origin permission header (a few times per 15 minutes); the RT tile recovers. In two earlier runs a burst of 9 to 12 uncaught errors appeared around minute 11, at the same moment as an RT failure (message text not captured). If RT keeps being noisy, replace it with another channel.
 
 ## Decisions
+- 2026-11-17: WSVN did not recover by itself after an outage because its tile was its own page (wsvn.html, Brightcove player) with no retry
+  logic. Wallboard v22 plays it through player.html (stream address from the encoder) like every other tile. The station fills its ad
+  breaks with a "right back" card. Encoder Rev18 has 34 stations (nine new spares).
 - 2026-11-17: the three indexes (Dow, S&P 500, Nasdaq 100) no longer sit in a fixed block at the left of the ticker: they scroll with
   everything else, so line 1 is one scroller (the owner saw the fixed block plus the scroller as two tickers). Only the "as of"
   clock chip stays fixed. Set "pinned": true in ticker-symbols.json to bring a fixed block back.

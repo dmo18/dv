@@ -8,13 +8,13 @@ GitHub Pages at https://dmo18.github.io/dv/. No build step, no package manager.
 |---|---|---|
 | Wallboard | wallboard.html | 1920x1080 stage: 32 px ticker, 40 px headlines, 3 large and 15 small video tiles, check view ?diag=1 |
 | Player | player.html | Plays one HLS stream: label, captions, backup stream, No signal card, quality cap, health report |
-| Encoder | encoder.html | Every stream saved by exact address (25), builds player links, works on its own |
+| Encoder | encoder.html | Every stream saved by exact address (34, nine of them spares), builds player links, works on its own |
 | Ticker | ticker.html, ticker-symbols.json | Prices with no third-party widget: smooth scroll, live crypto, stale and closed states |
 | Headlines | headlines.html, headlines-feeds.json | Scrolling news strip sized from its bar height |
 | Data relay | .github/workflows/relay.yml, .github/scripts/relay_loop.py, fetch_prices.py, fetch_headlines.py | Cloud job that publishes prices (2 min) and headlines (15 min) to branches ticker-data and headlines-data |
 | Safety nets | relay.yml schedule (every 5 h) restarts the relay (prices and headlines); headlines.yml (every 6 h) refreshes headlines only | Keep the data going if the relay ever stops |
 | Daily check | stream-check.yml, check_streams.py | Plays every stream, checks data freshness, opens one issue if anything is wrong |
-| WSVN tile | wsvn.html | The one tile that is its own page (Brightcove player with the station's ads), not player.html |
+| WSVN tile | player.html (since wallboard v22) | Plays WSVN's stream like every other tile and recovers by itself; wsvn.html is now an unused older page |
 | Older pages | abc1-3, bloomberg, sky, i24, IL13, rt, livenow, globalnews, fnc, stock, nvda, flights, weather, myticker, others | Standalone pages, not used by the wall; 13 now load the pinned player library |
 
 ## How the data flows (plain words)
@@ -36,7 +36,7 @@ open https://dmo18.github.io/dv/wallboard.html. Restart the relay by hand: Actio
 
 ## Known issues
 - index.html contains only "test". Older pages abc1-3, -birdseye (missing birdseye.js), -IL12, -newsnation, sky use dead streams.
-- The WSVN tile shows the station's own ads with a "Skip Ad" button.
+- The WSVN tile shows the station's own "right back" card during its ad breaks (the stream is the station's feed with ads filled in).
 - Windows display scaling of 125 or 150 percent can show a one device pixel hairline between tiles; 100 percent is exact.
 - IRINN is dead from outside Iran; kept in the encoder only.
 
@@ -50,4 +50,4 @@ open https://dmo18.github.io/dv/wallboard.html. Restart the relay by hand: Actio
 ## Third-party code loaded by pages
 Video.js 8.10.0 and Clappr 0.4.7 (both pinned with integrity hashes in the player and the 13 older pages),
 Leaflet 1.9.4 (flights page), TradingView widgets (stock pages only), Fox and Brightcove embeds, Flashphoner (dead page).
-The wall loads no third-party scripts apart from the two player libraries and, for the WSVN tile only, the Brightcove player (players.brightcove.net) inside wsvn.html.
+The wall loads no third-party scripts apart from the two player libraries.
