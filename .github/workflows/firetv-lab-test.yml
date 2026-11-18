@@ -1,6 +1,8 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 1 (2026-11-18)
+# firetv-lab-test.yml Rev 2 (2026-11-18)
+# - Rev 2: the virtual TV is stored in a fixed folder (ANDROID_AVD_HOME) so the emulator finds it; waits have time limits.
+# - Rev 1: first version.
 # Builds the Fire TV app, starts a virtual Android TV (1080p), installs the app, starts it, presses remote
 # buttons (Up for channel up, Menu for the guide, Back to close it), takes a screenshot after each step, and
 # publishes the screenshots, the log and the tested install file as the release "firetv-lab".
@@ -16,6 +18,8 @@ jobs:
   lab:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    env:
+      ANDROID_AVD_HOME: ${{ github.workspace }}/.avd
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -45,15 +49,20 @@ jobs:
           IMAGE="system-images;android-30;android-tv;x86"
           sdkmanager "platform-tools" "emulator" "$IMAGE" || { IMAGE="system-images;android-30;google_apis;x86_64"; sdkmanager "$IMAGE"; }
           echo "image: $IMAGE" | tee lab/log.txt
+          mkdir -p "$ANDROID_AVD_HOME"
           echo "no" | avdmanager create avd -n tv -k "$IMAGE" --device "tv_1080p" --force
+          emulator -list-avds | tee -a lab/log.txt
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
       - name: Start the virtual TV and test the app
         run: |
           export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+          emulator -list-avds | tee -a lab/log.txt
           nohup emulator -avd tv -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 4096 -cores 3 > lab/emulator.txt 2>&1 &
-          adb wait-for-device
+          sleep 20
+          if ! pgrep -f "qemu-system" >/dev/null; then echo "emulator did not start:"; cat lab/emulator.txt; exit 1; fi
+          timeout 300 adb wait-for-device || { echo "no device after 300 s"; tail -30 lab/emulator.txt; exit 1; }
           for i in $(seq 1 80); do
             [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break
             sleep 5
