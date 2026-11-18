@@ -7,7 +7,7 @@ https://dmo18.github.io/dv/tv.html, so every change made to the page shows up on
 1. Fire TV: Settings, My Fire TV, Developer Options, turn on "Install unknown apps" for the Downloader app (install
    Downloader from the Amazon Appstore first). Newer Fire TV models that run Vega OS do not accept Android apps;
    use the Silk browser and bookmark the TV page instead.
-2. Open Downloader and type: `https://github.com/dmo18/dv/releases/download/firetv/RedMachoDevilTV.apk`
+2. Open Downloader and type: `https://dmo18.github.io/dv/rmtv.apk` (the file `rmtv.apk` in the root of this repository)
 3. Install, then open "Red Macho Devil TV" from Your Apps and Channels.
 
 ## Remote control
@@ -20,9 +20,16 @@ https://dmo18.github.io/dv/tv.html, so every change made to the page shows up on
 | Play/Pause | mute or unmute |
 | Back | close the guide, or leave the app |
 
+## Lab test (2026-11-18)
+`rmtv.apk` is the exact file that passed the "Fire TV lab test" workflow: a virtual 1080p Android 11 device with an old
+Chrome 83 web view (a strict test). Checked: the app starts and presses "Tap to rock" itself, the TV page fills the screen,
+Up changes channel, Menu opens the guide, Down moves through it, Back closes it, Play/Pause mutes and unmutes, typing a
+channel number then Select tunes it, and the picture moves. Not checked: a real Fire TV remote and hardware.
+
 ## Build or rebuild
-GitHub, Actions tab, "Build Fire TV app", Run workflow. It builds `firetv/` and replaces the file in the release
-named `firetv`. The app is signed with a throwaway debug key, so to install a newer build over an older one, remove the old
+To rebuild and retest: GitHub, Actions tab, "Fire TV lab test", Run workflow. It builds `firetv/`, runs the lab test, and publishes
+the screenshots and the tested file as the release `firetv-lab`; copy that `rmtv.apk` to the root of the repository.
+("Build Fire TV app" only builds and replaces the release `firetv`, with no test.) The app is signed with a throwaway debug key, so to install a newer build over an older one, remove the old
 app first. Rebuilds are rarely needed because the app opens the live site.
 
 ## Notes
