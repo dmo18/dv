@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev14</title>
+<title>Universal Player Rev15</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -57,8 +57,6 @@ Optional:
   controls 1 | 0
           1 = show play, volume and full screen controls (used by the encoder's Open button)
           0 = none (default, the wall)
-
-  audio   address of an audio-only HLS stream to play with a video-only stream (optional)
 
   muted   1 | 0
           1 = muted (recommended for autoplay)
@@ -151,8 +149,7 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
-Rev14 2026-11-18  New option audio=<address>: plays a separate audio-only stream alongside the picture, for feeds whose
-                  video has no sound (Fox News). It follows the same mute, volume, play, pause and stop as the picture.
+Rev15 2026-11-18  Removed the separate audio option (audio=) added in Rev14, and the Fox News audio that used it.
 Rev13 2026-11-17  The tile label now has two lines: the channel name, then network status (LIVE, STALLED, STARTING or
                   PAUSED, the resolution, the bitrate and the seconds of buffer). The browser tab title is unchanged.
 Rev12 2026-11-17  The browser tab title (the page's title tag) now shows name, resolution, bitrate and
@@ -346,8 +343,6 @@ const muted = param("muted", "1") !== "0";
 const withControls = param("controls", "0") === "1";
 if (withControls) document.documentElement.classList.add("ctl");
 const reloadMin = parseInt(param("reload", "0"), 10) || 0;
-const audioSrc = param("audio", "");
-let audioPlayer = null;
 
 /* -----------------------------
    Timing
@@ -406,8 +401,6 @@ function setCard(on) {
 }
 
 function destroyPlayers() {
-  try { if (audioPlayer) audioPlayer.dispose(); } catch (e) {}
-  audioPlayer = null;
   try { if (vjsPlayer) vjsPlayer.dispose(); } catch (e) {}
   vjsPlayer = null;
   try { if (clapprPlayer) clapprPlayer.destroy(); } catch (e) {}
@@ -528,27 +521,6 @@ function start() {
   } catch (e) {
     nextAttempt("could not start");
   }
-  startAudio();
-}
-
-/* Optional separate audio stream (audio=): plays in its own hidden element next to the picture.
-   The audio element is created inside #vjsHost so the encoder and TV pages can set its volume like any media. */
-function startAudio() {
-  if (!audioSrc) return;
-  try {
-    const el = document.createElement("audio");
-    el.id = "aud";
-    el.autoplay = true;
-    el.muted = muted;
-    el.style.display = "none";
-    document.getElementById("vjsHost").appendChild(el);
-    audioPlayer = videojs(el, {
-      autoplay: true, muted: muted, controls: false, preload: "auto",
-      sources: [{ src: audioSrc, type: "application/x-mpegURL" }]
-    });
-    audioPlayer.el().style.setProperty("display", "none", "important");   /* nothing to draw: sound only */
-    audioPlayer.on("error", () => { /* audio is a bonus: a failure must not disturb the picture */ });
-  } catch (e) { audioPlayer = null; }
 }
 
 /* Move on to the next option. After the last one, show the card, rest, and start over. */
@@ -592,7 +564,6 @@ function applyCommand(cmd) {
     setUserState("paused");
     if (v) v.pause();
     if (clapprPlayer && clapprPlayer.pause) clapprPlayer.pause();
-    try { if (audioPlayer) audioPlayer.pause(); } catch (e) {}
   } else if (cmd === "play") {
     if (userState === "stopped") { setUserState("live"); start(); return; }
     setUserState("live");
@@ -600,18 +571,12 @@ function applyCommand(cmd) {
     if (vjsPlayer && vjsPlayer.liveTracker) { try { vjsPlayer.liveTracker.seekToLiveEdge(); } catch (e) {} }
     if (v) v.play().catch(() => {});
     if (clapprPlayer && clapprPlayer.play) clapprPlayer.play();
-    try { if (audioPlayer) { audioPlayer.play(); if (audioPlayer.liveTracker) audioPlayer.liveTracker.seekToLiveEdge(); } } catch (e) {}
   } else if (cmd === "stop") {
     setUserState("stopped");
     destroyPlayers();
     setCard(true);
   }
 }
-/* the picture's own volume or mute (controls page) also drives the separate audio */
-document.addEventListener("volumechange", (e) => {
-  if (!audioPlayer || !e.target || e.target.tagName !== "VIDEO") return;
-  try { audioPlayer.volume(e.target.volume); audioPlayer.muted(e.target.muted); } catch (er) {}
-}, true);
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || !e.data || e.data.type !== "tilectl") return;
   applyCommand(String(e.data.cmd || ""));

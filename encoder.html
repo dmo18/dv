@@ -3,13 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev24</title>
+<title>Encoder Rev25</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
-  Rev24  2026-11-18  Fox News has no sound in its own feed, so Open, Copy ready and previews now add a separate audio-only Fox News
-                     stream (audio= in the link; see AUDIO_COMPANIONS). Needs player.html Rev14.
+  Rev25  2026-11-18  Removed the separate Fox News audio (Rev24 change reverted).
   Rev23  2026-11-17  Small "For educational purposes only" note at the bottom. Tile status now shows in the player (Rev13).
   Rev22  2026-11-17  Control bar above the grid: Play all, Pause all (last picture stays on screen), Stop all (releases the
                      streams). Each tile also shows its number and name. Page cleaned up: sticky control bar, larger touch
@@ -318,7 +317,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev24</h1>
+  <h1>Wallboard URL Encoder Rev25</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Preview uses a muted player URL with no controls. Open uses a separate URL with sound on and full player controls.
@@ -550,10 +549,6 @@ const STREAMS = [
 
 // Feeds that return "not found" while ABC or CBS has nothing on them. They are kept so the address is saved,
 // but the preview is not loaded automatically (it would only say "No signal"). Press "Try preview" to check one.
-// Feeds whose picture stream carries no sound. The player plays this audio-only stream next to the picture (audio= in the link).
-// Fox News: the picture address is Fox's own "preview" feed (video only); the audio address is a Fox News audio-only stream.
-const AUDIO_COMPANIONS = { "Fox News": "https://tvsen6.aynaott.com/foxnews/index.m3u8" };
-
 const OFF_AIR = new Set(["ABC News Live 1", "ABC News Live 2", "ABC News Live 3", "ABC News Live 4", "ABC News Live 5", "ABC News Live 6", "ABC News Live 7", "ABC News Live 8", "ABC News Live 9", "ABC News Live 10", "CBS News Bay Area", "CBS News Boston", "CBS News Chicago", "CBS News Colorado", "CBS News Detroit", "CBS News Los Angeles", "CBS News Minnesota", "CBS News New York", "CBS News Philly", "CBS News Pittsburgh"]);
 
 const DESCRIPTIONS = {
@@ -657,8 +652,6 @@ function buildCustom(opts) {
     params.set("muted", String(opts.muted ?? "1"));
   }
 
-  if (opts.audio) params.set("audio", opts.audio);
-
   if (opts.includeControls) {
     params.set("controls", String(opts.controls ?? "0"));
   }
@@ -689,7 +682,6 @@ function buildForStream(stream) {
     fit: $("fit").value,
     reload: $("reload").value,
     srcId: stream.name.replace(/\s+/g, ""),
-    audio: AUDIO_COMPANIONS[stream.name] || "",
     includeMuted: true,
     muted: $("muted").value,
     includeControls: false
@@ -703,7 +695,6 @@ function buildOpenForStream(stream) {
     fit: $("fit").value,
     reload: $("reload").value,
     srcId: stream.name.replace(/\s+/g, ""),
-    audio: AUDIO_COMPANIONS[stream.name] || "",
     includeMuted: true,
     muted: "0",
     includeControls: true,
@@ -718,7 +709,6 @@ function buildPreviewForStream(stream) {
     fit: $("fit").value,
     reload: $("reload").value,
     srcId: stream.name.replace(/\s+/g, ""),
-    audio: AUDIO_COMPANIONS[stream.name] || "",
     includeMuted: true,
     muted: "1",
     includeControls: false
