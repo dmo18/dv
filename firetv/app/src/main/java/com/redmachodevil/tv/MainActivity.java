@@ -1,6 +1,8 @@
 package com.redmachodevil.tv;
 
 import android.app.Activity;
+import android.media.session.MediaSession;
+import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -22,6 +24,7 @@ public class MainActivity extends Activity {
     private static final String HOME = "https://dmo18.github.io/dv/tv.html";
     private static final String HOST = "dmo18.github.io";
     private WebView web;
+    private MediaSession session;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -56,6 +59,24 @@ public class MainActivity extends Activity {
         });
         web.loadUrl(HOME);
         web.requestFocus();
+        startMediaSession();
+    }
+
+    /** Media keys (Play/Pause and so on) only reach an app that has a media session, so register one. */
+    private void startMediaSession() {
+        session = new MediaSession(this, "RedMachoDevilTV");
+        session.setCallback(new MediaSession.Callback() {
+            @Override public void onPlay() { sendKey("m"); }
+            @Override public void onPause() { sendKey("m"); }
+            @Override public void onSkipToNext() { sendKey("ArrowUp"); }
+            @Override public void onSkipToPrevious() { sendKey("ArrowDown"); }
+        });
+        session.setPlaybackState(new PlaybackState.Builder()
+            .setActions(PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE | PlaybackState.ACTION_PLAY_PAUSE
+                | PlaybackState.ACTION_SKIP_TO_NEXT | PlaybackState.ACTION_SKIP_TO_PREVIOUS)
+            .setState(PlaybackState.STATE_PLAYING, 0, 1f)
+            .build());
+        session.setActive(true);
     }
 
     @Override
@@ -132,6 +153,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (session != null) { session.setActive(false); session.release(); }
         web.destroy();
         super.onDestroy();
     }
