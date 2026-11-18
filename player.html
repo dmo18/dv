@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev15</title>
+<title>Universal Player Rev16</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,7 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev16 2026-11-18  New option status=0: the tile label shows the channel name only (no LIVE, resolution or bitrate line). Used by the wall.
 Rev15 2026-11-18  Removed the separate audio option (audio=) added in Rev14, and the Fox News audio that used it.
 Rev13 2026-11-17  The tile label now has two lines: the channel name, then network status (LIVE, STALLED, STARTING or
                   PAUSED, the resolution, the bitrate and the seconds of buffer). The browser tab title is unchanged.
@@ -343,6 +344,7 @@ const muted = param("muted", "1") !== "0";
 const withControls = param("controls", "0") === "1";
 if (withControls) document.documentElement.classList.add("ctl");
 const reloadMin = parseInt(param("reload", "0"), 10) || 0;
+const showStatus = param("status", "1") !== "0";
 
 /* -----------------------------
    Timing
@@ -616,13 +618,13 @@ setInterval(() => {
   const detail = [stats, buf !== null && live ? buf + "s buffer" : ""].filter(Boolean).join(" \u00b7 ");
   if (userState === "paused") {
     document.title = [base, stats, "paused"].filter(Boolean).join(" \u00b7 ") || "Player";
-    if (base) setStatusLabel(base, "#9aa3ad", "PAUSED", stats);
+    if (base) { if (showStatus) setStatusLabel(base, "#9aa3ad", "PAUSED", stats); else setLabel(base); }
   } else if (live) {
     document.title = [base, stats].filter(Boolean).join(" \u00b7 ") || "Player";
-    if (base) setStatusLabel(base, "#3ddc84", "LIVE", detail);
+    if (base) { if (showStatus) setStatusLabel(base, "#3ddc84", "LIVE", detail); else setLabel(base); }
   } else if (userState === "live") {
     document.title = base || "Player";
-    if (base) setStatusLabel(base, "#ffb000", "STARTING", "");
+    if (base) { if (showStatus) setStatusLabel(base, "#ffb000", "STARTING", ""); else setLabel(base); }
   }
 }, 1000);
 
