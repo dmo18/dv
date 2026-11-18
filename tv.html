@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev7</title>
+<title>Red Macho Devil TV Rev8</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev8  2026-11-18  Works in older web views (found in the Fire TV lab test): no "inset" shorthand (the start screen was squeezed
+                    into a corner), and no selector lists that include :focus-visible (an old engine drops the whole rule).
   Rev7  2026-11-18  For the Fire TV app and any remote control: a clear gold outline on whichever button is selected, and while the
                     guide is open the up and down arrows move through the guide instead of changing channel.
   Rev6  2026-11-18  Removed the separate Fox News audio (Rev5 change reverted).
@@ -22,7 +24,7 @@
 :root { --bg:#000; --panel:#0c0606; --fg:#fff3f0; --dim:#c9a7a2; --red:#e10600; --red2:#7a0000; --gold:#ffb000; --good:#3ddc84; --warn:#ffb000; --bad:#ff4d4d; }
 html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow:hidden; }
 button { font-family:inherit; }
-#screen { position:fixed; inset:0; width:100%; height:100%; border:0; background:#000; }
+#screen { position:fixed; top:0; right:0; bottom:0; left:0; width:100%; height:100%; border:0; background:#000; }
 #flame { position:fixed; left:0; right:0; top:0; height:8px; z-index:3; pointer-events:none;
   background:linear-gradient(90deg,#7a0000,#e10600,#ff4d00,#ffb000,#e10600,#7a0000,#e10600,#ff4d00,#7a0000);
   background-size:200% 100%; animation:flow 2.5s linear infinite; box-shadow:0 0 18px #e10600; }
@@ -45,7 +47,7 @@ button { font-family:inherit; }
 #status.off i { background:var(--gold); }
 
 /* start screen */
-#start { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+#start { position:fixed; top:0; right:0; bottom:0; left:0; width:100%; height:100%; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
   background:radial-gradient(circle at center,rgba(122,0,0,.85) 0%,#000 70%); border:0; color:var(--fg); cursor:pointer; }
 #start .devil { width:clamp(120px,22vw,220px); filter:drop-shadow(0 0 22px var(--red)); animation:pulse 1.4s ease-in-out infinite; }
 #start .big { font-size:clamp(28px,6vw,64px); font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.03em; text-shadow:0 4px 0 var(--red2); }
@@ -72,7 +74,7 @@ button { font-family:inherit; }
 #bar button { min-height:42px; min-width:42px; padding:0 12px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
   font-weight:900; font-size:15px; cursor:pointer; text-transform:uppercase; letter-spacing:.03em; }
 #bar button:hover { background:#5a0000; }
-#bar button:focus, #bar button:focus-visible, #guide header button:focus { background:#5a0000; outline:3px solid var(--gold); outline-offset:2px; }
+#bar button:focus, #guide header button:focus { background:#5a0000; outline:3px solid var(--gold); outline-offset:2px; }
 #bar button.on { background:var(--red); color:#fff; }
 #bar .ch { font-weight:900; font-style:italic; font-variant-numeric:tabular-nums; color:var(--gold); padding:0 6px; min-width:64px; }
 #bar .playing { flex:1 1 200px; min-width:0; font-size:14px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -92,7 +94,7 @@ button { font-family:inherit; }
 #list { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 0 14px; }
 .row { display:grid; grid-template-columns:56px 1fr auto; gap:2px 12px; padding:10px 14px; border:0; border-bottom:1px solid #2a0c0c; width:100%; text-align:left;
   background:none; color:var(--fg); cursor:pointer; }
-.row:hover, .row:focus, .row:focus-visible { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
+.row:hover, .row:focus { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
 .row.on { background:linear-gradient(90deg,#5c0000,#1a0404); box-shadow:inset 6px 0 0 var(--gold); }
 .row .n { grid-row:span 2; font-weight:900; font-style:italic; color:var(--gold); font-size:20px; padding-top:2px; font-variant-numeric:tabular-nums; }
 .row .t { font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }

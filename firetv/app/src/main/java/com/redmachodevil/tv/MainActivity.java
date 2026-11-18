@@ -50,7 +50,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 // press "Tap to rock" for the viewer
                 view.evaluateJavascript(
-                    "setTimeout(function(){var s=document.getElementById('start');if(s&&s.offsetParent!==null){s.click();}},800);",
+                    "setTimeout(function(){var s=document.getElementById('start');if(s&&getComputedStyle(s).display!=='none'){s.click();}},800);",
                     null);
             }
         });

@@ -1,6 +1,9 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 3 (2026-11-18)
+# firetv-lab-test.yml Rev 4 (2026-11-18)
+# - Rev 4: screenshots are taken on the device and pulled (an empty one no longer stops the upload); each file is uploaded on
+#   its own; the web view (browser engine) version is logged; a screenshot after the app starts itself and one after Down.
+# - Rev 3 2026-11-18
 # - Rev 3: uses a standard Android 11 image (google_apis, 1080p TV screen profile). The Android TV image refuses adb
 #   connections ("device unauthorized"), so nothing could be installed. App and remote key handling are the same.
 # - Rev 2 2026-11-18
@@ -74,7 +77,9 @@ jobs:
           echo "android: $(adb shell getprop ro.build.version.release | tr -d '\r') (api $(adb shell getprop ro.build.version.sdk | tr -d '\r'))" | tee -a lab/log.txt
           adb shell input keyevent KEYCODE_HOME
           sleep 5
-          shot() { adb exec-out screencap -p > "lab/$1.png"; }
+          shot() { adb shell screencap -p /sdcard/lab.png; adb pull /sdcard/lab.png "lab/$1.png" >/dev/null 2>&1 || true; [ -s "lab/$1.png" ] || { sleep 3; adb shell screencap -p /sdcard/lab.png; adb pull /sdcard/lab.png "lab/$1.png" >/dev/null 2>&1 || true; }; }
+          echo "web view: $(adb shell dumpsys webviewupdate | grep -iE 'Current WebView package|versionName' | tr -d '\r' | tr '\n' ' ')" | tee -a lab/log.txt
+          adb shell dumpsys package com.google.android.webview | grep -m1 versionName | tee -a lab/log.txt || true
           adb install -r lab/rmtv.apk | tee -a lab/log.txt
           adb shell am start -n com.redmachodevil.tv/.MainActivity | tee -a lab/log.txt
           sleep 60;  shot step1-start
@@ -101,5 +106,7 @@ jobs:
           gh release view firetv-lab --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create firetv-lab --repo "$GITHUB_REPOSITORY" --title "Fire TV lab test results" \
               --notes "Screenshots, log and the tested install file from the Fire TV lab test workflow."
-          gh release upload firetv-lab lab/* --repo "$GITHUB_REPOSITORY" --clobber
+          for f in lab/*; do
+            if [ -s "$f" ]; then gh release upload firetv-lab "$f" --repo "$GITHUB_REPOSITORY" --clobber || echo "could not upload $f"; else echo "skipped empty file $f"; fi
+          done
           echo "Results: https://github.com/$GITHUB_REPOSITORY/releases/tag/firetv-lab"
