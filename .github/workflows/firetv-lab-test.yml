@@ -1,6 +1,9 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 2 (2026-11-18)
+# firetv-lab-test.yml Rev 3 (2026-11-18)
+# - Rev 3: uses a standard Android 11 image (google_apis, 1080p TV screen profile). The Android TV image refuses adb
+#   connections ("device unauthorized"), so nothing could be installed. App and remote key handling are the same.
+# - Rev 2 2026-11-18
 # - Rev 2: the virtual TV is stored in a fixed folder (ANDROID_AVD_HOME) so the emulator finds it; waits have time limits.
 # - Rev 1: first version.
 # Builds the Fire TV app, starts a virtual Android TV (1080p), installs the app, starts it, presses remote
@@ -46,8 +49,8 @@ jobs:
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --list 2>/dev/null | grep -E 'system-images;android-(28|30);' | head -20 || true
-          IMAGE="system-images;android-30;android-tv;x86"
-          sdkmanager "platform-tools" "emulator" "$IMAGE" || { IMAGE="system-images;android-30;google_apis;x86_64"; sdkmanager "$IMAGE"; }
+          IMAGE="system-images;android-30;google_apis;x86_64"
+          sdkmanager "platform-tools" "emulator" "$IMAGE"
           echo "image: $IMAGE" | tee lab/log.txt
           mkdir -p "$ANDROID_AVD_HOME"
           echo "no" | avdmanager create avd -n tv -k "$IMAGE" --device "tv_1080p" --force
