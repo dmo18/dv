@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev8</title>
+<title>Red Macho Devil TV Rev9</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev9  2026-11-18  The selected row in the guide is clearly highlighted (found in the Fire TV lab test).
   Rev8  2026-11-18  Works in older web views (found in the Fire TV lab test): no "inset" shorthand (the start screen was squeezed
                     into a corner), and no selector lists that include :focus-visible (an old engine drops the whole rule).
   Rev7  2026-11-18  For the Fire TV app and any remote control: a clear gold outline on whichever button is selected, and while the
@@ -94,7 +95,8 @@ button { font-family:inherit; }
 #list { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 0 14px; }
 .row { display:grid; grid-template-columns:56px 1fr auto; gap:2px 12px; padding:10px 14px; border:0; border-bottom:1px solid #2a0c0c; width:100%; text-align:left;
   background:none; color:var(--fg); cursor:pointer; }
-.row:hover, .row:focus { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
+.row:hover { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
+.row:focus { background:#6b0a0a; outline:none; box-shadow:inset 8px 0 0 var(--gold), inset 0 0 0 2px var(--red); }
 .row.on { background:linear-gradient(90deg,#5c0000,#1a0404); box-shadow:inset 6px 0 0 var(--gold); }
 .row .n { grid-row:span 2; font-weight:900; font-style:italic; color:var(--gold); font-size:20px; padding-top:2px; font-variant-numeric:tabular-nums; }
 .row .t { font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }

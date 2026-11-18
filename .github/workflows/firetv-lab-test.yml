@@ -1,6 +1,8 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 4 (2026-11-18)
+# firetv-lab-test.yml Rev 5 (2026-11-18)
+# - Rev 5: adds a playback check: switch to channel 20 (BBC News, moving picture) and take two screenshots 8 seconds apart.
+# - Rev 4 2026-11-18
 # - Rev 4: screenshots are taken on the device and pulled (an empty one no longer stops the upload); each file is uploaded on
 #   its own; the web view (browser engine) version is logged; a screenshot after the app starts itself and one after Down.
 # - Rev 3 2026-11-18
@@ -94,6 +96,11 @@ jobs:
           sleep 5;   shot step5-back-closes-guide
           adb shell input keyevent KEYCODE_MEDIA_PLAY_PAUSE
           sleep 3;   shot step6-mute
+          adb shell input keyevent KEYCODE_MEDIA_PLAY_PAUSE
+          adb shell input text 20
+          adb shell input keyevent KEYCODE_ENTER
+          sleep 45;  shot step7-channel20-a
+          sleep 8;   shot step8-channel20-b
           echo "running at end: $(adb shell pidof com.redmachodevil.tv | tr -d '\r')" | tee -a lab/log.txt
           adb logcat -d -v brief 2>/dev/null | grep -iE 'redmacho|AndroidRuntime|chromium.*(ERROR|FATAL)|FATAL' | tail -60 > lab/app-log.txt || true
           adb emu kill || true
