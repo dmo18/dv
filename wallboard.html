@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v32</title>
+<title>Wallboard v33</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v33  2026-11-18  The 28-feed layout is now the default wall. Way back: wallboard.html?layout=18 shows the old 18-tile layout,
+                    or revert this change to make 18 the default again.
   v32  2026-11-18  Sample layout wallboard.html?layout=28 (28 feeds: 4 large 480x270 + 24 small 320x180, all exact 16:9, dark
                     2px frame round every feed, ticker 40 px and headlines 50 px). The normal wall (18 tiles) is unchanged,
                     so the way back is simply to open the normal address. The tile status line (LIVE, resolution, bitrate)
@@ -196,7 +198,7 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
   // ---------- Settings (plain values, edit here) ----------
   // Decode cap. 18 = all tiles play (cap off). A lower number keeps the first 3 tiles
   // (row 1) always playing and rotates the other tiles every 2 minutes, see HOW TO EDIT above.
-  const L28 = new URLSearchParams(location.search).get("layout") === "28";   // sample layout, see v32
+  const L28 = new URLSearchParams(location.search).get("layout") !== "18";   // 28 feeds by default; ?layout=18 is the old 18-tile wall (v33)
   if (L28) document.documentElement.classList.add("l28");
   const MAX_LIVE = L28 ? 28 : 18;
   const ROTATE_SECONDS = 120;       // how long a set of small tiles rests
