@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev16</title>
+<title>Universal Player Rev17</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,7 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev17 2026-11-18  Works in older web views (Fire TV lab test): no "inset" shorthand, so the video area and the No signal card fill the tile.
 Rev16 2026-11-18  New option status=0: the tile label shows the channel name only (no LIVE, resolution or bitrate line). Used by the wall.
 Rev15 2026-11-18  Removed the separate audio option (audio=) added in Rev14, and the Fox News audio that used it.
 Rev13 2026-11-17  The tile label now has two lines: the channel name, then network status (LIVE, STALLED, STARTING or
@@ -203,7 +204,10 @@ html, body {
 
 #vjsHost, #vjs, #clappr {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   background: #000;
@@ -247,7 +251,10 @@ html, body {
 /* "No signal" card, shown instead of a black tile */
 #offline {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 10;
   display: none;
   flex-direction: column;
