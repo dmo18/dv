@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev9</title>
+<title>Red Macho Devil TV Rev10</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev10 2026-11-18  Closing the guide takes the focus off the hidden list (the lab test showed Select re-tuned a channel after Back).
   Rev9  2026-11-18  The selected row in the guide is clearly highlighted (found in the Fire TV lab test).
   Rev8  2026-11-18  Works in older web views (found in the Fire TV lab test): no "inset" shorthand (the start screen was squeezed
                     into a corner), and no selector lists that include :focus-visible (an old engine drops the whole rule).
@@ -327,7 +328,10 @@ function buildGuide() {
   markGuide();
 }
 function openGuide() { guide.classList.add("open"); const on = list.querySelector(".row.on"); if (on) on.scrollIntoView({ block: "center" }); }
-function closeGuide() { guide.classList.remove("open"); }
+function closeGuide() {
+  guide.classList.remove("open");
+  if (document.activeElement && guide.contains(document.activeElement)) document.activeElement.blur();
+}
 function setTab(onAir) {
   onAirOnly = onAir;
   $("tabAll").classList.toggle("on", !onAir);
