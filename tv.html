@@ -3,9 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev11</title>
+<title>Red Macho Devil TV Rev12</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev12 2026-11-19  One bottom panel instead of two overlapping overlays: the channel banner sits above a single row of buttons
+                    and the channel name is no longer shown twice. Volume controls removed (use the TV remote's own volume).
+                    The red top bar fades with the overlay. Back (needs app 1.1) closes the guide, then hides the overlay,
+                    then leaves. Skip off air is now an on/off setting that stays on: channel up and down jump over off-air
+                    channels while it is lit. The version shows next to the educational note. Player links carry the version
+                    so an old cached player is not reused.
   Rev11 2026-11-19  The whole overlay (top bar, banner, bottom bar) hides after 15 seconds without a button press and comes back on
                     any press. Remote control: Left and Right now step through the bottom buttons by our own rule (the volume
                     slider used to trap the focus, so Info, Guide and Full could not be reached), Select presses the lit button,
@@ -42,8 +48,8 @@ button { font-family:inherit; }
   background:linear-gradient(180deg,rgba(0,0,0,.85),rgba(0,0,0,0)); transition:opacity .4s ease; }
 #top.hide { opacity:0; pointer-events:none; }
 /* whole overlay hidden after 15 s without input (class set on body) */
-#bar, #osd, #top { transition:opacity .5s ease; }
-body.hideui #bar, body.hideui #top, body.hideui #osd { opacity:0 !important; pointer-events:none; }
+#dock, #top, #flame { transition:opacity .5s ease; }
+body.hideui #dock, body.hideui #top, body.hideui #flame { opacity:0 !important; pointer-events:none; }
 body.hideui { cursor:none; }
 #top .devil { width:38px; height:38px; flex:none; filter:drop-shadow(0 0 8px var(--red)); }
 #brand { font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.04em; font-size:clamp(14px,2vw,20px); text-shadow:0 2px 0 var(--red2); }
@@ -65,33 +71,30 @@ body.hideui { cursor:none; }
 #start .sub { font-size:clamp(13px,2vw,18px); color:var(--dim); text-transform:uppercase; letter-spacing:.2em; }
 @keyframes pulse { 50% { transform:scale(1.07); } }
 
-/* on-screen banner: channel number, name, description */
-#osd { position:fixed; left:14px; bottom:86px; z-index:4; max-width:min(620px,calc(100vw - 28px)); padding:10px 14px 10px 12px;
-  border-left:6px solid var(--red); background:linear-gradient(90deg,rgba(122,0,0,.92),rgba(0,0,0,.78));
-  opacity:0; transition:opacity .4s ease; pointer-events:none; }
-#osd.show { opacity:1; }
-#osd .head { font-weight:900; text-transform:uppercase; font-size:clamp(16px,2.4vw,22px); }
+/* bottom panel: the channel banner above one row of buttons, then the note and version */
+#dock { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; flex-direction:column; gap:6px;
+  padding:10px 10px calc(6px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(0deg,rgba(0,0,0,.95) 55%,rgba(0,0,0,0)); }
+#osd { display:none; align-self:flex-start; max-width:min(720px,100%); padding:8px 14px 8px 12px;
+  border-left:6px solid var(--red); background:linear-gradient(90deg,rgba(122,0,0,.92),rgba(0,0,0,.78)); }
+#osd.show { display:block; }
+#osd .head { font-weight:900; text-transform:uppercase; font-size:clamp(15px,2.2vw,22px); }
 #osd .num { color:var(--gold); font-style:italic; margin-right:10px; }
 #osd .off { color:var(--gold); font-size:12px; letter-spacing:.1em; margin-left:8px; }
-#osd .desc { color:var(--dim); font-size:14px; margin-top:4px; line-height:1.35; }
-#osd .now { color:#ff8a80; font-weight:700; font-size:14px; margin-top:4px; }
+#osd .desc { color:var(--dim); font-size:13px; margin-top:3px; line-height:1.35; }
+#osd .now { color:#ff8a80; font-weight:700; font-size:13px; margin-top:3px; }
 #entry { position:fixed; right:14px; top:84px; z-index:4; font-size:clamp(28px,4vw,48px); font-weight:900; font-style:italic; color:var(--gold);
   text-shadow:0 3px 0 #000; font-variant-numeric:tabular-nums; }
 
-/* bottom bar: always visible */
-#bar { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
-  padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px)); background:linear-gradient(0deg,#000 60%,rgba(0,0,0,.6));
-  border-top:3px solid var(--red); }
-#bar button { min-height:42px; min-width:42px; padding:0 12px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
-  font-weight:900; font-size:15px; cursor:pointer; text-transform:uppercase; letter-spacing:.03em; }
+#bar { display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-top:6px; border-top:3px solid var(--red); }
+#bar button { min-height:38px; min-width:38px; padding:0 10px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
+  font-weight:900; font-size:14px; cursor:pointer; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
 #bar button:hover { background:#5a0000; }
 #bar button:focus, #guide header button:focus { background:#5a0000; outline:3px solid var(--gold); outline-offset:2px; }
 #bar button.on { background:var(--red); color:#fff; }
-#bar .ch { font-weight:900; font-style:italic; font-variant-numeric:tabular-nums; color:var(--gold); padding:0 6px; min-width:64px; }
-#bar .playing { flex:1 1 200px; min-width:0; font-size:14px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-#bar .playing b { color:var(--fg); text-transform:uppercase; }
-#bar .vol { display:flex; align-items:center; gap:6px; }
-#bar input[type=range] { width:clamp(80px,12vw,140px); accent-color:var(--red); }
+#bar .ch { font-weight:900; font-style:italic; font-variant-numeric:tabular-nums; color:var(--gold); padding:0 4px; min-width:56px; text-align:center; }
+#bar .gap { flex:1 1 auto; }
+.foot { display:flex; justify-content:space-between; gap:12px; font-size:10px; color:#8a8a8a; }
 
 /* guide */
 #guide { position:fixed; left:0; right:0; bottom:0; z-index:8; max-height:70vh; display:flex; flex-direction:column;
@@ -116,8 +119,9 @@ body.hideui { cursor:none; }
 .now { color:#7fe0a8; font-weight:700; }
 
 @media (max-width:620px) {
-  #bar .playing { order:-1; flex-basis:100%; }
-  #bar button { min-width:38px; padding:0 9px; }
+  #bar { flex-wrap:wrap; }
+  #bar .gap { display:none; }
+  #bar button { min-width:36px; padding:0 8px; }
   #entry { top:70px; }
 }
 </style>
@@ -146,7 +150,6 @@ body.hideui { cursor:none; }
   <div id="clock"><span id="time"></span><small id="date"></small></div>
 </div>
 <div id="entry" aria-live="polite"></div>
-<div id="osd" aria-live="polite"></div>
 
 <button id="start" type="button">
   <svg class="devil" viewBox="0 0 200 200" aria-hidden="true">
@@ -167,22 +170,22 @@ body.hideui { cursor:none; }
   <span class="sub">Red Macho Devil TV</span>
 </button>
 
-<div id="bar">
-  <button id="chDown" type="button" aria-label="Channel down">&#9664; CH</button>
-  <span class="ch" id="chNum">CH 1</span>
-  <button id="chUp" type="button" aria-label="Channel up">CH &#9654;</button>
-  <button id="skipOff" type="button" aria-label="Skip to next channel that is on air">Skip off air</button>
-  <button id="last" type="button" aria-label="Last channel">Last</button>
-  <div class="playing" id="playing"></div>
-  <button id="cc" type="button" aria-pressed="true">CC</button>
-  <button id="mute" type="button">Mute</button>
-  <button id="volDown" type="button" aria-label="Volume down">Vol -</button>
-  <div class="vol"><input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" tabindex="-1" /></div>
-  <button id="volUp" type="button" aria-label="Volume up">Vol +</button>
-  <button id="info" type="button">Info</button>
-  <button id="guideBtn" type="button">Guide</button>
-  <button id="full" type="button" aria-label="Full screen">Full</button>
-  <span class="edu-note" style="font-size:10px;color:#8a8a8a;white-space:nowrap">For educational purposes only.</span>
+<div id="dock">
+  <div id="osd" aria-live="polite"></div>
+  <div id="bar">
+    <button id="chDown" type="button" aria-label="Channel down">&#9664; CH</button>
+    <span class="ch" id="chNum">CH 1</span>
+    <button id="chUp" type="button" aria-label="Channel up">CH &#9654;</button>
+    <button id="skipOff" type="button" aria-pressed="false" aria-label="Skip off-air channels">Skip off air</button>
+    <button id="last" type="button" aria-label="Last channel">Last</button>
+    <span class="gap"></span>
+    <button id="cc" type="button" aria-pressed="true">CC</button>
+    <button id="mute" type="button">Mute</button>
+    <button id="info" type="button">Info</button>
+    <button id="guideBtn" type="button">Guide</button>
+    <button id="full" type="button" aria-label="Full screen">Full</button>
+  </div>
+  <div class="foot"><span class="edu-note">For educational purposes only.</span><span id="ver"></span></div>
 </div>
 
 <section id="guide" aria-label="Channel guide">
@@ -204,13 +207,16 @@ window.EPG = window.EPG || {};
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const KEY = "tv.lastChannel", CC_KEY = "tv.cc";
+const VERSION = "Rev12";
+const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
+const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
 let started = false, volume = 1, muted = false, ccOn = true, onAirOnly = false;
-try { ccOn = localStorage.getItem(CC_KEY) !== "0"; } catch (e) {}
+let skipOn = false;
+try { ccOn = localStorage.getItem(CC_KEY) !== "0"; skipOn = localStorage.getItem(SKIP_KEY) === "1"; } catch (e) {}
 
 function playerUrl(ch) {
-  const p = new URLSearchParams({ ID: ch.name.replace(/\s+/g, ""), src: ch.url, fit: "contain", muted: "0", controls: "0", cc: ccOn ? "1" : "0", reload: "0" });
+  const p = new URLSearchParams({ ID: ch.name.replace(/\s+/g, ""), src: ch.url, fit: "contain", muted: "0", controls: "0", cc: ccOn ? "1" : "0", reload: "0", v: VERSION });
   return "player.html?" + p.toString();
 }
 function nowText(ch) { return window.EPG[ch.name] || ""; }
@@ -224,9 +230,6 @@ function tune(i, { quiet = false, keepSrc = false } = {}) {
   if (started) screen_.src = playerUrl(ch);
   try { localStorage.setItem(KEY, String(current)); } catch (e) {}
   $("chNum").textContent = "CH " + (current + 1);
-  $("playing").innerHTML = "<b></b> <span></span>";
-  $("playing").querySelector("b").textContent = ch.name + (ch.off ? " (off air)" : "");
-  $("playing").querySelector("span").textContent = nowText(ch) || ch.desc;
   osd.innerHTML = '<div class="head"><span class="num"></span><span class="nm"></span></div>';
   osd.querySelector(".num").textContent = current + 1;
   osd.querySelector(".nm").textContent = ch.name;
@@ -260,7 +263,7 @@ function showBanner() { bannerOn = true; osd.classList.add("show"); wake(); }
 function toggleBanner() { if (bannerOn && !uiHidden()) { bannerOn = false; osd.classList.remove("show"); wake(); } else showBanner(); }
 
 /* Remote control focus: Left and Right step through these buttons in order. */
-const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "cc", "mute", "volDown", "volUp", "info", "guideBtn", "full"];
+const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "cc", "mute", "info", "guideBtn", "full"];
 let barAt = 1;
 function focusBar(i) {
   barAt = (i + BAR_IDS.length) % BAR_IDS.length;
@@ -302,12 +305,7 @@ function applyVolume() {
   $("mute").classList.toggle("on", muted);
   $("mute").textContent = muted ? "Unmute" : "Mute";
 }
-function setVolume(v) {
-  volume = Math.min(1, Math.max(0, v));
-  if (volume > 0) muted = false;
-  $("vol").value = volume;
-  applyVolume();
-}
+
 function toggleMute() { muted = !muted; applyVolume(); wake(); }
 function toggleCC() {
   ccOn = !ccOn;
@@ -321,7 +319,24 @@ function nextOnAir(from, dir) {
   }
   return from;
 }
-function skipOffAir() { tune(nextOnAir(current, 1)); }   /* tune() shows the banner with the new channel */
+/* Skip off air is a setting: while it is lit, channel up and down jump over off-air channels. */
+function showSkip() { $("skipOff").classList.toggle("on", skipOn); $("skipOff").setAttribute("aria-pressed", String(skipOn)); }
+function toggleSkip() {
+  skipOn = !skipOn;
+  try { localStorage.setItem(SKIP_KEY, skipOn ? "1" : "0"); } catch (e) {}
+  showSkip();
+  if (skipOn && CHANNELS[current] && CHANNELS[current].off) tune(nextOnAir(current, 1));
+  wake();
+}
+function step(dir) { tune(skipOn ? nextOnAir(current, dir) : current + dir); }
+
+/* Back (the Fire TV app calls this): close the guide, else hide the overlay; false means leave the app. */
+function hideNow() { clearTimeout(hideTimer); document.body.classList.add("hideui"); osd.classList.remove("show"); bannerOn = false; }
+window.rmtvBack = function () {
+  if (guide.classList.contains("open")) { closeGuide(); wake(); return true; }
+  if (started && !uiHidden()) { hideNow(); return true; }
+  return false;
+};
 function lastChannel() { tune(previous); }
 function toggleFull() {
   const el = document.documentElement;
@@ -379,16 +394,13 @@ setInterval(applyVolume, 1500);
 
 /* buttons */
 $("start").addEventListener("click", () => { started = true; $("start").style.display = "none"; tune(current); wake(); });
-$("chUp").addEventListener("click", () => tune(current + 1));
-$("chDown").addEventListener("click", () => tune(current - 1));
-$("skipOff").addEventListener("click", skipOffAir);
+$("chUp").addEventListener("click", () => step(1));
+$("chDown").addEventListener("click", () => step(-1));
+$("skipOff").addEventListener("click", toggleSkip);
 $("last").addEventListener("click", lastChannel);
 $("cc").addEventListener("click", toggleCC);
 $("mute").addEventListener("click", toggleMute);
-$("vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value)));
 $("info").addEventListener("click", toggleBanner);
-$("volDown").addEventListener("click", () => { setVolume(volume - 0.1); wake(); });
-$("volUp").addEventListener("click", () => { setVolume(volume + 0.1); wake(); });
 $("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
 $("full").addEventListener("click", toggleFull);
 $("closeGuide").addEventListener("click", closeGuide);
@@ -399,6 +411,7 @@ screen_.addEventListener("load", applyVolume);
 
 /* keys */
 document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { window.rmtvBack(); e.preventDefault(); return; }
   const guideOpen = guide.classList.contains("open");
   const wasHidden = uiHidden();
   if (started) wake();
@@ -433,15 +446,12 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     return;
   }
-  if (e.key === "ArrowUp" || e.key === "PageUp") { tune(current + 1); e.preventDefault(); }
-  else if (e.key === "ArrowDown" || e.key === "PageDown") { tune(current - 1); e.preventDefault(); }
+  if (e.key === "ArrowUp" || e.key === "PageUp") { step(1); e.preventDefault(); }
+  else if (e.key === "ArrowDown" || e.key === "PageDown") { step(-1); e.preventDefault(); }
   else if (e.key === "g" || e.key === "G") { guide.classList.contains("open") ? closeGuide() : openGuide(); }
-  else if (e.key === "Escape") { closeGuide(); }
   else if (e.key === "m" || e.key === "M") { toggleMute(); }
-  else if (e.key === "+" || e.key === "=") { setVolume(volume + 0.1); }
-  else if (e.key === "-") { setVolume(volume - 0.1); }
   else if (e.key === "i" || e.key === "I") { toggleBanner(); }
-  else if (e.key === "s" || e.key === "S") { skipOffAir(); }
+  else if (e.key === "s" || e.key === "S") { toggleSkip(); }
   else if (e.key === "l" || e.key === "L") { lastChannel(); }
   else if (e.key === "c" || e.key === "C") { toggleCC(); }
   else if (e.key === "f" || e.key === "F") { toggleFull(); }
@@ -460,7 +470,7 @@ document.addEventListener("touchstart", (e) => { touchY = e.touches[0].clientY; 
 document.addEventListener("touchend", (e) => {
   if (touchY === null || guide.classList.contains("open")) return;
   const dy = e.changedTouches[0].clientY - touchY;
-  if (Math.abs(dy) > 60) tune(current + (dy < 0 ? 1 : -1));
+  if (Math.abs(dy) > 60) step(dy < 0 ? 1 : -1);
   touchY = null;
 });
 
@@ -469,6 +479,8 @@ document.addEventListener("touchend", (e) => {
   let start = 0;
   try { start = parseInt(localStorage.getItem(KEY), 10) || 0; } catch (e) {}
   current = start; previous = start;
+  $("ver").textContent = "TV " + VERSION + (APP ? " \u00b7 App " + APP : "");
+  showSkip();
   buildGuide();
   tune(start, { quiet: true });
 })();

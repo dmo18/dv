@@ -23,6 +23,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     private static final String HOME = "https://dmo18.github.io/dv/tv.html";
     private static final String HOST = "dmo18.github.io";
+    private static final String VERSION = "1.1";
     private WebView web;
     private MediaSession session;
 
@@ -40,6 +41,8 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);   // sound without a tap
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        // tell the page which app version it runs in (shown next to the educational note)
+        s.setUserAgentString(s.getUserAgentString() + " RMTV/" + VERSION);
 
         web.setWebChromeClient(new WebChromeClient());
         web.setWebViewClient(new WebViewClient() {
@@ -57,7 +60,8 @@ public class MainActivity extends Activity {
                     null);
             }
         });
-        web.loadUrl(HOME);
+        // a fresh address each start, so a cached older page is never shown
+        web.loadUrl(HOME + "?t=" + System.currentTimeMillis());
         web.requestFocus();
         startMediaSession();
     }
@@ -118,15 +122,16 @@ public class MainActivity extends Activity {
                 sendKey("ArrowDown");
                 return true;
             case KeyEvent.KEYCODE_BACK:
-                // close the guide if it is open, otherwise leave the app
+                // the page decides: close the guide, else hide the overlay; "exit" leaves the app
                 web.evaluateJavascript(
-                    "(function(){var g=document.getElementById('guide');return !!g&&g.classList.contains('open');})()",
+                    "(function(){if(window.rmtvBack){return window.rmtvBack()?'stay':'exit';}"
+                        + "var g=document.getElementById('guide');"
+                        + "if(g&&g.classList.contains('open')){document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));return 'stay';}"
+                        + "return 'exit';})()",
                     new ValueCallback<String>() {
                         @Override
-                        public void onReceiveValue(String open) {
-                            if ("true".equals(open)) {
-                                sendKey("Escape");
-                            } else {
+                        public void onReceiveValue(String answer) {
+                            if (answer == null || answer.contains("exit")) {
                                 finish();
                             }
                         }

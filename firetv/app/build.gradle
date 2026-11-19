@@ -10,8 +10,24 @@ android {
         applicationId 'com.redmachodevil.tv'
         minSdk 22          // Fire OS 5 and newer
         targetSdk 33
-        versionCode 1
-        versionName '1.0'
+        versionCode 2
+        versionName '1.1'
+    }
+
+    // A fixed signing key kept in the repository, so a new build installs over the old app without uninstalling.
+    // It is not a secret (like Android's own debug key): only install rmtv.apk from this repository.
+    signingConfigs {
+        debug {
+            storeFile file('../rmtv-debug.keystore')
+            storePassword 'android'
+            keyAlias 'rmtv'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
     }
 
     compileOptions {
