@@ -3,9 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev10</title>
+<title>Red Macho Devil TV Rev11</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev11 2026-11-19  The whole overlay (top bar, banner, bottom bar) hides after 15 seconds without a button press and comes back on
+                    any press. Remote control: Left and Right now step through the bottom buttons by our own rule (the volume
+                    slider used to trap the focus, so Info, Guide and Full could not be reached), Select presses the lit button,
+                    Vol - and Vol + buttons replace the slider for remotes, Info switches the channel banner on and off, and
+                    Skip off air says which channel it jumped to. In the guide, Left and Right switch All / On air.
   Rev10 2026-11-18  Closing the guide takes the focus off the hidden list (the lab test showed Select re-tuned a channel after Back).
   Rev9  2026-11-18  The selected row in the guide is clearly highlighted (found in the Fire TV lab test).
   Rev8  2026-11-18  Works in older web views (found in the Fire TV lab test): no "inset" shorthand (the start screen was squeezed
@@ -36,6 +41,10 @@ button { font-family:inherit; }
 #top { position:fixed; left:0; right:0; top:8px; z-index:4; display:flex; align-items:center; gap:12px; padding:8px 14px;
   background:linear-gradient(180deg,rgba(0,0,0,.85),rgba(0,0,0,0)); transition:opacity .4s ease; }
 #top.hide { opacity:0; pointer-events:none; }
+/* whole overlay hidden after 15 s without input (class set on body) */
+#bar, #osd, #top { transition:opacity .5s ease; }
+body.hideui #bar, body.hideui #top, body.hideui #osd { opacity:0 !important; pointer-events:none; }
+body.hideui { cursor:none; }
 #top .devil { width:38px; height:38px; flex:none; filter:drop-shadow(0 0 8px var(--red)); }
 #brand { font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.04em; font-size:clamp(14px,2vw,20px); text-shadow:0 2px 0 var(--red2); }
 #brand span { color:var(--red); }
@@ -167,7 +176,9 @@ button { font-family:inherit; }
   <div class="playing" id="playing"></div>
   <button id="cc" type="button" aria-pressed="true">CC</button>
   <button id="mute" type="button">Mute</button>
-  <div class="vol"><input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" /></div>
+  <button id="volDown" type="button" aria-label="Volume down">Vol -</button>
+  <div class="vol"><input id="vol" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" tabindex="-1" /></div>
+  <button id="volUp" type="button" aria-label="Volume up">Vol +</button>
   <button id="info" type="button">Info</button>
   <button id="guideBtn" type="button">Guide</button>
   <button id="full" type="button" aria-label="Full screen">Full</button>
@@ -231,13 +242,30 @@ function tune(i, { quiet = false, keepSrc = false } = {}) {
   applyVolume();
 }
 
-function showBanner() {
-  osd.classList.add("show");
-  clearTimeout(osdTimer);
-  osdTimer = setTimeout(() => osd.classList.remove("show"), 6000);
+/* Overlay: any input wakes it; 15 s later it hides again (not while the guide is open). */
+const HIDE_MS = 15000;
+let hideTimer = null, bannerOn = false;
+function uiHidden() { return document.body.classList.contains("hideui"); }
+function wake() {
+  document.body.classList.remove("hideui");
   $("top").classList.remove("hide");
-  clearTimeout(topTimer);
-  topTimer = setTimeout(() => $("top").classList.add("hide"), 4000);
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => {
+    if (!started || guide.classList.contains("open")) return wake();
+    document.body.classList.add("hideui");
+    osd.classList.remove("show"); bannerOn = false;
+  }, HIDE_MS);
+}
+function showBanner() { bannerOn = true; osd.classList.add("show"); wake(); }
+function toggleBanner() { if (bannerOn && !uiHidden()) { bannerOn = false; osd.classList.remove("show"); wake(); } else showBanner(); }
+
+/* Remote control focus: Left and Right step through these buttons in order. */
+const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "cc", "mute", "volDown", "volUp", "info", "guideBtn", "full"];
+let barAt = 1;
+function focusBar(i) {
+  barAt = (i + BAR_IDS.length) % BAR_IDS.length;
+  const b = $(BAR_IDS[barAt]);
+  if (b) b.focus();
 }
 
 /* status light from the player page (same site): NO SIGNAL card, or a video that is playing */
@@ -280,7 +308,7 @@ function setVolume(v) {
   $("vol").value = volume;
   applyVolume();
 }
-function toggleMute() { muted = !muted; applyVolume(); showBanner(); }
+function toggleMute() { muted = !muted; applyVolume(); wake(); }
 function toggleCC() {
   ccOn = !ccOn;
   try { localStorage.setItem(CC_KEY, ccOn ? "1" : "0"); } catch (e) {}
@@ -293,7 +321,7 @@ function nextOnAir(from, dir) {
   }
   return from;
 }
-function skipOffAir() { tune(nextOnAir(current, 1)); }
+function skipOffAir() { tune(nextOnAir(current, 1)); }   /* tune() shows the banner with the new channel */
 function lastChannel() { tune(previous); }
 function toggleFull() {
   const el = document.documentElement;
@@ -350,7 +378,7 @@ setInterval(refreshStatus, 1000);
 setInterval(applyVolume, 1500);
 
 /* buttons */
-$("start").addEventListener("click", () => { started = true; $("start").style.display = "none"; tune(current); });
+$("start").addEventListener("click", () => { started = true; $("start").style.display = "none"; tune(current); wake(); });
 $("chUp").addEventListener("click", () => tune(current + 1));
 $("chDown").addEventListener("click", () => tune(current - 1));
 $("skipOff").addEventListener("click", skipOffAir);
@@ -358,19 +386,44 @@ $("last").addEventListener("click", lastChannel);
 $("cc").addEventListener("click", toggleCC);
 $("mute").addEventListener("click", toggleMute);
 $("vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value)));
-$("info").addEventListener("click", showBanner);
+$("info").addEventListener("click", toggleBanner);
+$("volDown").addEventListener("click", () => { setVolume(volume - 0.1); wake(); });
+$("volUp").addEventListener("click", () => { setVolume(volume + 0.1); wake(); });
 $("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
 $("full").addEventListener("click", toggleFull);
 $("closeGuide").addEventListener("click", closeGuide);
 $("tabAll").addEventListener("click", () => setTab(false));
 $("tabOn").addEventListener("click", () => setTab(true));
 screen_.addEventListener("load", applyVolume);
-document.addEventListener("pointermove", () => { if (started) { $("top").classList.remove("hide"); clearTimeout(topTimer); topTimer = setTimeout(() => $("top").classList.add("hide"), 4000); } });
+["pointermove", "pointerdown", "touchstart"].forEach((ev) => document.addEventListener(ev, () => { if (started) wake(); }, { passive: true }));
 
 /* keys */
 document.addEventListener("keydown", (e) => {
-  if (e.target && e.target.tagName === "INPUT" && e.target.type === "range") { /* volume slider keeps its arrows */ }
   const guideOpen = guide.classList.contains("open");
+  const wasHidden = uiHidden();
+  if (started) wake();
+  const isSelect = e.key === "Enter" || e.keyCode === 13 || e.keyCode === 23;
+  if (guideOpen && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { setTab(!onAirOnly); e.preventDefault(); return; }
+  if (guideOpen && isSelect) {
+    const el = document.activeElement;
+    if (el && guide.contains(el)) { el.click(); e.preventDefault(); }
+    return;
+  }
+  if (!guideOpen && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+    /* first press only brings the overlay back; after that it moves along the buttons */
+    const onBar = BAR_IDS.indexOf(document.activeElement && document.activeElement.id);
+    if (wasHidden || onBar === -1) focusBar(barAt);
+    else focusBar(onBar + (e.key === "ArrowRight" ? 1 : -1));
+    e.preventDefault();
+    return;
+  }
+  if (!guideOpen && isSelect && !typed) {
+    const onBar = BAR_IDS.indexOf(document.activeElement && document.activeElement.id);
+    if (wasHidden || onBar === -1) focusBar(barAt);          /* show the bar, light the last used button */
+    else { barAt = onBar; document.activeElement.click(); }
+    e.preventDefault();
+    return;
+  }
   if (guideOpen && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
     /* in the guide the arrows move through the list (the browser moves the focus between rows) */
     const rows = Array.from(list.querySelectorAll(".row"));
@@ -387,7 +440,7 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "m" || e.key === "M") { toggleMute(); }
   else if (e.key === "+" || e.key === "=") { setVolume(volume + 0.1); }
   else if (e.key === "-") { setVolume(volume - 0.1); }
-  else if (e.key === "i" || e.key === "I") { showBanner(); }
+  else if (e.key === "i" || e.key === "I") { toggleBanner(); }
   else if (e.key === "s" || e.key === "S") { skipOffAir(); }
   else if (e.key === "l" || e.key === "L") { lastChannel(); }
   else if (e.key === "c" || e.key === "C") { toggleCC(); }
