@@ -96,3 +96,4 @@ See docs/TAKEOVER.md.
 - New: tv.html (Red Macho Devil TV), Fire TV app 1.1 (rmtv.apk, fixed signing key in firetv/, lab test workflow), channels.json as the single channel list, epg.yml for now and next.
 - Removed: wsvn.html, firetv-build.yml (the lab test builds the app), the untested "firetv" release.
 - Decisions: tile status line off on the wall; overlay on the TV page hides after 5 s; leaving the app takes two Back presses; volume buttons hidden inside the app.
+- 2026-11-19: Seven local affiliates added to channels.json (NBC New York, NBC Miami, ABC Chicago, Fox Chicago, NBC Chicago, NBC Philadelphia, NBC Bay Area). Not found with a live picture: ABC New York and Los Angeles, CBS Los Angeles and New York (the CBS city streams are off air between newscasts), ABC Miami (its address does not allow browser playback).
