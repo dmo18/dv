@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev22</title>
+<title>Red Macho Devil TV Rev23</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev23 2026-11-19  Bottom bar: the buttons wrap onto two rows instead of running off the screen, slightly smaller text,
+                    shorter labels ("Skip off", "< 30s"). Old web views: no inset, no :focus-visible in lists.
   Rev22 2026-11-19  The channel guide shows group headings (National news, Business and finance, International, Local stations,
                     Probably bad at the bottom). Automatic skipping of channels with no signal is removed; the Skip off air
                     button still works as before.
@@ -121,8 +123,8 @@ body.app .volctl { display:none !important; }
 #entry { position:fixed; right:14px; top:84px; z-index:4; font-size:clamp(28px,4vw,48px); font-weight:900; font-style:italic; color:var(--gold);
   text-shadow:0 3px 0 #000; font-variant-numeric:tabular-nums; }
 
-#bar { display:flex; flex-wrap:nowrap; align-items:center; gap:6px; padding-top:6px; border-top:3px solid var(--red); }
-#bar button { min-height:38px; min-width:38px; padding:0 10px; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
+#bar { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; padding-top:6px; border-top:3px solid var(--red); }
+#bar button { min-height:38px; min-width:38px; padding:0 8px; font-size:clamp(11px,1.15vw,15px); white-space:nowrap; border:0; border-radius:6px; background:#2a0606; color:var(--fg);
   font-weight:900; font-size:14px; cursor:pointer; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
 #bar button:hover { background:#5a0000; }
 #bar button:focus, #guide header button:focus { background:#5a0000; outline:3px solid var(--gold); outline-offset:2px; }
@@ -215,10 +217,10 @@ body.app .volctl { display:none !important; }
     <button id="chDown" type="button" aria-label="Channel down">&#9664; CH</button>
     <span class="ch" id="chNum">CH 1</span>
     <button id="chUp" type="button" aria-label="Channel up">CH &#9654;</button>
-    <button id="skipOff" type="button" aria-pressed="false" aria-label="Skip off-air channels">Skip off air</button>
+    <button id="skipOff" type="button" aria-pressed="false" aria-label="Skip off-air channels">Skip off</button>
     <button id="last" type="button" aria-label="Last channel">Last</button>
     <button id="pauseBtn" type="button" aria-label="Pause or play">Pause</button>
-    <button id="backBtn" type="button" aria-label="Back 30 seconds">&#9664;&#9664; 30s</button>
+    <button id="backBtn" type="button" aria-label="Back 30 seconds">&#9664; 30s</button>
     <button id="liveBtn" type="button" aria-label="Live">Live</button>
     <span class="gap"></span>
     <button id="cc" type="button" aria-pressed="true">CC</button>
@@ -274,7 +276,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev22";
+const VERSION = "Rev23";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
