@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev26</title>
+<title>Red Macho Devil TV Rev27</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev27 2026-11-19  Local stations show a city heading in the guide (Atlanta, Austin MN, Bakersfield ...), from the city field in
+                    channels.json, so the stations of one city are visibly together.
   Rev26 2026-11-19  Self-update: every 5 minutes the page checks whether a newer Rev has been published and reloads itself
                     with a fresh copy (a stale page used to stay on screen until reloaded by hand). A page older than
                     Rev26 does not have this, so it needs one manual reload (add ?v=26 to the address).
@@ -153,6 +155,7 @@ body.app .volctl { display:none !important; }
 .row { display:grid; grid-template-columns:56px 1fr auto; gap:2px 12px; padding:10px 14px; border:0; border-bottom:1px solid #2a0c0c; width:100%; text-align:left;
   background:none; color:var(--fg); cursor:pointer; }
 .grp { padding:14px 14px 6px; color:var(--gold); font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; border-bottom:1px solid #5c0000; }
+.grp.city { padding:8px 14px 2px; font-size:11px; color:#d6d6d6; letter-spacing:.06em; border-bottom:0; }
 .row:hover { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
 .row:focus { background:#6b0a0a; outline:none; box-shadow:inset 8px 0 0 var(--gold), inset 0 0 0 2px var(--red); }
 .row.on { background:linear-gradient(90deg,#5c0000,#1a0404); box-shadow:inset 6px 0 0 var(--gold); }
@@ -283,7 +286,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev26";
+const VERSION = "Rev27";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
@@ -530,7 +533,7 @@ function markGuide() {
 }
 function buildGuide() {
   list.innerHTML = "";
-  let lastGroup = "";
+  let lastGroup = "", lastCity = "";
   CHANNELS.forEach((ch, i) => {
     if (onAirOnly && ch.off) return;
     if (ch.group && ch.group !== lastGroup) {
@@ -539,6 +542,14 @@ function buildGuide() {
       h.className = "grp";
       h.textContent = ch.group;
       list.appendChild(h);
+      lastCity = "";
+    }
+    if (ch.group === "Local stations" && ch.city && ch.city !== lastCity) {
+      lastCity = ch.city;
+      const c = document.createElement("div");
+      c.className = "grp city";
+      c.textContent = ch.city;
+      list.appendChild(c);
     }
     const b = document.createElement("button");
     b.type = "button";
