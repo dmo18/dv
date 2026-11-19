@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v48</title>
+<title>Wallboard v49</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v49  2026-11-19  Tile labels use the real channel number (number field in channels.json), as the encoder and TV.
   v48  2026-11-19  Ticker Rev14 (chart green above the previous close, red below).
   v47  2026-11-19  Ticker Rev13 (charts with the previous-close line, as Yahoo Finance).
   v46  2026-11-19  Ticker Rev12 (value column sized to its text).
@@ -239,7 +240,7 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
   const feed = (name, opts = {}) => {
     const c = byName[name];
     if (!c) { console.error("Not in channels.json: " + name); return player(name.replace(/\s+/g, ""), name, "", opts); }
-    const num = CHANNELS.indexOf(c) + 1;   // the channel number, as in the encoder and TV
+    const num = c.number || (CHANNELS.indexOf(c) + 1);   // the channel number, as in the encoder and TV
     return player(c.name.replace(/\s+/g, ""), num + ". " + c.name, c.url, opts);
   };
 
