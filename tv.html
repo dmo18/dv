@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev20</title>
+<title>Red Macho Devil TV Rev21</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev21 2026-11-19  Time shift on the channel: Pause / Play, "Back 30s" and "Live" in the bar. Keys: P pause or play, B back
+                    30 seconds, X live. Pausing keeps the picture and the status light says Paused (no channel skip while paused).
+                    Needs player.html Rev19.
   Rev20 2026-11-19  Clicking or tapping the picture brings up the controls (a transparent layer sits over the picture; the picture
                     itself had swallowed clicks and keyboard focus, which is why typed channel numbers did nothing). Typing a
                     channel number works from anywhere on the page: type it and press Enter, or wait a moment.
@@ -88,6 +91,7 @@ body.app .volctl { display:none !important; }
   font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
 #status i { width:10px; height:10px; border-radius:50%; background:var(--warn); display:inline-block; }
 #status.live i { background:var(--good); box-shadow:0 0 8px var(--good); }
+#status.paused i { background:var(--gold); }
 #status.nosig i, #status.off i { background:var(--bad); }
 #status.off i { background:var(--gold); }
 
@@ -209,6 +213,9 @@ body.app .volctl { display:none !important; }
     <button id="chUp" type="button" aria-label="Channel up">CH &#9654;</button>
     <button id="skipOff" type="button" aria-pressed="false" aria-label="Skip off-air channels">Skip off air</button>
     <button id="last" type="button" aria-label="Last channel">Last</button>
+    <button id="pauseBtn" type="button" aria-label="Pause or play">Pause</button>
+    <button id="backBtn" type="button" aria-label="Back 30 seconds">&#9664;&#9664; 30s</button>
+    <button id="liveBtn" type="button" aria-label="Live">Live</button>
     <span class="gap"></span>
     <button id="cc" type="button" aria-pressed="true">CC</button>
     <button id="mute" type="button">Mute</button>
@@ -263,7 +270,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev20";
+const VERSION = "Rev21";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
@@ -278,6 +285,38 @@ function playerUrl(ch) {
 function nowText(ch) { return showAt(ch, 0); }
 function nextText(ch) { return showAt(ch, 1); }
 
+/* Time shift: pause keeps the picture; Back 30s and Live work where the stream holds the time (player.html Rev19). */
+let tvPaused = false;
+function sendScreen(cmd) {
+  try { screen_.contentWindow.postMessage({ type: "tilectl", cmd: cmd }, location.origin); } catch (e) {}
+}
+function showPause() {
+  $("pauseBtn").textContent = tvPaused ? "Play" : "Pause";
+  $("pauseBtn").classList.toggle("on", tvPaused);
+}
+function togglePause() {
+  if (!started) return;
+  tvPaused = !tvPaused;
+  sendScreen(tvPaused ? "pause" : "play");
+  showPause();
+  toast(tvPaused ? "Paused" : "Playing", 1500);
+  wake();
+}
+function backThirty() {
+  if (!started) return;
+  sendScreen("back");
+  toast("Back 30 seconds", 1500);
+  wake();
+}
+function goLive() {
+  if (!started) return;
+  tvPaused = false;
+  sendScreen("live");
+  showPause();
+  toast("Live", 1500);
+  wake();
+}
+
 let tunedAt = Date.now(), autoSkips = 0, lastDir = 1;
 function tune(i, { quiet = false, keepSrc = false, auto = false } = {}) {
   if (!CHANNELS.length) return;
@@ -287,6 +326,8 @@ function tune(i, { quiet = false, keepSrc = false, auto = false } = {}) {
   if (next !== current) previous = current;
   current = next;
   const ch = CHANNELS[current];
+  tvPaused = false;
+  showPause();
   if (started) screen_.src = playerUrl(ch);
   try { localStorage.setItem(KEY, String(current)); } catch (e) {}
   $("chNum").textContent = "CH " + (current + 1);
@@ -328,7 +369,7 @@ function showBanner() { bannerOn = true; osd.classList.add("show"); wake(); }
 function toggleBanner() { if (bannerOn && !uiHidden()) { bannerOn = false; osd.classList.remove("show"); wake(); } else showBanner(); }
 
 /* Remote control focus: Left and Right step through these buttons in order. */
-const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "cc", "mute", "volDown", "volUp", "info", "guideBtn", "full"];
+const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "pauseBtn", "backBtn", "liveBtn", "cc", "mute", "volDown", "volUp", "info", "guideBtn", "full"];
 /* only the buttons that are shown (the volume buttons are hidden inside the Fire TV app) */
 function barIds() { return BAR_IDS.filter((id) => { const el = $(id); return el && el.offsetParent !== null; }); }
 let barAt = 1;
@@ -358,6 +399,7 @@ function refreshStatus() {
   if (!started) return;
   const info = playerInfo();
   const ch = CHANNELS[current];
+  if (tvPaused) return setStatus("Paused", "paused");
   if (!info) return setStatus("Connecting", "");
   if (info.playing) { autoSkips = 0; return setStatus("Live", "live"); }
   if (info.card) {
@@ -529,6 +571,9 @@ $("chUp").addEventListener("click", () => step(1));
 $("chDown").addEventListener("click", () => step(-1));
 $("skipOff").addEventListener("click", toggleSkip);
 $("last").addEventListener("click", lastChannel);
+$("pauseBtn").addEventListener("click", togglePause);
+$("backBtn").addEventListener("click", backThirty);
+$("liveBtn").addEventListener("click", goLive);
 $("cc").addEventListener("click", toggleCC);
 $("mute").addEventListener("click", toggleMute);
 $("info").addEventListener("click", toggleBanner);
@@ -593,6 +638,9 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "s" || e.key === "S") { toggleSkip(); }
   else if (e.key === "l" || e.key === "L") { lastChannel(); }
   else if (e.key === "c" || e.key === "C") { toggleCC(); }
+  else if (e.key === "p" || e.key === "P") { togglePause(); }
+  else if (e.key === "b" || e.key === "B") { backThirty(); }
+  else if (e.key === "x" || e.key === "X") { goLive(); }
   else if (e.key === "f" || e.key === "F") { toggleFull(); }
   else if (e.key === "Enter" && typed) { const n = parseInt(typed, 10); typed = ""; $("entry").textContent = ""; if (n >= 1 && n <= CHANNELS.length) tune(n - 1); }
   else if (/^[0-9]$/.test(e.key)) {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev18</title>
+<title>Universal Player Rev19</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,8 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev19 2026-11-19  Time-shift for streams: "play" after a pause resumes where it stopped (it used to jump to live).
+                  New remote commands: "back" (30 seconds back, Video.js only) and "live" (jump to live and play).
 Rev18 2026-11-19  Closed captions sit at the top of the tile (were at the bottom, over the headlines bar). Same two-line box.
 Rev17 2026-11-18  Works in older web views (Fire TV lab test): no "inset" shorthand, so the video area and the No signal card fill the tile.
 Rev16 2026-11-18  New option status=0: the tile label shows the channel name only (no LIVE, resolution or bitrate line). Used by the wall.
@@ -567,6 +569,19 @@ function currentVideo() {
    "stopped" releases the stream. While not live, nothing restarts the stream on its own. */
 let userState = "live";
 function setUserState(next) { userState = next; }
+const BACK_SECONDS = 30;
+
+/* Time-shift (Video.js only): move back within the window the stream still holds.
+   Clappr has no seek on live streams, so the back command does nothing there. */
+function seekBack(seconds) {
+  if (!vjsPlayer) return;
+  try {
+    const seekable = vjsPlayer.seekable();
+    const first = seekable && seekable.length ? seekable.start(0) : 0;
+    vjsPlayer.currentTime(Math.max(first, vjsPlayer.currentTime() - seconds));
+  } catch (e) {}
+}
+
 function applyCommand(cmd) {
   const v = currentVideo();
   if (cmd === "pause") {
@@ -575,7 +590,17 @@ function applyCommand(cmd) {
     if (v) v.pause();
     if (clapprPlayer && clapprPlayer.pause) clapprPlayer.pause();
   } else if (cmd === "play") {
+    /* resumes where it was paused, so a pause can be rewound and played on */
     if (userState === "stopped") { setUserState("live"); start(); return; }
+    setUserState("live");
+    lastProgressAt = Date.now();
+    if (v) v.play().catch(() => {});
+    if (clapprPlayer && clapprPlayer.play) clapprPlayer.play();
+  } else if (cmd === "back") {
+    if (userState === "stopped") return;
+    seekBack(BACK_SECONDS);
+  } else if (cmd === "live") {
+    if (userState === "stopped") return;
     setUserState("live");
     lastProgressAt = Date.now();
     if (vjsPlayer && vjsPlayer.liveTracker) { try { vjsPlayer.liveTracker.seekToLiveEdge(); } catch (e) {} }
