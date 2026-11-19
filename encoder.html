@@ -532,7 +532,7 @@ let OFF_AIR = new Set();
 let DESCRIPTIONS = {};
 function loadChannels() {
   return fetch("channels.json", { cache: "no-store" }).then((r) => r.json()).then((list) => {
-    STREAMS = list.map((c) => ({ name: c.name, url: c.url }));
+    STREAMS = list.map((c) => ({ name: c.name, url: c.url, group: c.group || "" }));
     OFF_AIR = new Set(list.filter((c) => c.off).map((c) => c.name));
     DESCRIPTIONS = Object.fromEntries(list.map((c) => [c.name, c.desc || ""]));
   });
