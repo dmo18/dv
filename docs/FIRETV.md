@@ -23,7 +23,7 @@ The page shows "TV RevN · App 1.x" next to the educational note, so you can see
 | Select | press the lit button or channel (when the overlay is hidden, the first press only shows it) |
 | Menu | open or close the guide |
 | Play/Pause | mute or unmute |
-| Back | close the guide, else hide the overlay; with nothing on screen, "Press Back again to exit" and a second Back leaves |
+| Back | close the guide, else hide the overlay; with nothing on screen, "Press Back again to exit" and a second Back within 4 seconds leaves |
 
 Volume is the TV remote's own volume (the page's volume buttons show only in a normal browser). The overlay hides by
 itself after 5 seconds without a press. While it shows, the top bar lists picture size, the stream's bitrate, the

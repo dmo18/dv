@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev14</title>
+<title>Red Macho Devil TV Rev15</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev15 2026-11-19  The second Back to leave may come up to 4 seconds after the first (was 3).
   Rev14 2026-11-19  Top bar fits a 960 px wide TV page: brand and clock stay on one line, the stats line is tighter.
   Rev13 2026-11-19  The overlay hides after 5 seconds. Leaving the Fire TV app takes two Back presses: with nothing on screen,
                     Back shows "Press Back again to exit" and only a second press within 3 seconds leaves. Volume controls are
@@ -226,7 +227,7 @@ window.EPG = window.EPG || {};
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev14";
+const VERSION = "Rev15";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
@@ -407,10 +408,10 @@ window.rmtvBack = function () {
   if (guide.classList.contains("open")) { closeGuide(); wake(); return true; }
   if (started && !uiHidden()) { hideNow(); return true; }
   if (!APP) return false;
-  /* leaving takes a second Back within 3 seconds */
-  if (Date.now() - exitArmedAt < 3000) return false;
+  /* leaving takes a second Back within 4 seconds */
+  if (Date.now() - exitArmedAt < 4000) return false;
   exitArmedAt = Date.now();
-  toast("Press Back again to exit", 3000);
+  toast("Press Back again to exit", 4000);
   return true;
 };
 function lastChannel() { tune(previous); }
