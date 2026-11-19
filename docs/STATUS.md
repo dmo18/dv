@@ -90,3 +90,9 @@ See docs/TAKEOVER.md.
 
 ## Open security findings
 - None open. (Clappr is now pinned to 0.4.7 with integrity hashes everywhere; checkout is pinned in all three workflows.)
+
+## 2026-11-18 and 19
+- Wall: 28-feed layout is the default (v33); 18-tile wall kept at ?layout=18. A 24-tile layout with non-16:9 small tiles was tried and reverted (bars, then cropping).
+- New: tv.html (Red Macho Devil TV), Fire TV app 1.1 (rmtv.apk, fixed signing key in firetv/, lab test workflow), channels.json as the single channel list, epg.yml for now and next.
+- Removed: wsvn.html, firetv-build.yml (the lab test builds the app), the untested "firetv" release.
+- Decisions: tile status line off on the wall; overlay on the TV page hides after 5 s; leaving the app takes two Back presses; volume buttons hidden inside the app.

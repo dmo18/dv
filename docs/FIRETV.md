@@ -37,8 +37,7 @@ channel number then Select tunes it, and the picture moves. Not checked: a real 
 
 ## Build or rebuild
 To rebuild and retest: GitHub, Actions tab, "Fire TV lab test", Run workflow. It builds `firetv/`, runs the lab test, and publishes
-the screenshots and the tested file as the release `firetv-lab`; copy that `rmtv.apk` to the root of the repository.
-("Build Fire TV app" only builds and replaces the release `firetv`, with no test.) The app is signed with a throwaway debug key, so to install a newer build over an older one, remove the old
+the screenshots and the tested file as the release `firetv-lab`; copy that `rmtv.apk` to the root of the repository. The app is signed with a throwaway debug key, so to install a newer build over an older one, remove the old
 app first. Rebuilds are rarely needed because the app opens the live site.
 
 ## Notes

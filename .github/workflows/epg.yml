@@ -1,0 +1,47 @@
+name: Update TV guide
+
+# epg.yml Rev 1 (2026-11-19)
+# Fetches "what is on now" schedules for tv.html (script fetch_epg.py, source: Pluto TV's public guide) and publishes
+# them as epg.json on the "epg-data" branch. That branch holds a single commit that is replaced on every run, so it
+# adds no history to main and does not trigger a Pages rebuild. Uses only the built-in GitHub token.
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - epg-map.json
+      - channels.json
+      - .github/scripts/fetch_epg.py
+      - .github/workflows/epg.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: epg
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Fetch the guide
+        run: |
+          mkdir out
+          python3 .github/scripts/fetch_epg.py channels.json epg-map.json out/epg.json
+
+      - name: Publish to epg-data branch
+        run: |
+          cd out
+          git init -q -b epg-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add epg.json
+          git commit -q -m "Update TV guide"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" epg-data

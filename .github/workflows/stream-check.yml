@@ -1,6 +1,7 @@
 name: Check streams
 
-# stream-check.yml Rev 2
+# stream-check.yml Rev 3
+# - Rev 3 2026-11-19: also runs when channels.json changes (the encoder list moved there).
 # - Rev 2 2026-11-16: also checks that the prices and headlines files published by the Data relay are
 #   fresh (under 60 minutes old); checkout pinned to a commit; issue title now covers streams and data;
 #   only wall problems keep the issue open (encoder-only spares are listed for information); a changed list is
@@ -19,6 +20,7 @@ on:
     branches: [main]
     paths:
       - .github/scripts/check_streams.py
+      - channels.json
       - .github/workflows/stream-check.yml
 
 permissions:
