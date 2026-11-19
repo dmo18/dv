@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev33</title>
+<title>Encoder Rev34</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev34  2026-11-19  Real channel numbers (number field in channels.json): blocks like a cable provider, see tv.html Rev28.
   Rev33  2026-11-19  Local stations show a heading for each city (Atlanta, Austin MN, Bakersfield ...), from the city field in
                      channels.json, so the stations of one city are visibly together.
   Rev32  2026-11-19  Channels are grouped like a cable guide (National news, Business and finance, International, Local stations
@@ -387,7 +388,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev33</h1>
+  <h1>Wallboard URL Encoder Rev34</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Previews are muted with no controls. Open gives sound and full player controls.
@@ -500,7 +501,7 @@ DEVELOPER NOTES
 
 Where to add more feeds:
 
-Add more entries to channels.json (name, group, city, url, desc, off). city is only used for Local stations.
+Add more entries to channels.json (name, number, group, city, url, desc, off). Keep the numbers unique and in ascending order. city is only used for Local stations.
 group is one of: National news, Business and finance, International, Local stations, Probably bad (off air or not working).
 The grid shows a heading each time the group changes, so keep each group together in the file.
 Each entry automatically creates one preview tile and one set of buttons.
@@ -543,7 +544,7 @@ let OFF_AIR = new Set();
 let DESCRIPTIONS = {};
 function loadChannels() {
   return fetch("channels.json", { cache: "no-store" }).then((r) => r.json()).then((list) => {
-    STREAMS = list.map((c) => ({ name: c.name, url: c.url, group: c.group || "", city: c.city || "" }));
+    STREAMS = list.map((c, i) => ({ name: c.name, url: c.url, group: c.group || "", city: c.city || "", number: c.number || (i + 1) }));
     OFF_AIR = new Set(list.filter((c) => c.off).map((c) => c.name));
     DESCRIPTIONS = Object.fromEntries(list.map((c) => [c.name, c.desc || ""]));
   });
@@ -784,7 +785,7 @@ function renderSnapshotGrid() {
 
     const badge = document.createElement("div");
     badge.className = "snapshotBadge";
-    badge.textContent = (STREAMS.indexOf(stream) + 1) + ". " + stream.name;
+    badge.textContent = stream.number + ". " + stream.name;
 
     const tag = document.createElement("div");
     tag.className = "snapshotTag";
@@ -847,7 +848,7 @@ function renderSnapshotGrid() {
 
     const name = document.createElement("div");
     name.className = "snapshotName";
-    name.textContent = (STREAMS.indexOf(stream) + 1) + ". " + stream.name;
+    name.textContent = stream.number + ". " + stream.name;
 
     const desc = document.createElement("div");
     desc.className = "snapshotDesc";
