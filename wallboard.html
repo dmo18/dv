@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v36</title>
+<title>Wallboard v37</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v37  2026-11-19  The wall reads its feeds from channels.json (one list for the wall, encoder and TV). The tile lists
+                   now hold only feed names; addresses, labels and the ABC 10 backup come from the list. Wall unchanged.
   v36  2026-11-19  Player Rev19 (time shift: play after a pause resumes where it stopped; back and live commands). Wall unchanged.
   v35  2026-11-19  Closed captions moved to the top of each tile (player Rev18), so they no longer cover the headlines bar.
   v34  2026-11-18  Player Rev17 (older web views); the wall is otherwise unchanged.
@@ -62,7 +64,8 @@
   v11              Version as moved from the previous repository (earlier history not recorded).
 
   HOW TO EDIT
-    - Tiles: the TILES list in the script. Order = screen order (3 in row 1, then 5 per row).
+    - Tiles: the TILES_18 and TILES_28 lists in the script, by feed name. Addresses come from channels.json.
+      Order = screen order (3 in row 1, then 5 per row).
     - MAX_LIVE (top of the script): 18 = every tile plays. A lower number (for example 14) keeps the
       3 large tiles playing and lets the other tiles take turns: resting tiles show a name card, and the
       set rotates every 2 minutes so every small tile gets airtime.
@@ -198,6 +201,10 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
 </style>
 
 <script>
+  // Feeds come from channels.json, the one list shared with encoder.html and tv.html.
+  // The wall is built once that file has loaded (see loadWall at the end of this script).
+  const CHANNEL_FILE = "channels.json";
+  function startWall(CHANNELS) {
   // ---------- Settings (plain values, edit here) ----------
   // Decode cap. 18 = all tiles play (cap off). A lower number keeps the first 3 tiles
   // (row 1) always playing and rotates the other tiles every 2 minutes, see HOW TO EDIT above.
@@ -211,13 +218,18 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
   const BASE_RELOAD_MINUTES = 60;   // tile n reloads every 60 + 2n minutes
 
   // Builds a tile that plays a stream in player.html: player(ID, label, stream address, options).
-  // Paste stream addresses in plain form; they are encoded when the tile loads.
   // Options: { alt: backup stream used when the main one will not play, altLabel: its label,
   //            cc: false to hide closed captions on one tile (every tile shows them when its stream carries them) }.
-  // Use a stream's "master" address where one exists, so the player can match quality to tile size.
   const player = (id, label, stream, opts = {}) => ({ kind: "player", id, label, stream, opts });
   // A tile that shows one of our own pages.
   const page = (label, url) => ({ kind: "page", label, url });
+  // A tile for a feed in channels.json, by its name. Name, address and ID come from the list.
+  const byName = Object.fromEntries(CHANNELS.map((c) => [c.name, c]));
+  const feed = (name, opts = {}) => {
+    const c = byName[name];
+    if (!c) { console.error("Not in channels.json: " + name); return player(name.replace(/\s+/g, ""), name, "", opts); }
+    return player(c.name.replace(/\s+/g, ""), c.name, c.url, opts);
+  };
 
   // Link for tile number n (n counts from 0 in TILES order). Links are relative, so the board
   // works from whatever address it is served at.
@@ -232,55 +244,25 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
     return "player.html?" + q.toString();
   };
 
-  // One entry per tile, in screen order: row 1 (3 large), then rows 2 to 4 (5 small each).
-  // Fox News is only available at low resolution (240p): keep it in a small tile.
-  // ABC 10 is an event feed that goes dark between events, so it has CNN as its backup.
-  // ABC 10 stays on its fixed 720p address: its lower quality level has black borders baked in.
+  // The wall: which feeds are on it, in screen order (names as in channels.json).
+  // Row 1 is the large tiles, then rows of small tiles. ABC 10 falls back to CNN when its own feed is dark.
   const TILES_18 = [
-    player("BBCNews", "BBC News", "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8"),
-    player("WSVN", "WSVN 7News", "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web"),
-    player("Livenowfox", "LiveNOW Fox", "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8"),
-
-    player("CNN", "CNN", "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8"),
-    player("FoxNews", "Fox News", "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8"),
-    player("ABCNewsLive", "ABC News Live", "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8"),
-    player("CBSNews", "CBS News", "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8"),
-    player("Bloomberg", "Bloomberg", "https://www.bloomberg.com/media-manifest/streams/us.m3u8"),
-
-    player("IL13", "IL13", "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8"),
-    player("i24", "i24", "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8"),
-    player("TRTWorld", "TRT World", "https://tv-trtworld.medya.trt.com.tr/master.m3u8"),
-    player("AlJazeera", "Al Jazeera", "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8"),
-    player("RT", "RT", "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8"),
-
-    player("ABC10", "ABC 10", "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", { alt: "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", altLabel: "CNN" }),
-    player("GlobalNews", "Global News", "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8"),
-    player("ScrippsNews", "Scripps News", "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8"),
-    player("DW", "DW", "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8"),
-    player("FoxWeather", "Fox Weather", "https://247wlive.foxweather.com/stream/index.m3u8")
+    feed("BBC News"), feed("WSVN 7News"), feed("LiveNOW Fox"),
+    feed("CNN"), feed("Fox News"), feed("ABC News Live"), feed("CBS News"), feed("Bloomberg"),
+    feed("IL13"), feed("i24"), feed("TRT World"), feed("Al Jazeera"), feed("RT"),
+    feed("ABC 10", { alt: byName["CNN"] ? byName["CNN"].url : "", altLabel: "CNN" }),
+    feed("Global News"), feed("Scripps News"), feed("DW"), feed("Fox Weather")
   ];
-
-  // Sample list for ?layout=28: the first four are the large tiles, then 24 small ones.
-  // Tiles that already exist above are reused (same stream, same backup); the rest are new.
-  const BY_ID = Object.fromEntries(TILES_18.map((t) => [t.id, t]));
-  const NEW_28 = [
-    player("ABCAUS", "ABC News Australia", "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8"),
-    player("Africanews", "Africanews English", "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8"),
-    player("AlArabiya", "Al Arabiya English", "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8"),
-    player("CBSMiami", "CBS News Miami", "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8"),
-    player("France24", "France 24 English", "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8"),
-    player("GBNews", "GB News", "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8"),
-    player("i24Hebrew", "i24NEWS Hebrew", "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8"),
-    player("IndiaToday", "India Today", "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8"),
-    player("MSNOW", "MS NOW", "https://tvsen6.aynaott.com/msnbc/index.m3u8"),
-    player("NBCNOW", "NBC News NOW", "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003"),
-    player("NHK", "NHK World-Japan", "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8"),
-    player("NewsmaxTV", "Newsmax TV", "https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8"),
-    player("Telesur", "teleSUR English", "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8"),
-    player("VoA", "VoA TV", "https://voa-ingest.akamaized.net/hls/live/2033874/tvmc06/playlist.m3u8"),
+  // ?layout=28 (the default): the first four are the large tiles, then 24 small ones.
+  const TILES_28 = [
+    feed("BBC News"), feed("WSVN 7News"), feed("LiveNOW Fox"),
+    feed("CNN"), feed("ABC 10", { alt: byName["CNN"] ? byName["CNN"].url : "", altLabel: "CNN" }),
+    feed("ABC News Australia"), feed("Africanews English"), feed("Al Arabiya English"), feed("Al Jazeera"), feed("Bloomberg"),
+    feed("CBS News"), feed("CBS News Miami"), feed("DW"), feed("Fox News"), feed("France 24 English"), feed("GB News"),
+    feed("Global News"), feed("i24"), feed("i24NEWS Hebrew"), feed("India Today"), feed("MS NOW (ex MSNBC)"),
+    feed("NBC News NOW"), feed("NHK World-Japan"), feed("TRT World"), feed("Newsmax TV"), feed("RT"),
+    feed("Telesur English"), feed("VoA TV (Voice of America)")
   ];
-  NEW_28.forEach((t) => { BY_ID[t.id] = t; });
-  const TILES_28 = ["BBCNews", "WSVN", "Livenowfox", "CNN", "ABC10", "ABCAUS", "Africanews", "AlArabiya", "AlJazeera", "Bloomberg", "CBSNews", "CBSMiami", "DW", "FoxNews", "France24", "GBNews", "GlobalNews", "i24", "i24Hebrew", "IndiaToday", "MSNOW", "NBCNOW", "NHK", "TRTWorld", "NewsmaxTV", "RT", "Telesur", "VoA"].map((id) => BY_ID[id]);
   const TILES = L28 ? TILES_28 : TILES_18;
 
   // ---------- Page parameters ----------
@@ -389,7 +371,7 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
   };
 
   // ---------- Build the wall ----------
-  window.addEventListener("DOMContentLoaded", () => {
+  const buildWall = () => {
     document.getElementById("tkFrame").src = "ticker.html";
     document.getElementById("hlFrame").src = "headlines.html";
     const wall = document.getElementById("wall");
@@ -440,7 +422,8 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
     // First start: row 1 at once, then one small tile every STAGGER_SECONDS (done in applyStep).
     if (restCount > 0) setInterval(() => { step++; applyStep(step); }, rotateMs);
     window.__wall = { N, SMALL, restCount, maxLive, rotateMs, frames, live, loadTimes };
-  });
+  };
+  if (document.readyState === "loading") window.addEventListener("DOMContentLoaded", buildWall); else buildWall();
 
   // Self-update: every 5 minutes, fetch this page fresh and reload if its title version changed.
   const versionOf = (text) => (text.match(/<title>[^<]*\bv(\d+)/i) || [])[1];
@@ -453,6 +436,13 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
       if (latest && RUNNING && latest !== RUNNING) location.reload();
     } catch (e) { /* offline or blocked: try again next time */ }
   }, 5 * 60 * 1000);
+  }
+  // Load the channel list, then build the wall. If the list cannot load, try again in 30 seconds.
+  const loadWall = () => fetch(CHANNEL_FILE, { cache: "no-store" })
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(startWall)
+    .catch(() => setTimeout(loadWall, 30000));
+  loadWall();
 </script>
 </head>
 

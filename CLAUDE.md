@@ -19,8 +19,8 @@ Also: tv.html (Red Macho Devil TV, a channel changer with a guide) and its Fire 
 - Wallboard self-reloads when its title version changes, so bump wallboard.html when a child page changes.
 - Use relative links, not absolute site addresses.
 - Merge to main after testing (standing instruction). Branch name: claude/awesome-volta-kwfe4l, restart from main after each merge.
-- Channel list: channels.json (name, url, desc, off) is the one list used by encoder.html, tv.html and the daily check.
-  Every video stream used on the wallboard (main and backup addresses, exact match) must also be in channels.json.
+- Channel list: channels.json (name, group, url, desc, off) is the one list used by encoder.html, tv.html, wallboard.html and
+  the daily check. Never type a stream address into another file: the wallboard picks its feeds by name from this list.
 - tv.html must work in old web views (the Fire TV lab uses Chrome 83): no CSS "inset", no :focus-visible in selector lists.
 - rmtv.apk is replaced only with the exact file from a passing "Fire TV lab test" run.
 - Never use em dashes or en dashes in text.
