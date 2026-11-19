@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev11</title>
+<title>Ticker Rev12</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev12 2026-11-19  Value column sized to its longest rotating line (was twice that, leaving a gap after each item).
   Rev11 2026-11-19  Name column sized to its text (a fixed minimum left a gap between each name and its chart).
   Rev10 2026-11-19  Less space between items (the gap was about a mile). Charts are a green or red gradient fill under a
                     line of the same colour, as the reference.
@@ -96,7 +97,7 @@ html, body {
 .it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .5);
       padding: 0 calc(var(--u) * .2); border-radius: calc(var(--u) * .3); white-space: nowrap; }
 .nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .3); }
-.vals { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin-right: calc(var(--u) * .2); min-width: calc(var(--u) * 4.4); }
+.vals { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin-right: calc(var(--u) * .2); min-width: calc(var(--u) * 3.1); }
 .nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
 .cl { position: absolute; left: 0; top: calc(100% - var(--u) * .04); font-size: calc(var(--u) * .31); font-weight: 700; line-height: .9; color: #d2d6da; visibility: hidden; letter-spacing: .05em; text-transform: uppercase; }
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: left; line-height: 1.05; }
