@@ -350,11 +350,25 @@
     "off": false
   },
   {
+    "name": "CBS News Bay Area",
+    "group": "Local stations",
+    "url": "https://cbsn-sf.cbsnstream.cbsnews.com/out/v1/dac63c1abb3f4a2dac9f508f44bb072a/master.m3u8",
+    "desc": "CBS News Bay Area, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
     "name": "NBC Bay Area (KNTV)",
     "group": "Local stations",
     "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889711/hls/master.m3u8?ads.xumo_channelId=88889711a&ads.xumo_ifaType=&ads.xumo_providerId=3822&ads.xumo_providerName=NBCNBA",
     "desc": "NBC Bay Area's local station (channel 11): San Francisco Bay Area local news and weather.",
     "off": false
+  },
+  {
+    "name": "CBS News Boston",
+    "group": "Local stations",
+    "url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8",
+    "desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
   },
   {
     "name": "ABC 9 Charlotte (WSOC)",
@@ -369,6 +383,13 @@
     "url": "https://amg01942-amg01942c5-stirr-us-10184.playouts.now.amagi.tv/playlist.m3u8",
     "desc": "ABC Chicago's local station (channel 7): Chicago local news and weather. 720p.",
     "off": false
+  },
+  {
+    "name": "CBS News Chicago",
+    "group": "Local stations",
+    "url": "https://cbsn-chi.cbsnstream.cbsnews.com/out/v1/b2fc0d5715d54908adf07f97d2616646/master.m3u8",
+    "desc": "CBS News Chicago, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
   },
   {
     "name": "Fox 32 Chicago (WFLD)",
@@ -406,6 +427,20 @@
     "off": false
   },
   {
+    "name": "CBS News Colorado",
+    "group": "Local stations",
+    "url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8",
+    "desc": "CBS News Colorado, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Detroit",
+    "group": "Local stations",
+    "url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8",
+    "desc": "CBS News Detroit, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
     "name": "Fox 2 Detroit (WJBK)",
     "group": "Local stations",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox2detroitwjbk-vizious/playlist.m3u8",
@@ -425,6 +460,13 @@
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kriv-lgus/playlist.m3u8",
     "desc": "Fox Houston (channel 26): local news, weather and Fox shows.",
     "off": false
+  },
+  {
+    "name": "CBS News Los Angeles",
+    "group": "Local stations",
+    "url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8",
+    "desc": "CBS News Los Angeles, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
   },
   {
     "name": "Fox 11 Los Angeles (KTTV)",
@@ -462,11 +504,25 @@
     "off": false
   },
   {
+    "name": "CBS News Minnesota",
+    "group": "Local stations",
+    "url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8",
+    "desc": "CBS News Minnesota, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
     "name": "Fox 9 Minneapolis (KMSP)",
     "group": "Local stations",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kmsp-lgus/playlist.m3u8",
     "desc": "Fox Minneapolis-St. Paul (channel 9): local news, weather and Fox shows.",
     "off": false
+  },
+  {
+    "name": "CBS News New York",
+    "group": "Local stations",
+    "url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8",
+    "desc": "CBS News New York, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
   },
   {
     "name": "Fox 5 New York (WNYW)",
@@ -490,6 +546,13 @@
     "off": false
   },
   {
+    "name": "CBS News Philly",
+    "group": "Local stations",
+    "url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8",
+    "desc": "CBS News Philly, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
     "name": "Fox 29 Philadelphia (WTXF)",
     "group": "Local stations",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox29philadelphiawtx-vizious/playlist.m3u8",
@@ -509,6 +572,13 @@
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-ksaz-lgus/playlist.m3u8",
     "desc": "Fox Phoenix (channel 10): Phoenix local news, weather and Fox shows.",
     "off": false
+  },
+  {
+    "name": "CBS News Pittsburgh",
+    "group": "Local stations",
+    "url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8",
+    "desc": "CBS News Pittsburgh, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
   },
   {
     "name": "CBS News Sacramento",
@@ -670,76 +740,6 @@
     "url": "https://bloomberg.com/media-manifest/streams/eu-event.m3u8",
     "desc": "Bloomberg Europe, Middle East and Africa live event feed. Shows a waiting card until an event is on.",
     "off": false
-  },
-  {
-    "name": "CBS News Bay Area",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-sf.cbsnstream.cbsnews.com/out/v1/dac63c1abb3f4a2dac9f508f44bb072a/master.m3u8",
-    "desc": "CBS News Bay Area, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Boston",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8",
-    "desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Chicago",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-chi.cbsnstream.cbsnews.com/out/v1/b2fc0d5715d54908adf07f97d2616646/master.m3u8",
-    "desc": "CBS News Chicago, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Colorado",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8",
-    "desc": "CBS News Colorado, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Detroit",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8",
-    "desc": "CBS News Detroit, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Los Angeles",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8",
-    "desc": "CBS News Los Angeles, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Minnesota",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8",
-    "desc": "CBS News Minnesota, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News New York",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8",
-    "desc": "CBS News New York, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Philly",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8",
-    "desc": "CBS News Philly, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
-  },
-  {
-    "name": "CBS News Pittsburgh",
-    "group": "Probably bad (off air or not working)",
-    "url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8",
-    "desc": "CBS News Pittsburgh, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": true
   },
   {
     "name": "i24NEWS English World",
