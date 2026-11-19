@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev8</title>
+<title>Ticker Rev9</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev9  2026-11-19  The day chart sits next to the name (as the reference), larger, with a light fill under the line in
+                    the trend colour. Price and change stay together on the right.
   Rev8  2026-11-19  New look (as the reference picture): name on top in blue, price under it, then the change with the
                     absolute move and the percent, sparkline to the right. The change row rotates every 5 seconds through
                     change, day range (D), 52-week range (52w) and, for stocks, volume (V). The small lines under the
@@ -100,10 +102,13 @@ html, body {
 .ch { display: block; white-space: nowrap; font-size: calc(var(--u) * .36); font-weight: 600; line-height: 1.1; color: var(--fl); }
 .ar { display: none; }
 .pt { display: inline-block; text-align: left; }
-.sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
-.sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.sp { width: calc(var(--u) * 2.4); height: calc(var(--u) * .95); margin: 0 calc(var(--u) * .35); overflow: visible; flex: 0 0 auto; }
+.sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.sp polygon { fill: var(--fl); fill-opacity: .16; stroke: none; }
 .up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
 .dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
+.up .sp polygon { fill: var(--up); }
+.dn .sp polygon { fill: var(--dn); }
 
 /* States */
 .it.closed { opacity: .72; }
@@ -381,6 +386,7 @@ function paint(v, e) {
       let pts = "";
       for (let i = 0; i < n; i++) pts += (i / (n - 1) * 44).toFixed(1) + "," + (13 - (s[i] - mn) / span * 12).toFixed(1) + " ";
       v.poly.setAttribute("points", pts.trim());
+      v.area.setAttribute("points", pts.trim() + " 44,14 0,14");
     }
   }
 }
@@ -483,9 +489,10 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   if (kind !== "pin") {
     const sp = document.createElementNS(SVGNS, "svg");
     sp.setAttribute("class", "sp"); sp.setAttribute("viewBox", "0 0 44 14"); sp.setAttribute("preserveAspectRatio", "none");
+    const area = document.createElementNS(SVGNS, "polygon");
     const poly = document.createElementNS(SVGNS, "polyline");
-    sp.appendChild(poly); root.appendChild(sp);
-    v.sp = sp; v.poly = poly;
+    sp.appendChild(area); sp.appendChild(poly); root.insertBefore(sp, vals);
+    v.sp = sp; v.poly = poly; v.area = area;
   }
   return v;
 }
