@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev19</title>
+<title>Red Macho Devil TV Rev20</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev20 2026-11-19  Clicking or tapping the picture brings up the controls (a transparent layer sits over the picture; the picture
+                    itself had swallowed clicks and keyboard focus, which is why typed channel numbers did nothing). Typing a
+                    channel number works from anywhere on the page: type it and press Enter, or wait a moment.
   Rev19 2026-11-19  Seven more ABC local stations (Charlotte, Tucson, Bakersfield, Waco, Duluth, Tallahassee, Austin MN).
   Rev18 2026-11-19  Fifteen more local stations from Dallas, Philadelphia, Washington, Orlando, Atlanta, Houston, Minneapolis, Denver, Seattle, Phoenix, Tampa and Detroit (101 feeds in all).
   Rev17 2026-11-19  Seven more local affiliates (NBC New York, NBC Miami, ABC, Fox and NBC Chicago, NBC Philadelphia, NBC Bay Area).
@@ -52,6 +55,9 @@
 html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow:hidden; }
 button { font-family:inherit; }
 #screen { position:fixed; top:0; right:0; bottom:0; left:0; width:100%; height:100%; border:0; background:#000; }
+/* transparent layer over the picture: it takes the clicks and taps that the picture would otherwise swallow */
+#shield { position:fixed; top:0; right:0; bottom:0; left:0; z-index:2; background:transparent; cursor:pointer; }
+body.hideui #shield { cursor:none; }
 #flame { position:fixed; left:0; right:0; top:0; height:8px; z-index:3; pointer-events:none;
   background:linear-gradient(90deg,#7a0000,#e10600,#ff4d00,#ffb000,#e10600,#7a0000,#e10600,#ff4d00,#7a0000);
   background-size:200% 100%; animation:flow 2.5s linear infinite; box-shadow:0 0 18px #e10600; }
@@ -150,7 +156,8 @@ body.app .volctl { display:none !important; }
 </head>
 <body>
 <div id="flame" aria-hidden="true"></div>
-<iframe id="screen" allow="autoplay; fullscreen" title="Channel"></iframe>
+<iframe id="screen" allow="autoplay; fullscreen" title="Channel" tabindex="-1"></iframe>
+<div id="shield" aria-hidden="true"></div>
 
 <div id="top">
   <svg class="devil" viewBox="0 0 200 200" aria-hidden="true">
@@ -256,7 +263,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev19";
+const VERSION = "Rev20";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
@@ -535,6 +542,9 @@ $("tabAll").addEventListener("click", () => setTab(false));
 $("tabOn").addEventListener("click", () => setTab(true));
 screen_.addEventListener("load", applyVolume);
 ["pointermove", "pointerdown", "touchstart"].forEach((ev) => document.addEventListener(ev, () => { if (started) wake(); }, { passive: true }));
+/* a click or tap on the picture brings the controls up (and gives the page the keyboard back) */
+$("shield").addEventListener("click", () => { if (started) { wake(); document.activeElement && document.activeElement.blur && document.activeElement.blur(); } });
+$("shield").addEventListener("touchend", (e) => { if (started && uiHidden()) { e.preventDefault(); wake(); } }, { passive: false });
 
 /* keys */
 document.addEventListener("keydown", (e) => {
