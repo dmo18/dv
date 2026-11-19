@@ -476,13 +476,6 @@
     "off": false
   },
   {
-    "name": "CBS News Miami",
-    "group": "Local stations",
-    "url": "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8",
-    "desc": "CBS News Miami, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": false
-  },
-  {
     "name": "NBC 6 Miami (WTVJ)",
     "group": "Local stations",
     "url": "https://nbculocallive.akamaized.net/hls/live/2037498/miami/stream1/master.m3u8",
@@ -634,6 +627,13 @@
     "group": "Local stations",
     "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889708/hls/master.m3u8?ads.xumo_channelId=88889708a&ads.xumo_ifaType=&ads.xumo_providerId=3830&ads.xumo_providerName=NBCNWAS",
     "desc": "NBC Washington, DC (channel 4): local news, weather and traffic.",
+    "off": false
+  },
+  {
+    "name": "CBS News Miami",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8",
+    "desc": "CBS News Miami, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
     "off": false
   },
   {
