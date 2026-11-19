@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev30</title>
+<title>Encoder Rev31</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev31  2026-11-19  Time shift: "- 30 s" goes back 30 seconds, "Live" jumps back to live (player.html Rev19). Play after a
+                     pause resumes where it stopped instead of jumping to live.
   Rev30  2026-11-19  Click a picture to pause or play that feed (Play all, Pause all and Stop all still work). A "Paused"
                      or "Stopped" tag shows on the picture. The blue Open button on the picture opens the sound-on player
                      (fixed: it was a dead label). Cards now have three buttons: Load, Copy raw, Copy ready.
@@ -210,6 +212,25 @@ hr {
   z-index: 4;
 }
 
+.snapshotTime {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 4;
+}
+.snapshotTime button {
+  min-height: 0;
+  border: 0;
+  background: rgba(0,0,0,0.78);
+  color: #fff;
+  font: 600 11px/1 system-ui, Arial, sans-serif;
+  padding: 6px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
 .snapshotTag {
   position: absolute;
   left: 50%;
@@ -342,7 +363,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev30</h1>
+  <h1>Wallboard URL Encoder Rev31</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Previews are muted with no controls. Open gives sound and full player controls.
@@ -352,7 +373,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
   <h2>Saved stream grid</h2>
   <small>
-    Click a picture to pause it, click again to play it.
+    Click a picture to pause it, click again to play it. "- 30 s" goes back, "Live" returns to live.
     Open (blue button on the picture) opens the feed in a new window with sound.
     Use Load to fill the encoder fields, Copy ready for the wall URL, Copy raw for the stream address.
   </small>
@@ -649,9 +670,9 @@ function sendTile(frame, cmd) {
   let origin;
   try { origin = new URL(frame.getAttribute("src"), location.href).origin; } catch (e) { return false; }
   try { frame.contentWindow.postMessage({ type: "tilectl", cmd: cmd }, origin); } catch (e) { return false; }
-  box.dataset.state = cmd === "play" ? "live" : cmd === "pause" ? "paused" : "stopped";
+  if (cmd !== "back") box.dataset.state = cmd === "pause" ? "paused" : cmd === "stop" ? "stopped" : "live";
   const tag = box.querySelector(".snapshotTag");
-  if (tag) tag.textContent = cmd === "pause" ? "Paused" : cmd === "stop" ? "Stopped" : "";
+  if (tag) tag.textContent = box.dataset.state === "paused" ? "Paused" : box.dataset.state === "stopped" ? "Stopped" : "";
   return true;
 }
 
@@ -740,6 +761,22 @@ function renderSnapshotGrid() {
     /* Picture click toggles pause and play. Clicks on the Open button or the Try preview button do not reach it. */
     overlay.addEventListener("click", () => toggleTile(frame));
 
+    /* time shift: 30 seconds back (where the stream still holds it), and back to live */
+    const timeBar = document.createElement("div");
+    timeBar.className = "snapshotTime";
+    const backBtn = document.createElement("button");
+    backBtn.type = "button";
+    backBtn.textContent = "\u2212 30 s";
+    backBtn.title = "Go back 30 seconds (where the stream still holds it)";
+    backBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendTile(frame, "back"); });
+    const liveBtn = document.createElement("button");
+    liveBtn.type = "button";
+    liveBtn.textContent = "Live";
+    liveBtn.title = "Jump to live and play";
+    liveBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); sendTile(frame, "live"); });
+    timeBar.appendChild(backBtn);
+    timeBar.appendChild(liveBtn);
+
     const status = document.createElement("div");
     status.className = "snapshotStatus";
     status.textContent = "Click the picture to pause or play.";
@@ -761,6 +798,7 @@ function renderSnapshotGrid() {
     preview.appendChild(badge);
     preview.appendChild(tag);
     preview.appendChild(open);
+    preview.appendChild(timeBar);
 
     const meta = document.createElement("div");
     meta.className = "snapshotMeta";
