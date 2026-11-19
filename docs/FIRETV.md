@@ -10,15 +10,22 @@ https://dmo18.github.io/dv/tv.html, so every change made to the page shows up on
 2. Open Downloader and type: `https://dmo18.github.io/dv/rmtv.apk` (the file `rmtv.apk` in the root of this repository)
 3. Install, then open "Red Macho Devil TV" from Your Apps and Channels.
 
+Updating from app 1.0 (the first build): uninstall the old app once (Settings, Applications, Manage Installed
+Applications, Red Macho Devil TV, Uninstall), then install `rmtv.apk`. From 1.1 on, the app is signed with a fixed key
+kept in this repository (`firetv/rmtv-debug.keystore`, not a secret), so later builds install straight over it.
+The page shows "TV RevN · App 1.x" next to the educational note, so you can see what is running.
+
 ## Remote control
 | Button | Does |
 |---|---|
-| Up, Down | next or previous channel (in the guide: move through the list) |
-| Left, Right | move between the bottom bar buttons |
-| Select | press the highlighted button or channel |
+| Up, Down | next or previous channel (skips off-air channels while Skip off air is lit; in the guide: move through the list) |
+| Left, Right | move along the bottom buttons (in the guide: switch All / On air) |
+| Select | press the lit button or channel (when the overlay is hidden, the first press only shows it) |
 | Menu | open or close the guide |
 | Play/Pause | mute or unmute |
-| Back | close the guide, or leave the app |
+| Back | close the guide, else hide the overlay, else leave the app |
+
+Volume is the TV remote's own volume. The overlay hides by itself after 15 seconds without a press.
 
 ## Lab test (2026-11-18)
 `rmtv.apk` is the exact file that passed the "Fire TV lab test" workflow: a virtual 1080p Android 11 device with an old

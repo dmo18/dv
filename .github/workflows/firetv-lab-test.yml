@@ -1,6 +1,10 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 6 (2026-11-18)
+# firetv-lab-test.yml Rev 7 (2026-11-19)
+# - Rev 7: tests app 1.1 and TV Rev12: Back closes the guide, then hides the overlay, then leaves the app; Skip off air
+#   stays lit and channel up jumps over off-air channels; the overlay hides by itself after 15 s. Old files in the
+#   release are removed before the new ones are uploaded.
+# - Rev 6 2026-11-18
 # - Rev 6: longer waits after a channel change (the virtual TV starts streams slowly); the Play/Pause check is its own
 #   step (mute, screenshot, unmute) before the channel 20 playback check.
 # - Rev 5 2026-11-18
@@ -87,24 +91,31 @@ jobs:
           adb shell dumpsys package com.google.android.webview | grep -m1 versionName | tee -a lab/log.txt || true
           adb install -r lab/rmtv.apk | tee -a lab/log.txt
           adb shell am start -n com.redmachodevil.tv/.MainActivity | tee -a lab/log.txt
-          sleep 60;  shot step1-start
+          sleep 60;  shot s01-start
           echo "running after start: $(adb shell pidof com.redmachodevil.tv | tr -d '\r')" | tee -a lab/log.txt
           adb shell input keyevent KEYCODE_DPAD_UP
-          sleep 50;  shot step2-channel-up
+          sleep 40;  shot s02-channel-up
           adb shell input keyevent KEYCODE_MENU
-          sleep 5;   shot step3-guide-open
-          adb shell input keyevent KEYCODE_DPAD_DOWN
-          sleep 2;   shot step4-guide-down
+          sleep 4;   shot s03-guide-open
           adb shell input keyevent KEYCODE_BACK
-          sleep 5;   shot step5-back-closes-guide
-          adb shell input keyevent KEYCODE_MEDIA_PLAY_PAUSE
-          sleep 3;   shot step6-mute
-          adb shell input keyevent KEYCODE_MEDIA_PLAY_PAUSE
-          sleep 2;   shot step7-unmute
+          sleep 3;   shot s04-back-closes-guide
+          adb shell input keyevent KEYCODE_BACK
+          sleep 3;   shot s05-back-hides-overlay
+          echo "running after two Backs: $(adb shell pidof com.redmachodevil.tv | tr -d '\r')" | tee -a lab/log.txt
+          adb shell input text s
+          sleep 3;   shot s06-skip-on
+          adb shell input keyevent KEYCODE_DPAD_UP
+          sleep 4;   shot s07-skip-channel-up
+          sleep 17;  shot s08-hidden-after-15s
+          adb shell input keyevent KEYCODE_BACK
+          sleep 4
+          echo "running after third Back (empty = app closed): '$(adb shell pidof com.redmachodevil.tv | tr -d '\r')'" | tee -a lab/log.txt
+          adb shell am start -n com.redmachodevil.tv/.MainActivity | tee -a lab/log.txt
+          sleep 40
           adb shell input text 20
           adb shell input keyevent KEYCODE_ENTER
-          sleep 70;  shot step8-channel20-a
-          sleep 10;  shot step9-channel20-b
+          sleep 60;  shot s09-channel20-a
+          sleep 10;  shot s10-channel20-b
           echo "running at end: $(adb shell pidof com.redmachodevil.tv | tr -d '\r')" | tee -a lab/log.txt
           adb logcat -d -v brief 2>/dev/null | grep -iE 'redmacho|AndroidRuntime|chromium.*(ERROR|FATAL)|FATAL' | tail -60 > lab/app-log.txt || true
           adb emu kill || true
@@ -117,6 +128,9 @@ jobs:
           gh release view firetv-lab --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
             gh release create firetv-lab --repo "$GITHUB_REPOSITORY" --title "Fire TV lab test results" \
               --notes "Screenshots, log and the tested install file from the Fire TV lab test workflow."
+          for a in $(gh release view firetv-lab --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name'); do
+            gh release delete-asset firetv-lab "$a" --repo "$GITHUB_REPOSITORY" -y || true
+          done
           for f in lab/*; do
             if [ -s "$f" ]; then gh release upload firetv-lab "$f" --repo "$GITHUB_REPOSITORY" --clobber || echo "could not upload $f"; else echo "skipped empty file $f"; fi
           done
