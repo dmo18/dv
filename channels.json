@@ -1,110 +1,758 @@
 [
-  {"name": "ABC1", "url": "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8", "desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.", "off": false},
-  {"name": "ABC2", "url": "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8", "desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.", "off": false},
-  {"name": "ABC 10", "url": "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8", "desc": "ABC News weather and extra coverage feed (the wall's CNN backup is set on this tile).", "off": false},
-  {"name": "ABC News Australia", "url": "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8", "desc": "ABC News Australia, the Australian public broadcaster's 24/7 news channel.", "off": false},
-  {"name": "ABC News Live", "url": "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8", "desc": "ABC's 24/7 US news channel.", "off": false},
-  {"name": "ABC News Live 1", "url": "https://abcnews-streams.akamaized.net/hls/live/2023560/abcnewshudson1/master.m3u8", "desc": "ABC News Live 1, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 2", "url": "https://abcnews-streams.akamaized.net/hls/live/2023561/abcnewshudson2/master.m3u8", "desc": "ABC News Live 2, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 3", "url": "https://abcnews-streams.akamaized.net/hls/live/2023562/abcnewshudson3/master.m3u8", "desc": "ABC News Live 3, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 4", "url": "https://abcnews-streams.akamaized.net/hls/live/2023563/abcnewshudson4/master.m3u8", "desc": "ABC News Live 4, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 5", "url": "https://abcnews-streams.akamaized.net/hls/live/2023564/abcnewshudson5/master.m3u8", "desc": "ABC News Live 5, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 6", "url": "https://abcnews-streams.akamaized.net/hls/live/2023565/abcnewshudson6/master.m3u8", "desc": "ABC News Live 6, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 7", "url": "https://abcnews-streams.akamaized.net/hls/live/2023566/abcnewshudson7/master.m3u8", "desc": "ABC News Live 7, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 8", "url": "https://abcnews-streams.akamaized.net/hls/live/2023567/abcnewshudson8/master.m3u8", "desc": "ABC News Live 8, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 9", "url": "https://abcnews-streams.akamaized.net/hls/live/2023568/abcnewshudson9/master.m3u8", "desc": "ABC News Live 9, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "ABC News Live 10", "url": "https://abcnews-streams.akamaized.net/hls/live/2023569/abcnewshudson10/master.m3u8", "desc": "ABC News Live 10, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.", "off": true},
-  {"name": "Africanews English", "url": "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8", "desc": "Africanews, pan African news in English (from the Euronews group). Shows its logo card between items.", "off": false},
-  {"name": "Al Arabiya English", "url": "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8", "desc": "Al Arabiya English, Saudi owned Middle East news channel.", "off": false},
-  {"name": "Al Jazeera", "url": "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8", "desc": "Al Jazeera English, news from Qatar.", "off": false},
-  {"name": "Arirang TV", "url": "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8", "desc": "Arirang TV, Korean international channel, mostly culture, music and news in English.", "off": false},
-  {"name": "BBC News", "url": "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8", "desc": "BBC World News, North America feed.", "off": false},
-  {"name": "Bloomberg", "url": "https://www.bloomberg.com/media-manifest/streams/us.m3u8", "desc": "Bloomberg TV US, business and markets news.", "off": false},
-  {"name": "Bloomberg TV Asia", "url": "https://bloomberg.com/media-manifest/streams/asia.m3u8", "desc": "Bloomberg TV Asia feed, business and markets news.", "off": false},
-  {"name": "Bloomberg TV Asia Live Event", "url": "https://bloomberg.com/media-manifest/streams/asia-event.m3u8", "desc": "Bloomberg Asia live event feed. Shows a waiting card until an event is on.", "off": false},
-  {"name": "Bloomberg TV Europe", "url": "https://bloomberg.com/media-manifest/streams/eu.m3u8", "desc": "Bloomberg TV Europe feed, business and markets news.", "off": false},
-  {"name": "Bloomberg TV Europe Live Event", "url": "https://bloomberg.com/media-manifest/streams/eu-event.m3u8", "desc": "Bloomberg Europe, Middle East and Africa live event feed. Shows a waiting card until an event is on.", "off": false},
-  {"name": "Bloomberg TV Politics Live Event", "url": "https://bloomberg.com/media-manifest/streams/politics.m3u8", "desc": "Bloomberg politics live event feed. Shows a waiting card until an event is on.", "off": false},
-  {"name": "Bloomberg TV US Live Event", "url": "https://bloomberg.com/media-manifest/streams/us-event.m3u8", "desc": "Bloomberg US live event feed. Shows 'event livestream will start shortly' until an event is on.", "off": false},
-  {"name": "CBC News Network", "url": "https://aka-live1050.delivery.roku.com/0c24a9ef-e9c3-485c-bf68-3f1ae5ef3e85/t2-origin/out/v1/live.m3u8", "desc": "CBC News Network, Canada's public broadcaster, national news.", "off": false},
-  {"name": "CBS News", "url": "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8", "desc": "CBS News 24/7, CBS's streaming news channel.", "off": false},
-  {"name": "CBS News Baltimore", "url": "https://lineup.cbsivideo.com/playout/8877a7d5-b094-4ac8-bc72-75a5fed68e5b/index.m3u8", "desc": "CBS News Baltimore, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": false},
-  {"name": "CBS News Bay Area", "url": "https://cbsn-sf.cbsnstream.cbsnews.com/out/v1/dac63c1abb3f4a2dac9f508f44bb072a/master.m3u8", "desc": "CBS News Bay Area, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Boston", "url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8", "desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Chicago", "url": "https://cbsn-chi.cbsnstream.cbsnews.com/out/v1/b2fc0d5715d54908adf07f97d2616646/master.m3u8", "desc": "CBS News Chicago, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Colorado", "url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8", "desc": "CBS News Colorado, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Detroit", "url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8", "desc": "CBS News Detroit, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Los Angeles", "url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8", "desc": "CBS News Los Angeles, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Miami", "url": "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8", "desc": "CBS News Miami, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": false},
-  {"name": "CBS News Minnesota", "url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8", "desc": "CBS News Minnesota, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News New York", "url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8", "desc": "CBS News New York, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Philly", "url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8", "desc": "CBS News Philly, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Pittsburgh", "url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8", "desc": "CBS News Pittsburgh, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": true},
-  {"name": "CBS News Sacramento", "url": "https://lineup.cbsivideo.com/playout/c1ed69db-6b71-4581-a937-a70ab4089f8a/index.m3u8", "desc": "CBS News Sacramento, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.", "off": false},
-  {"name": "CGTN", "url": "https://amg00405-rakutentv-cgtn-rakuten-i9tar.amagi.tv/master.m3u8", "desc": "CGTN, China's state international news channel in English.", "off": false},
-  {"name": "CGTN Global Business", "url": "https://fastlive.cctvplus.com/out/v1/2b3d8a0c805d437f9dc85b764c2ac599/index.m3u8", "desc": "CGTN Global Business, China's state business news in English.", "off": false},
-  {"name": "Cheddar News", "url": "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8", "desc": "Cheddar News, business and tech news.", "off": false},
-  {"name": "CNBC UK", "url": "https://amg01079-nbcuuk-amg01079c2-samsung-gb-1258.playouts.now.amagi.tv/playlist.m3u8", "desc": "CNBC UK, business and markets news.", "off": false},
-  {"name": "CNN", "url": "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8", "desc": "CNN's free 24/7 channel, US cable news.", "off": false},
-  {"name": "CNN International Europe", "url": "https://d3bp6dwmpbdajl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ury0meh5m4nzm/index.m3u8", "desc": "CNN International, the Europe feed. Different schedule from the US feed.", "off": false},
-  {"name": "DW", "url": "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8", "desc": "Deutsche Welle, Germany's public international broadcaster. English news and reports from Europe.", "off": false},
-  {"name": "Euronews English", "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-en/25002/index.m3u8", "desc": "Euronews, pan European news in English.", "off": false},
-  {"name": "Fox 5 New York (WNYW)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wnyw-lgus/playlist.m3u8", "desc": "Fox 5 New York, local TV station: local and breaking news, with ad breaks.", "off": false},
-  {"name": "Fox 11 Los Angeles (KTTV)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox11losangeleskttv-vizious/playlist.m3u8", "desc": "Fox 11 Los Angeles, local TV station: local and breaking news, with ad breaks.", "off": false},
-  {"name": "Fox Business", "url": "https://tvsen6.aynaott.com/foxbusiness/index.m3u8", "desc": "Fox Business Network, US markets and business news with breaking news banners. Served by a reseller host.", "off": false},
-  {"name": "Fox News", "url": "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8", "desc": "Fox News Channel live, US cable news.", "off": false},
-  {"name": "Fox Weather", "url": "https://247wlive.foxweather.com/stream/index.m3u8", "desc": "Fox Weather, 24/7 US weather channel.", "off": false},
-  {"name": "France 24 English", "url": "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8", "desc": "France 24, French international news in English.", "off": false},
-  {"name": "GB News", "url": "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8", "desc": "GB News, UK news and opinion channel.", "off": false},
-  {"name": "Global News", "url": "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8", "desc": "Global News, Canadian national news.", "off": false},
-  {"name": "i24", "url": "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8", "desc": "i24NEWS English: Israel based international news, Middle East focus.", "off": false},
-  {"name": "i24NEWS English World", "url": "https://hlspackager.akamaized.net/live/DB/i24_ENGLISH/HLS/i24_ENGLISH.m3u8", "desc": "i24NEWS English, second address (the international feed). Israel and Middle East news.", "off": false},
-  {"name": "i24NEWS Hebrew", "url": "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8", "desc": "i24NEWS in Hebrew, Israeli news and talk.", "off": false},
-  {"name": "IL13", "url": "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8", "desc": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.", "off": false},
-  {"name": "India Today", "url": "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8", "desc": "India Today, major Indian news channel in English.", "off": false},
-  {"name": "LiveNOW Fox", "url": "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8", "desc": "LiveNOW from Fox, Fox's streaming news channel, often carries live events and press conferences.", "off": false},
-  {"name": "Makan 33 (Kan Arabic)", "url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8", "desc": "Makan 33, Kan's Arabic language channel, Israeli public broadcaster. News in Arabic.", "off": false},
-  {"name": "MS NOW (ex MSNBC)", "url": "https://tvsen6.aynaott.com/msnbc/index.m3u8", "desc": "MS NOW (formerly MSNBC), US cable news. Lower quality (432p) and served by a reseller host, not the network, so it may drop.", "off": false},
-  {"name": "NBC News NOW", "url": "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003", "desc": "NBC News NOW, NBC's 24/7 streaming news channel.", "off": false},
-  {"name": "Newsmax 2", "url": "https://amg00217-newsmax-newsmax-zeasn-022k9.amagi.tv/playlist.m3u8", "desc": "Newsmax 2, Newsmax's second US news channel (second feed alongside Newsmax TV).", "off": false},
-  {"name": "Newsmax TV", "url": "https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8", "desc": "Newsmax, US conservative news channel.", "off": false},
-  {"name": "NHK World-Japan", "url": "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8", "desc": "NHK World-Japan, Japan's public international news in English.", "off": false},
-  {"name": "Now 14 (Israel)", "url": "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8", "desc": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.", "off": false},
-  {"name": "Reuters TV", "url": "https://amg00453-reuters-amg00453c1-rakuten-uk-2110.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-rakutenuk/playlist.m3u8", "desc": "Reuters TV, wire service video news. Mostly footage with captions.", "off": false},
-  {"name": "RT", "url": "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8", "desc": "RT, Russian state news in English.", "off": false},
-  {"name": "Scripps News", "url": "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8", "desc": "Scripps News, US national news.", "off": false},
-  {"name": "Telesur English", "url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8", "desc": "teleSUR English, Latin American news (Venezuela backed).", "off": false},
-  {"name": "TRT World", "url": "https://tv-trtworld.medya.trt.com.tr/master.m3u8", "desc": "TRT World, Turkey's state English news channel.", "off": false},
-  {"name": "VoA TV (Voice of America)", "url": "https://voa-ingest.akamaized.net/hls/live/2033874/tvmc06/playlist.m3u8", "desc": "Voice of America TV, US government international broadcaster, English.", "off": false},
-  {"name": "WION", "url": "http://vg-zeefta.akamaized.net/ptnr-yupptv/title-wion/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/20c3c0d9-0256-43fe-bca6-70fdd490b957/main.m3u8", "desc": "WION, Indian world news channel in English.", "off": false},
-  {"name": "WSVN 7News", "url": "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web", "desc": "WSVN 7News, Miami local TV (Fox affiliate). Shows a 'right back' card during its own ad breaks.", "off": false},
-  {"name": "NBC4 New York (WNBC)", "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889709/hls/master.m3u8?ads.xumo_channelId=88889709a&ads.xumo_ifaType=&ads.xumo_providerId=3816&ads.xumo_providerName=NBCNNY", "desc": "NBC New York's local station (channel 4): local news, weather and national feeds.", "off": false},
-  {"name": "NBC 6 Miami (WTVJ)", "url": "https://nbculocallive.akamaized.net/hls/live/2037498/miami/stream1/master.m3u8", "desc": "NBC Miami's local station (channel 6): Miami and South Florida local news, weather and traffic. 1080p.", "off": false},
-  {"name": "ABC7 Chicago (WLS)", "url": "https://amg01942-amg01942c5-stirr-us-10184.playouts.now.amagi.tv/playlist.m3u8", "desc": "ABC Chicago's local station (channel 7): Chicago local news and weather. 720p.", "off": false},
-  {"name": "Fox 32 Chicago (WFLD)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wfld-lgus/playlist.m3u8", "desc": "Fox Chicago's local station (channel 32): Chicago local news, weather and Fox shows.", "off": false},
-  {"name": "NBC 5 Chicago (WMAQ)", "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889704/hls/master.m3u8?ads.xumo_channelId=88889704a&ads.xumo_ifaType=&ads.xumo_providerId=3818&ads.xumo_providerName=NBCNCHI", "desc": "NBC Chicago's local station (channel 5): Chicago local news, weather and traffic.", "off": false},
-  {"name": "NBC 10 Philadelphia (WCAU)", "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889705/hls/master.m3u8?ads.xumo_channelId=88889705a&ads.xumo_ifaType=&ads.xumo_providerId=3819&ads.xumo_providerName=NBCNPHI", "desc": "NBC Philadelphia's local station (channel 10): Philadelphia local news and weather.", "off": false},
-  {"name": "NBC Bay Area (KNTV)", "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889711/hls/master.m3u8?ads.xumo_channelId=88889711a&ads.xumo_ifaType=&ads.xumo_providerId=3822&ads.xumo_providerName=NBCNBA", "desc": "NBC Bay Area's local station (channel 11): San Francisco Bay Area local news and weather.", "off": false},
-  {"name": "Fox 4 Dallas (KDFW)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox4dallaskdfw-vizious/playlist.m3u8", "desc": "Fox Dallas-Fort Worth (channel 4): local news, weather and Fox shows.", "off": false},
-  {"name": "NBC 5 Dallas (KXAS)", "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889706/hls/master.m3u8?ads.xumo_channelId=88889706a&ads.xumo_ifaType=&ads.xumo_providerId=3831&ads.xumo_providerName=NBCNDAL", "desc": "NBC Dallas-Fort Worth (channel 5): local news, weather and traffic.", "off": false},
-  {"name": "Fox 29 Philadelphia (WTXF)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox29philadelphiawtx-vizious/playlist.m3u8", "desc": "Fox Philadelphia (channel 29): local news, weather and Fox shows.", "off": false},
-  {"name": "NBC 4 Washington (WRC)", "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889708/hls/master.m3u8?ads.xumo_channelId=88889708a&ads.xumo_ifaType=&ads.xumo_providerId=3830&ads.xumo_providerName=NBCNWAS", "desc": "NBC Washington, DC (channel 4): local news, weather and traffic.", "off": false},
-  {"name": "Fox 5 Washington (WTTG)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox5dcwttg-vizious/playlist.m3u8", "desc": "Fox Washington, DC (channel 5): local news, weather and Fox shows.", "off": false},
-  {"name": "ABC 9 Orlando (WFTV)", "url": "https://amg00327-coxmediagroup-wftvbreaking-ono-hec7b.amagi.tv/playlist/amg00327-coxmediagroup-wftvbreaking-ono/playlist.m3u8", "desc": "ABC Orlando (channel 9): Central Florida local news and weather. Low resolution (426x240).", "off": false},
-  {"name": "ABC 2 Atlanta (WSB)", "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-wsbbreakingnews-ono/playlist.m3u8", "desc": "ABC Atlanta (channel 2): Atlanta local news and breaking news. Low resolution (426x240).", "off": false},
-  {"name": "Fox 26 Houston (KRIV)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kriv-lgus/playlist.m3u8", "desc": "Fox Houston (channel 26): local news, weather and Fox shows.", "off": false},
-  {"name": "ABC 5 Minneapolis (KSTP)", "url": "https://amg01942-amg01942c2-stirr-us-10173.playouts.now.amagi.tv/playlist.m3u8", "desc": "ABC Minneapolis-St. Paul (channel 5): local news and weather. 720p.", "off": false},
-  {"name": "Fox 9 Minneapolis (KMSP)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kmsp-lgus/playlist.m3u8", "desc": "Fox Minneapolis-St. Paul (channel 9): local news, weather and Fox shows.", "off": false},
-  {"name": "ABC 7 Denver (KMGH)", "url": "https://content.uplynk.com/channel/64ca339f04964a5e961c3207a7771bf1.m3u8", "desc": "ABC Denver (channel 7): Denver local news and weather. 540p.", "off": false},
-  {"name": "CBS 7 Seattle (KIRO)", "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-kirobreaking-ono/playlist.m3u8", "desc": "CBS Seattle (channel 7): Seattle local news and weather.", "off": false},
-  {"name": "Fox 10 Phoenix (KSAZ)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-ksaz-lgus/playlist.m3u8", "desc": "Fox Phoenix (channel 10): Phoenix local news, weather and Fox shows.", "off": false},
-  {"name": "Fox 13 Tampa (WTVT)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox13tampabaywtvt-vizious/playlist.m3u8", "desc": "Fox Tampa Bay (channel 13): local news, weather and Fox shows.", "off": false},
-  {"name": "Fox 2 Detroit (WJBK)", "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox2detroitwjbk-vizious/playlist.m3u8", "desc": "Fox Detroit (channel 2): local news, weather and Fox shows.", "off": false},
-  {"name": "ABC 9 Charlotte (WSOC)", "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-wsocbreaking-ono/playlist.m3u8", "desc": "ABC Charlotte (channel 9): Charlotte local news and weather. Low resolution (426x240).", "off": false},
-  {"name": "ABC 9 Tucson (KGUN)", "url": "https://aegis-cloudfront-1.tubi.video/a53514a7-f2aa-4d34-802e-c2b5594fc0d7/playlist.m3u8", "desc": "ABC Tucson (channel 9): Tucson local news and weather. 576p.", "off": false},
-  {"name": "ABC 23 Bakersfield (KERO)", "url": "https://aegis-cloudfront-1.tubi.video/69c4e4f9-84fa-43eb-b38e-6d1f9464ca73/playlist.m3u8", "desc": "ABC Bakersfield (channel 23): Central Valley local news and weather. 576p.", "off": false},
-  {"name": "ABC 25 Waco (KXXV)", "url": "https://content.uplynk.com/channel/9d4e02c9c3544c269d32e6b316792c8f.m3u8", "desc": "ABC Waco-Temple-Bryan (channel 25): Central Texas local news and weather. 540p.", "off": false},
-  {"name": "ABC 10 Duluth (WDIO)", "url": "https://amg01942-amg01942c3-stirr-us-10196.playouts.now.amagi.tv/playlist.m3u8", "desc": "ABC Duluth-Superior (channel 10): Northern Minnesota local news and weather. Low resolution (426x240).", "off": false},
-  {"name": "ABC 27 Tallahassee (WTXL)", "url": "https://aegis-cloudfront-1.tubi.video/e739361e-fa12-4cac-92f3-e0dbf332cd88/playlist.m3u8", "desc": "ABC Tallahassee (channel 27): North Florida local news and weather. 576p.", "off": false},
-  {"name": "ABC 6 Austin MN (KAAL)", "url": "https://amg01942-amg01942c6-stirr-us-10178.playouts.now.amagi.tv/playlist.m3u8", "desc": "ABC Austin, Minnesota (channel 6): southern Minnesota local news and weather. Low resolution (426x240).", "off": false}
+  {
+    "name": "ABC 10",
+    "group": "National news",
+    "url": "https://abcnews-livestreams.akamaized.net/out/v1/6a597119dbd5428a82dc11a2f514a1a2/abcn-live-10-cmaf-manifest/abcn-live-10-index_2.m3u8",
+    "desc": "ABC News weather and extra coverage feed (the wall's CNN backup is set on this tile).",
+    "off": false
+  },
+  {
+    "name": "ABC1",
+    "group": "National news",
+    "url": "https://abcnews-livestreams.akamaized.net/out/v1/42a9b78d0a1f4b6599bbdfb1ae512bc4/abcn-live-01-cmaf-manifest/abcn-live-01-index.m3u8",
+    "desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.",
+    "off": false
+  },
+  {
+    "name": "ABC2",
+    "group": "National news",
+    "url": "https://abcnews-livestreams.akamaized.net/out/v1/d2152c41f0834ad585e5157619b5887b/abcn-live-02-cmaf-manifest/abcn-live-02-index.m3u8",
+    "desc": "ABC News event feed (older address). Only carries video while ABC has a live event on air.",
+    "off": false
+  },
+  {
+    "name": "CBS News",
+    "group": "National news",
+    "url": "https://news20e7hhcb.airspace-cdn.cbsivideo.com/index.m3u8",
+    "desc": "CBS News 24/7, CBS's streaming news channel.",
+    "off": false
+  },
+  {
+    "name": "CNN",
+    "group": "National news",
+    "url": "https://d2sybdl23b9psq.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-bocx3i7bjz0dg/CNNFAST_GB.m3u8",
+    "desc": "CNN's free 24/7 channel, US cable news.",
+    "off": false
+  },
+  {
+    "name": "Fox News",
+    "group": "National news",
+    "url": "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8",
+    "desc": "Fox News Channel live, US cable news.",
+    "off": false
+  },
+  {
+    "name": "Fox Weather",
+    "group": "National news",
+    "url": "https://247wlive.foxweather.com/stream/index.m3u8",
+    "desc": "Fox Weather, 24/7 US weather channel.",
+    "off": false
+  },
+  {
+    "name": "LiveNOW Fox",
+    "group": "National news",
+    "url": "https://pb-k5p02dtnr2162.akamaized.net/LiveNOW_from_FOX.m3u8",
+    "desc": "LiveNOW from Fox, Fox's streaming news channel, often carries live events and press conferences.",
+    "off": false
+  },
+  {
+    "name": "MS NOW (ex MSNBC)",
+    "group": "National news",
+    "url": "https://tvsen6.aynaott.com/msnbc/index.m3u8",
+    "desc": "MS NOW (formerly MSNBC), US cable news. Lower quality (432p) and served by a reseller host, not the network, so it may drop.",
+    "off": false
+  },
+  {
+    "name": "NBC News NOW",
+    "group": "National news",
+    "url": "https://d1bl6tskrpq9ze.cloudfront.net/hls/master.m3u8?ads.xumo_channelId=99984003",
+    "desc": "NBC News NOW, NBC's 24/7 streaming news channel.",
+    "off": false
+  },
+  {
+    "name": "Newsmax 2",
+    "group": "National news",
+    "url": "https://amg00217-newsmax-newsmax-zeasn-022k9.amagi.tv/playlist.m3u8",
+    "desc": "Newsmax 2, Newsmax's second US news channel (second feed alongside Newsmax TV).",
+    "off": false
+  },
+  {
+    "name": "Newsmax TV",
+    "group": "National news",
+    "url": "https://nmx1ota.akamaized.net/hls/live/2107010/Live_1/index.m3u8",
+    "desc": "Newsmax, US conservative news channel.",
+    "off": false
+  },
+  {
+    "name": "Scripps News",
+    "group": "National news",
+    "url": "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8",
+    "desc": "Scripps News, US national news.",
+    "off": false
+  },
+  {
+    "name": "Bloomberg",
+    "group": "Business and finance",
+    "url": "https://www.bloomberg.com/media-manifest/streams/us.m3u8",
+    "desc": "Bloomberg TV US, business and markets news.",
+    "off": false
+  },
+  {
+    "name": "Bloomberg TV Politics Live Event",
+    "group": "Business and finance",
+    "url": "https://bloomberg.com/media-manifest/streams/politics.m3u8",
+    "desc": "Bloomberg politics live event feed. Shows a waiting card until an event is on.",
+    "off": false
+  },
+  {
+    "name": "Bloomberg TV US Live Event",
+    "group": "Business and finance",
+    "url": "https://bloomberg.com/media-manifest/streams/us-event.m3u8",
+    "desc": "Bloomberg US live event feed. Shows 'event livestream will start shortly' until an event is on.",
+    "off": false
+  },
+  {
+    "name": "Cheddar News",
+    "group": "Business and finance",
+    "url": "https://hls.livecdn.io/cheddar.com/cheddar/playlist.m3u8",
+    "desc": "Cheddar News, business and tech news.",
+    "off": false
+  },
+  {
+    "name": "Fox Business",
+    "group": "Business and finance",
+    "url": "https://tvsen6.aynaott.com/foxbusiness/index.m3u8",
+    "desc": "Fox Business Network, US markets and business news with breaking news banners. Served by a reseller host.",
+    "off": false
+  },
+  {
+    "name": "ABC News Australia",
+    "group": "International",
+    "url": "https://abc-news-dmd-streams-1.akamaized.net/out/v1/701126012d044971b3fa89406a440133/index.m3u8",
+    "desc": "ABC News Australia, the Australian public broadcaster's 24/7 news channel.",
+    "off": false
+  },
+  {
+    "name": "Africanews English",
+    "group": "International",
+    "url": "https://cdn-euronews.akamaized.net/live/eds/africanews-en/25049/index.m3u8",
+    "desc": "Africanews, pan African news in English (from the Euronews group). Shows its logo card between items.",
+    "off": false
+  },
+  {
+    "name": "Al Arabiya English",
+    "group": "International",
+    "url": "https://live.alarabiya.net/alarabiapublish/english/playlist_dvr.m3u8",
+    "desc": "Al Arabiya English, Saudi owned Middle East news channel.",
+    "off": false
+  },
+  {
+    "name": "Al Jazeera",
+    "group": "International",
+    "url": "https://live-hls-web-aje-gcp.thehlive.com/AJE/index.m3u8",
+    "desc": "Al Jazeera English, news from Qatar.",
+    "off": false
+  },
+  {
+    "name": "Arirang TV",
+    "group": "International",
+    "url": "https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8",
+    "desc": "Arirang TV, Korean international channel, mostly culture, music and news in English.",
+    "off": false
+  },
+  {
+    "name": "BBC News",
+    "group": "International",
+    "url": "https://vs-cmaf-pushb-ntham-gcomm-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_world_news_north_america/pc_hd_abr_v2.fmp4.m3u8",
+    "desc": "BBC World News, North America feed.",
+    "off": false
+  },
+  {
+    "name": "CBC News Network",
+    "group": "International",
+    "url": "https://aka-live1050.delivery.roku.com/0c24a9ef-e9c3-485c-bf68-3f1ae5ef3e85/t2-origin/out/v1/live.m3u8",
+    "desc": "CBC News Network, Canada's public broadcaster, national news.",
+    "off": false
+  },
+  {
+    "name": "CGTN",
+    "group": "International",
+    "url": "https://amg00405-rakutentv-cgtn-rakuten-i9tar.amagi.tv/master.m3u8",
+    "desc": "CGTN, China's state international news channel in English.",
+    "off": false
+  },
+  {
+    "name": "CGTN Global Business",
+    "group": "International",
+    "url": "https://fastlive.cctvplus.com/out/v1/2b3d8a0c805d437f9dc85b764c2ac599/index.m3u8",
+    "desc": "CGTN Global Business, China's state business news in English.",
+    "off": false
+  },
+  {
+    "name": "CNBC UK",
+    "group": "International",
+    "url": "https://amg01079-nbcuuk-amg01079c2-samsung-gb-1258.playouts.now.amagi.tv/playlist.m3u8",
+    "desc": "CNBC UK, business and markets news.",
+    "off": false
+  },
+  {
+    "name": "CNN International Europe",
+    "group": "International",
+    "url": "https://d3bp6dwmpbdajl.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-ury0meh5m4nzm/index.m3u8",
+    "desc": "CNN International, the Europe feed. Different schedule from the US feed.",
+    "off": false
+  },
+  {
+    "name": "DW",
+    "group": "International",
+    "url": "https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/master.m3u8",
+    "desc": "Deutsche Welle, Germany's public international broadcaster. English news and reports from Europe.",
+    "off": false
+  },
+  {
+    "name": "Euronews English",
+    "group": "International",
+    "url": "https://cdn-euronews.akamaized.net/live/eds/euronews-en/25002/index.m3u8",
+    "desc": "Euronews, pan European news in English.",
+    "off": false
+  },
+  {
+    "name": "France 24 English",
+    "group": "International",
+    "url": "https://live.france24.com/hls/live/2037218/F24_EN_HI_HLS/master_900.m3u8",
+    "desc": "France 24, French international news in English.",
+    "off": false
+  },
+  {
+    "name": "GB News",
+    "group": "International",
+    "url": "https://amg01076-lightning-amg01076c7-lg-gb-2019.playouts.now.amagi.tv/playlist/amg01076-lightning-gbnews-lggb/playlist.m3u8",
+    "desc": "GB News, UK news and opinion channel.",
+    "off": false
+  },
+  {
+    "name": "Global News",
+    "group": "International",
+    "url": "https://live.corusdigitaldev.com/groupd/live/49a91e7f-1023-430f-8d66-561055f3d0f7/live.isml/.m3u8",
+    "desc": "Global News, Canadian national news.",
+    "off": false
+  },
+  {
+    "name": "IL13",
+    "group": "International",
+    "url": "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8",
+    "desc": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.",
+    "off": false
+  },
+  {
+    "name": "India Today",
+    "group": "International",
+    "url": "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8",
+    "desc": "India Today, major Indian news channel in English.",
+    "off": false
+  },
+  {
+    "name": "NHK World-Japan",
+    "group": "International",
+    "url": "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8",
+    "desc": "NHK World-Japan, Japan's public international news in English.",
+    "off": false
+  },
+  {
+    "name": "Now 14 (Israel)",
+    "group": "International",
+    "url": "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8",
+    "desc": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.",
+    "off": false
+  },
+  {
+    "name": "RT",
+    "group": "International",
+    "url": "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8",
+    "desc": "RT, Russian state news in English.",
+    "off": false
+  },
+  {
+    "name": "Reuters TV",
+    "group": "International",
+    "url": "https://amg00453-reuters-amg00453c1-rakuten-uk-2110.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-rakutenuk/playlist.m3u8",
+    "desc": "Reuters TV, wire service video news. Mostly footage with captions.",
+    "off": false
+  },
+  {
+    "name": "TRT World",
+    "group": "International",
+    "url": "https://tv-trtworld.medya.trt.com.tr/master.m3u8",
+    "desc": "TRT World, Turkey's state English news channel.",
+    "off": false
+  },
+  {
+    "name": "Telesur English",
+    "group": "International",
+    "url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8",
+    "desc": "teleSUR English, Latin American news (Venezuela backed).",
+    "off": false
+  },
+  {
+    "name": "VoA TV (Voice of America)",
+    "group": "International",
+    "url": "https://voa-ingest.akamaized.net/hls/live/2033874/tvmc06/playlist.m3u8",
+    "desc": "Voice of America TV, US government international broadcaster, English.",
+    "off": false
+  },
+  {
+    "name": "WION",
+    "group": "International",
+    "url": "http://vg-zeefta.akamaized.net/ptnr-yupptv/title-wion/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/20c3c0d9-0256-43fe-bca6-70fdd490b957/main.m3u8",
+    "desc": "WION, Indian world news channel in English.",
+    "off": false
+  },
+  {
+    "name": "i24",
+    "group": "International",
+    "url": "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8",
+    "desc": "i24NEWS English: Israel based international news, Middle East focus.",
+    "off": false
+  },
+  {
+    "name": "i24NEWS Hebrew",
+    "group": "International",
+    "url": "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8",
+    "desc": "i24NEWS in Hebrew, Israeli news and talk.",
+    "off": false
+  },
+  {
+    "name": "ABC 2 Atlanta (WSB)",
+    "group": "Local stations",
+    "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-wsbbreakingnews-ono/playlist.m3u8",
+    "desc": "ABC Atlanta (channel 2): Atlanta local news and breaking news. Low resolution (426x240).",
+    "off": false
+  },
+  {
+    "name": "ABC 6 Austin MN (KAAL)",
+    "group": "Local stations",
+    "url": "https://amg01942-amg01942c6-stirr-us-10178.playouts.now.amagi.tv/playlist.m3u8",
+    "desc": "ABC Austin, Minnesota (channel 6): southern Minnesota local news and weather. Low resolution (426x240).",
+    "off": false
+  },
+  {
+    "name": "ABC 23 Bakersfield (KERO)",
+    "group": "Local stations",
+    "url": "https://aegis-cloudfront-1.tubi.video/69c4e4f9-84fa-43eb-b38e-6d1f9464ca73/playlist.m3u8",
+    "desc": "ABC Bakersfield (channel 23): Central Valley local news and weather. 576p.",
+    "off": false
+  },
+  {
+    "name": "CBS News Baltimore",
+    "group": "Local stations",
+    "url": "https://lineup.cbsivideo.com/playout/8877a7d5-b094-4ac8-bc72-75a5fed68e5b/index.m3u8",
+    "desc": "CBS News Baltimore, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": false
+  },
+  {
+    "name": "NBC Bay Area (KNTV)",
+    "group": "Local stations",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889711/hls/master.m3u8?ads.xumo_channelId=88889711a&ads.xumo_ifaType=&ads.xumo_providerId=3822&ads.xumo_providerName=NBCNBA",
+    "desc": "NBC Bay Area's local station (channel 11): San Francisco Bay Area local news and weather.",
+    "off": false
+  },
+  {
+    "name": "ABC 9 Charlotte (WSOC)",
+    "group": "Local stations",
+    "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-wsocbreaking-ono/playlist.m3u8",
+    "desc": "ABC Charlotte (channel 9): Charlotte local news and weather. Low resolution (426x240).",
+    "off": false
+  },
+  {
+    "name": "ABC7 Chicago (WLS)",
+    "group": "Local stations",
+    "url": "https://amg01942-amg01942c5-stirr-us-10184.playouts.now.amagi.tv/playlist.m3u8",
+    "desc": "ABC Chicago's local station (channel 7): Chicago local news and weather. 720p.",
+    "off": false
+  },
+  {
+    "name": "Fox 32 Chicago (WFLD)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wfld-lgus/playlist.m3u8",
+    "desc": "Fox Chicago's local station (channel 32): Chicago local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "NBC 5 Chicago (WMAQ)",
+    "group": "Local stations",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889704/hls/master.m3u8?ads.xumo_channelId=88889704a&ads.xumo_ifaType=&ads.xumo_providerId=3818&ads.xumo_providerName=NBCNCHI",
+    "desc": "NBC Chicago's local station (channel 5): Chicago local news, weather and traffic.",
+    "off": false
+  },
+  {
+    "name": "Fox 4 Dallas (KDFW)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox4dallaskdfw-vizious/playlist.m3u8",
+    "desc": "Fox Dallas-Fort Worth (channel 4): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "NBC 5 Dallas (KXAS)",
+    "group": "Local stations",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889706/hls/master.m3u8?ads.xumo_channelId=88889706a&ads.xumo_ifaType=&ads.xumo_providerId=3831&ads.xumo_providerName=NBCNDAL",
+    "desc": "NBC Dallas-Fort Worth (channel 5): local news, weather and traffic.",
+    "off": false
+  },
+  {
+    "name": "ABC 7 Denver (KMGH)",
+    "group": "Local stations",
+    "url": "https://content.uplynk.com/channel/64ca339f04964a5e961c3207a7771bf1.m3u8",
+    "desc": "ABC Denver (channel 7): Denver local news and weather. 540p.",
+    "off": false
+  },
+  {
+    "name": "Fox 2 Detroit (WJBK)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox2detroitwjbk-vizious/playlist.m3u8",
+    "desc": "Fox Detroit (channel 2): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "ABC 10 Duluth (WDIO)",
+    "group": "Local stations",
+    "url": "https://amg01942-amg01942c3-stirr-us-10196.playouts.now.amagi.tv/playlist.m3u8",
+    "desc": "ABC Duluth-Superior (channel 10): Northern Minnesota local news and weather. Low resolution (426x240).",
+    "off": false
+  },
+  {
+    "name": "Fox 26 Houston (KRIV)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kriv-lgus/playlist.m3u8",
+    "desc": "Fox Houston (channel 26): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "Fox 11 Los Angeles (KTTV)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox11losangeleskttv-vizious/playlist.m3u8",
+    "desc": "Fox 11 Los Angeles, local TV station: local and breaking news, with ad breaks.",
+    "off": false
+  },
+  {
+    "name": "CBS News Miami",
+    "group": "Local stations",
+    "url": "https://cbsn-mia.cbsnstream.cbsnews.com/out/v1/ac174b7938264d24ae27e56f6584bca0/master.m3u8",
+    "desc": "CBS News Miami, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": false
+  },
+  {
+    "name": "NBC 6 Miami (WTVJ)",
+    "group": "Local stations",
+    "url": "https://nbculocallive.akamaized.net/hls/live/2037498/miami/stream1/master.m3u8",
+    "desc": "NBC Miami's local station (channel 6): Miami and South Florida local news, weather and traffic. 1080p.",
+    "off": false
+  },
+  {
+    "name": "WSVN 7News",
+    "group": "Local stations",
+    "url": "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web",
+    "desc": "WSVN 7News, Miami local TV (Fox affiliate). Shows a 'right back' card during its own ad breaks.",
+    "off": false
+  },
+  {
+    "name": "ABC 5 Minneapolis (KSTP)",
+    "group": "Local stations",
+    "url": "https://amg01942-amg01942c2-stirr-us-10173.playouts.now.amagi.tv/playlist.m3u8",
+    "desc": "ABC Minneapolis-St. Paul (channel 5): local news and weather. 720p.",
+    "off": false
+  },
+  {
+    "name": "Fox 9 Minneapolis (KMSP)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kmsp-lgus/playlist.m3u8",
+    "desc": "Fox Minneapolis-St. Paul (channel 9): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "Fox 5 New York (WNYW)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wnyw-lgus/playlist.m3u8",
+    "desc": "Fox 5 New York, local TV station: local and breaking news, with ad breaks.",
+    "off": false
+  },
+  {
+    "name": "NBC4 New York (WNBC)",
+    "group": "Local stations",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889709/hls/master.m3u8?ads.xumo_channelId=88889709a&ads.xumo_ifaType=&ads.xumo_providerId=3816&ads.xumo_providerName=NBCNNY",
+    "desc": "NBC New York's local station (channel 4): local news, weather and national feeds.",
+    "off": false
+  },
+  {
+    "name": "ABC 9 Orlando (WFTV)",
+    "group": "Local stations",
+    "url": "https://amg00327-coxmediagroup-wftvbreaking-ono-hec7b.amagi.tv/playlist/amg00327-coxmediagroup-wftvbreaking-ono/playlist.m3u8",
+    "desc": "ABC Orlando (channel 9): Central Florida local news and weather. Low resolution (426x240).",
+    "off": false
+  },
+  {
+    "name": "Fox 29 Philadelphia (WTXF)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox29philadelphiawtx-vizious/playlist.m3u8",
+    "desc": "Fox Philadelphia (channel 29): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "NBC 10 Philadelphia (WCAU)",
+    "group": "Local stations",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889705/hls/master.m3u8?ads.xumo_channelId=88889705a&ads.xumo_ifaType=&ads.xumo_providerId=3819&ads.xumo_providerName=NBCNPHI",
+    "desc": "NBC Philadelphia's local station (channel 10): Philadelphia local news and weather.",
+    "off": false
+  },
+  {
+    "name": "Fox 10 Phoenix (KSAZ)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-ksaz-lgus/playlist.m3u8",
+    "desc": "Fox Phoenix (channel 10): Phoenix local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "CBS News Sacramento",
+    "group": "Local stations",
+    "url": "https://lineup.cbsivideo.com/playout/c1ed69db-6b71-4581-a937-a70ab4089f8a/index.m3u8",
+    "desc": "CBS News Sacramento, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": false
+  },
+  {
+    "name": "CBS 7 Seattle (KIRO)",
+    "group": "Local stations",
+    "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-kirobreaking-ono/playlist.m3u8",
+    "desc": "CBS Seattle (channel 7): Seattle local news and weather.",
+    "off": false
+  },
+  {
+    "name": "ABC 27 Tallahassee (WTXL)",
+    "group": "Local stations",
+    "url": "https://aegis-cloudfront-1.tubi.video/e739361e-fa12-4cac-92f3-e0dbf332cd88/playlist.m3u8",
+    "desc": "ABC Tallahassee (channel 27): North Florida local news and weather. 576p.",
+    "off": false
+  },
+  {
+    "name": "Fox 13 Tampa (WTVT)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox13tampabaywtvt-vizious/playlist.m3u8",
+    "desc": "Fox Tampa Bay (channel 13): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "ABC 9 Tucson (KGUN)",
+    "group": "Local stations",
+    "url": "https://aegis-cloudfront-1.tubi.video/a53514a7-f2aa-4d34-802e-c2b5594fc0d7/playlist.m3u8",
+    "desc": "ABC Tucson (channel 9): Tucson local news and weather. 576p.",
+    "off": false
+  },
+  {
+    "name": "ABC 25 Waco (KXXV)",
+    "group": "Local stations",
+    "url": "https://content.uplynk.com/channel/9d4e02c9c3544c269d32e6b316792c8f.m3u8",
+    "desc": "ABC Waco-Temple-Bryan (channel 25): Central Texas local news and weather. 540p.",
+    "off": false
+  },
+  {
+    "name": "Fox 5 Washington (WTTG)",
+    "group": "Local stations",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox5dcwttg-vizious/playlist.m3u8",
+    "desc": "Fox Washington, DC (channel 5): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "NBC 4 Washington (WRC)",
+    "group": "Local stations",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889708/hls/master.m3u8?ads.xumo_channelId=88889708a&ads.xumo_ifaType=&ads.xumo_providerId=3830&ads.xumo_providerName=NBCNWAS",
+    "desc": "NBC Washington, DC (channel 4): local news, weather and traffic.",
+    "off": false
+  },
+  {
+    "name": "ABC News Live",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://aegis-cloudfront-1.tubi.video/d6cbb0de-68e4-4f3b-82f9-bf5d526e0bde/index.m3u8",
+    "desc": "ABC's 24/7 US news channel.",
+    "off": false
+  },
+  {
+    "name": "ABC News Live 1",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023560/abcnewshudson1/master.m3u8",
+    "desc": "ABC News Live 1, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 2",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023561/abcnewshudson2/master.m3u8",
+    "desc": "ABC News Live 2, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 3",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023562/abcnewshudson3/master.m3u8",
+    "desc": "ABC News Live 3, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 4",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023563/abcnewshudson4/master.m3u8",
+    "desc": "ABC News Live 4, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 5",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023564/abcnewshudson5/master.m3u8",
+    "desc": "ABC News Live 5, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 6",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023565/abcnewshudson6/master.m3u8",
+    "desc": "ABC News Live 6, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 7",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023566/abcnewshudson7/master.m3u8",
+    "desc": "ABC News Live 7, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 8",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023567/abcnewshudson8/master.m3u8",
+    "desc": "ABC News Live 8, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 9",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023568/abcnewshudson9/master.m3u8",
+    "desc": "ABC News Live 9, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "ABC News Live 10",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://abcnews-streams.akamaized.net/hls/live/2023569/abcnewshudson10/master.m3u8",
+    "desc": "ABC News Live 10, one of ABC's ten extra event feeds. Shows ABC's placeholder card until ABC puts an event on it.",
+    "off": true
+  },
+  {
+    "name": "Bloomberg TV Asia",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://bloomberg.com/media-manifest/streams/asia.m3u8",
+    "desc": "Bloomberg TV Asia feed, business and markets news.",
+    "off": false
+  },
+  {
+    "name": "Bloomberg TV Asia Live Event",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://bloomberg.com/media-manifest/streams/asia-event.m3u8",
+    "desc": "Bloomberg Asia live event feed. Shows a waiting card until an event is on.",
+    "off": false
+  },
+  {
+    "name": "Bloomberg TV Europe",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://bloomberg.com/media-manifest/streams/eu.m3u8",
+    "desc": "Bloomberg TV Europe feed, business and markets news.",
+    "off": false
+  },
+  {
+    "name": "Bloomberg TV Europe Live Event",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://bloomberg.com/media-manifest/streams/eu-event.m3u8",
+    "desc": "Bloomberg Europe, Middle East and Africa live event feed. Shows a waiting card until an event is on.",
+    "off": false
+  },
+  {
+    "name": "CBS News Bay Area",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-sf.cbsnstream.cbsnews.com/out/v1/dac63c1abb3f4a2dac9f508f44bb072a/master.m3u8",
+    "desc": "CBS News Bay Area, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Boston",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8",
+    "desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Chicago",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-chi.cbsnstream.cbsnews.com/out/v1/b2fc0d5715d54908adf07f97d2616646/master.m3u8",
+    "desc": "CBS News Chicago, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Colorado",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8",
+    "desc": "CBS News Colorado, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Detroit",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8",
+    "desc": "CBS News Detroit, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Los Angeles",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8",
+    "desc": "CBS News Los Angeles, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Minnesota",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8",
+    "desc": "CBS News Minnesota, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News New York",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8",
+    "desc": "CBS News New York, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Philly",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8",
+    "desc": "CBS News Philly, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "CBS News Pittsburgh",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8",
+    "desc": "CBS News Pittsburgh, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": true
+  },
+  {
+    "name": "i24NEWS English World",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://hlspackager.akamaized.net/live/DB/i24_ENGLISH/HLS/i24_ENGLISH.m3u8",
+    "desc": "i24NEWS English, second address (the international feed). Israel and Middle East news.",
+    "off": false
+  },
+  {
+    "name": "Makan 33 (Kan Arabic)",
+    "group": "Probably bad (off air or not working)",
+    "url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8",
+    "desc": "Makan 33, Kan's Arabic language channel, Israeli public broadcaster. News in Arabic.",
+    "off": false
+  }
 ]

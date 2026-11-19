@@ -10,7 +10,7 @@ GitHub Pages at https://dmo18.github.io/dv/. No build step, no package manager.
 | Player | player.html | Plays one HLS stream: label, captions, backup stream, No signal card, quality cap, health report |
 | Channel list | channels.json | The one list of feeds (79: name, address, description, off-air flag) used by the encoder, the TV page and the daily check |
 | Encoder | encoder.html | Shows every feed in channels.json with a preview and description, Play all / Pause all / Stop all, Open with sound and controls, builds player links |
-| TV page | tv.html | Red Macho Devil TV: full-screen channel changer with guide, now and next, skip off air, auto-skip of dead channels, captions, stats in the top bar; overlay hides after 5 s |
+| TV page | tv.html | Red Macho Devil TV: full-screen channel changer with guide, now and next, skip off air (button), channel guide with groups, captions, stats in the top bar; overlay hides after 5 s |
 | TV guide data | epg.yml, fetch_epg.py, epg-map.json | Every 30 min: real programme names for about 20 channels (Pluto TV public guide) to branch epg-data |
 | Fire TV app | firetv/, rmtv.apk, firetv-lab-test.yml, docs/FIRETV.md | Android app that opens tv.html full screen with remote control keys; lab tested on a virtual device |
 | Ticker | ticker.html, ticker-symbols.json | Prices with no third-party widget: smooth scroll, live crypto, stale and closed states |

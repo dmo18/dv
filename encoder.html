@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev31</title>
+<title>Encoder Rev32</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev32  2026-11-19  Channels are grouped like a cable guide (National news, Business and finance, International, Local stations
+                     A to Z by city, then Probably bad at the bottom). Group headings show in the grid. Numbers follow the new order.
   Rev31  2026-11-19  Time shift: "- 30 s" goes back 30 seconds, "Live" jumps back to live (player.html Rev19). Play after a
                      pause resumes where it stopped instead of jumping to live.
   Rev30  2026-11-19  Click a picture to pause or play that feed (Play all, Pause all and Stop all still work). A "Paused"
@@ -340,6 +342,17 @@ input, select, textarea { font-size: 16px; border-radius: 10px; }
   padding: 10px 0; margin: 8px 0 12px; background: rgba(10, 10, 10, 0.92); backdrop-filter: blur(6px); }
 .ctlbar button { flex: 1 1 auto; min-width: 120px; }
 .ctlstatus { flex: 1 1 100%; font-size: 13px; opacity: 0.75; min-height: 1em; }
+.groupHead {
+  grid-column: 1 / -1;
+  margin: 14px 0 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #3a0a0a;
+  color: #e8c97a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 .snapshotGrid { gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
 .snapshotCard { border-radius: 14px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .snapshotCard:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
@@ -363,7 +376,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev31</h1>
+  <h1>Wallboard URL Encoder Rev32</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Previews are muted with no controls. Open gives sound and full player controls.
@@ -476,7 +489,9 @@ DEVELOPER NOTES
 
 Where to add more feeds:
 
-Add more entries to channels.json (name, url, desc, off).
+Add more entries to channels.json (name, group, url, desc, off).
+group is one of: National news, Business and finance, International, Local stations, Probably bad (off air or not working).
+The grid shows a heading each time the group changes, so keep each group together in the file.
 Each entry automatically creates one preview tile and one set of buttons.
 
 Example:
@@ -697,7 +712,15 @@ function renderSnapshotGrid() {
   const host = $("snapshotGrid");
   host.innerHTML = "";
 
+  let lastGroup = "";
   STREAMS.forEach((stream) => {
+    if (stream.group && stream.group !== lastGroup) {
+      lastGroup = stream.group;
+      const head = document.createElement("div");
+      head.className = "groupHead";
+      head.textContent = stream.group;
+      host.appendChild(head);
+    }
     const normalUrl = buildForStream(stream);
     const openUrl = buildOpenForStream(stream);
     const previewUrl = buildPreviewForStream(stream);
