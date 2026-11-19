@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev6</title>
+<title>Ticker Rev7</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev7  2026-11-19  Day range, 52-week range and (stocks) volume vs usual are shown in small lines under each name. The name
+                    column has a fixed minimum width, so the strip does not shift when the numbers change. The rotating change
+                    box stays off.
   Rev6  2026-11-19  Back to the original change box width (the wider box left a gap before the sparkline). The day, 52-week
                     and volume views are switched off (SHOW_EXTRA_VIEWS) until a display that fits is agreed. Data keeps
                     being fetched.
@@ -83,7 +86,9 @@ html, body {
 /* One item */
 .it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .9);
       padding: 0 calc(var(--u) * .25); border-radius: calc(var(--u) * .3); white-space: nowrap; }
-.nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); }
+.nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); min-width: calc(var(--u) * 3.2); }
+.rgs { position: absolute; left: 0; top: calc(100% + var(--u) * .3); font-size: calc(var(--u) * .27); line-height: 1.15; font-weight: 600; color: #9aa3ad; white-space: nowrap; pointer-events: none; }
+.rgs span { display: block; }
 .nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
 .cl { position: absolute; left: 0; top: calc(100% - var(--u) * .04); font-size: calc(var(--u) * .31); font-weight: 700; line-height: .9; color: #d2d6da; visibility: hidden; letter-spacing: .05em; text-transform: uppercase; }
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .22); }
@@ -353,6 +358,12 @@ function paint(v, e) {
   const c0 = changeOf(e);
   setText(v.pr, fmtPrice(e.p, v.dec));
   showView(v, e);
+  /* ranges and volume under the name: day, 52 week, then volume (stocks) */
+  const lines = [];
+  if (isNum(e.dh) && isNum(e.dl)) lines.push("D " + rangeText(e.dl, e.dh, v.dec));
+  if (isNum(e.wh) && isNum(e.wl)) lines.push("52w " + rangeText(e.wl, e.wh, v.dec));
+  if (isNum(e.vr)) lines.push("V " + e.vr.toFixed(1) + "x");
+  v.rgLines.forEach((l, i) => setText(l, lines[i] || ""));
   const dir = c0.dir;
   const c = v.root.classList;
   c.toggle("up", dir === "up"); c.toggle("dn", dir === "dn"); c.toggle("fl", dir === "fl");
@@ -452,7 +463,9 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   const nmc = document.createElement("span"); nmc.className = "nmc";
   const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = sym.name;
   const cl = document.createElement("span"); cl.className = "cl"; cl.textContent = "closed";
-  nmc.appendChild(nm); nmc.appendChild(cl);
+  const rgs = document.createElement("span"); rgs.className = "rgs";
+  const rgLines = [0, 1, 2].map(() => { const l = document.createElement("span"); rgs.appendChild(l); return l; });
+  nmc.appendChild(nm); nmc.appendChild(cl); nmc.appendChild(rgs);
   const pr = document.createElement("span"); pr.className = "pr";
   /* reserve room for one more whole digit, and the comma that may come with it:
      size of the smallest number with one more digit (271.30 -> "1,000.00").
@@ -466,7 +479,7 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   const pt = document.createElement("span"); pt.className = "pt";
   ch.appendChild(ar); ch.appendChild(pt);
   root.appendChild(nmc); root.appendChild(pr); root.appendChild(ch);
-  const v = { root, pr, pt, ar, dec: sym.decimals, sp: null, poly: null, lastS: null };
+  const v = { root, pr, pt, ar, dec: sym.decimals, sp: null, poly: null, lastS: null, rgLines };
   if (kind !== "pin") {
     const sp = document.createElementNS(SVGNS, "svg");
     sp.setAttribute("class", "sp"); sp.setAttribute("viewBox", "0 0 44 14"); sp.setAttribute("preserveAspectRatio", "none");
