@@ -1,6 +1,9 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 9 (2026-11-19)
+# firetv-lab-test.yml Rev 10 (2026-11-19)
+# - Rev 10: the two exit Backs are pressed about a second apart (the check in between took too long, so the second press
+#   came after the window and counted as a new first press).
+# - Rev 9 2026-11-19
 # - Rev 9: TV Rev13: overlay hides after 5 s, so overlay screenshots come 2 s after a press; leaving takes two Back presses
 #   (the first shows "Press Back again to exit"); the top bar stats line is in the screenshots.
 # - Rev 8 2026-11-19
@@ -114,8 +117,7 @@ jobs:
           sleep 2;   shot s07-skip-channel-up
           sleep 8;   shot s08-hidden-after-5s
           adb shell input keyevent KEYCODE_BACK
-          sleep 1;   shot s08b-press-back-again
-          echo "window in focus after the first Back with nothing on screen (should be the app): $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
+          sleep 0.5; shot s08b-press-back-again
           adb shell input keyevent KEYCODE_BACK
           sleep 4
           echo "window in focus after the second Back (should not be the app): $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
