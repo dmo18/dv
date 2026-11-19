@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev12</title>
+<title>Ticker Rev13</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev13 2026-11-19  Day charts as Yahoo Finance: a dotted line at the previous close, the scale always includes it, so a
+                    small move stays small. Line and fill follow the change (green up, red down).
   Rev12 2026-11-19  Value column sized to its longest rotating line (was twice that, leaving a gap after each item).
   Rev11 2026-11-19  Name column sized to its text (a fixed minimum left a gap between each name and its chart).
   Rev10 2026-11-19  Less space between items (the gap was about a mile). Charts are a green or red gradient fill under a
@@ -109,6 +111,7 @@ html, body {
 .sp { width: calc(var(--u) * 2.4); height: calc(var(--u) * .95); margin: 0 calc(var(--u) * .35); overflow: visible; flex: 0 0 auto; }
 .sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 .sp polygon { stroke: none; }
+.sp line.ref { stroke: var(--fl); stroke-width: 1; stroke-dasharray: 1.6 1.6; opacity: .75; vector-effect: non-scaling-stroke; }
 .sp stop { stop-color: var(--fl); }
 .up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
 .dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
@@ -379,19 +382,20 @@ function paint(v, e) {
   c.toggle("up", dir === "up"); c.toggle("dn", dir === "dn"); c.toggle("fl", dir === "fl");
   const st = classify(e);
   c.toggle("old", st.old); c.toggle("stale", st.stale); c.toggle("closed", st.closed);
-  if (v.sp && v.lastS !== e.s) {
-    v.lastS = e.s;
-    const s = e.s, n = s.length;
+  if (v.sp) {
+    const s = e.s || [], n = s.length;
     if (n < 2) { v.sp.style.display = "none"; }
     else {
       v.sp.style.display = "";
-      let mn = Infinity, mx = -Infinity;
-      for (const x of s) { if (x < mn) mn = x; if (x > mx) mx = x; }
+      /* the scale always holds the previous close, so the dotted line sits where Yahoo puts it */
+      let mn = Math.min(e.pc, ...s), mx = Math.max(e.pc, ...s);
       const span = mx - mn || 1;
+      const y = (x) => (13 - (x - mn) / span * 12).toFixed(1);
       let pts = "";
-      for (let i = 0; i < n; i++) pts += (i / (n - 1) * 44).toFixed(1) + "," + (13 - (s[i] - mn) / span * 12).toFixed(1) + " ";
+      for (let i = 0; i < n; i++) pts += (i / (n - 1) * 44).toFixed(1) + "," + y(s[i]) + " ";
       v.poly.setAttribute("points", pts.trim());
       v.area.setAttribute("points", pts.trim() + " 44,14 0,14");
+      v.ref.setAttribute("y1", y(e.pc)); v.ref.setAttribute("y2", y(e.pc));
     }
   }
 }
@@ -505,9 +509,12 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
     grad.appendChild(st1); grad.appendChild(st2); defs.appendChild(grad);
     const area = document.createElementNS(SVGNS, "polygon");
     area.setAttribute("fill", "url(#" + gid + ")");
+    const ref = document.createElementNS(SVGNS, "line");
+    ref.setAttribute("x1", "0"); ref.setAttribute("x2", "44");
+    ref.setAttribute("class", "ref");
     const poly = document.createElementNS(SVGNS, "polyline");
-    sp.appendChild(defs); sp.appendChild(area); sp.appendChild(poly); root.insertBefore(sp, vals);
-    v.sp = sp; v.poly = poly; v.area = area;
+    sp.appendChild(defs); sp.appendChild(area); sp.appendChild(ref); sp.appendChild(poly); root.insertBefore(sp, vals);
+    v.sp = sp; v.poly = poly; v.area = area; v.ref = ref;
   }
   return v;
 }
