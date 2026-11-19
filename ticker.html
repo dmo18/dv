@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev13</title>
+<title>Ticker Rev14</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev14 2026-11-19  The chart is green where the price is above the previous close and red where it is below (the dotted
+                    line is the split), line and fill alike. The text colour still follows the change.
   Rev13 2026-11-19  Day charts as Yahoo Finance: a dotted line at the previous close, the scale always includes it, so a
                     small move stays small. Line and fill follow the change (green up, red down).
   Rev12 2026-11-19  Value column sized to its longest rotating line (was twice that, leaving a gap after each item).
@@ -109,14 +111,11 @@ html, body {
 .ar { display: none; }
 .pt { display: inline-block; text-align: left; }
 .sp { width: calc(var(--u) * 2.4); height: calc(var(--u) * .95); margin: 0 calc(var(--u) * .35); overflow: visible; flex: 0 0 auto; }
-.sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.sp polyline { fill: none; stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
 .sp polygon { stroke: none; }
 .sp line.ref { stroke: var(--fl); stroke-width: 1; stroke-dasharray: 1.6 1.6; opacity: .75; vector-effect: non-scaling-stroke; }
-.sp stop { stop-color: var(--fl); }
-.up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
-.dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
-.up .sp stop { stop-color: var(--up); }
-.dn .sp stop { stop-color: var(--dn); }
+.up .ch { color: var(--up); }
+.dn .ch { color: var(--dn); }
 
 /* States */
 .it.closed { opacity: .72; }
@@ -396,6 +395,12 @@ function paint(v, e) {
       v.poly.setAttribute("points", pts.trim());
       v.area.setAttribute("points", pts.trim() + " 44,14 0,14");
       v.ref.setAttribute("y1", y(e.pc)); v.ref.setAttribute("y2", y(e.pc));
+      /* green above the previous close, red below: the split is at its height (0 top, 1 bottom) */
+      const f = Math.min(1, Math.max(0, (13 - (e.pc - mn) / span * 12) / 14)).toFixed(4);
+      for (const st of [...v.areaStops, ...v.lineStops]) {
+        const at = st.getAttribute("offset");
+        if (at !== "0" && at !== "1") st.setAttribute("offset", f);
+      }
     }
   }
 }
@@ -472,6 +477,7 @@ function refreshStates() {
 /* ---------- building the strip ---------- */
 const SVGNS = "http://www.w3.org/2000/svg";
 let gradCount = 0;   /* unique gradient ids for the day charts */
+const UP_HEX = "#34d27b", DN_HEX = "#ff5a5f";   /* the colours of --up and --dn */
 function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   const root = document.createElement("span");
   root.className = "it" + (kind === "clone" ? " pcl" : "");
@@ -499,21 +505,31 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   if (kind !== "pin") {
     const sp = document.createElementNS(SVGNS, "svg");
     sp.setAttribute("class", "sp"); sp.setAttribute("viewBox", "0 0 44 14"); sp.setAttribute("preserveAspectRatio", "none");
-    const gid = "tg" + (++gradCount);
+    const gid = "tg" + (++gradCount), sid = "ts" + gradCount;
     const defs = document.createElementNS(SVGNS, "defs");
-    const grad = document.createElementNS(SVGNS, "linearGradient");
-    grad.setAttribute("id", gid); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0");
-    grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
-    const st1 = document.createElementNS(SVGNS, "stop"); st1.setAttribute("offset", "0"); st1.setAttribute("stop-opacity", ".55");
-    const st2 = document.createElementNS(SVGNS, "stop"); st2.setAttribute("offset", "1"); st2.setAttribute("stop-opacity", "0");
-    grad.appendChild(st1); grad.appendChild(st2); defs.appendChild(grad);
+    const mkGrad = (id, opacity) => {
+      const grad = document.createElementNS(SVGNS, "linearGradient");
+      grad.setAttribute("id", id); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0");
+      grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
+      const stops = [["0", UP_HEX], ["0.5", UP_HEX], ["0.5", DN_HEX], ["1", DN_HEX]].map(([off, col]) => {
+        const st = document.createElementNS(SVGNS, "stop");
+        st.setAttribute("offset", off); st.setAttribute("stop-color", col); st.setAttribute("stop-opacity", opacity);
+        grad.appendChild(st); return st;
+      });
+      defs.appendChild(grad);
+      return stops;
+    };
+    const areaStops = mkGrad(gid, ".4");
+    const lineStops = mkGrad(sid, "1");
     const area = document.createElementNS(SVGNS, "polygon");
     area.setAttribute("fill", "url(#" + gid + ")");
     const ref = document.createElementNS(SVGNS, "line");
     ref.setAttribute("x1", "0"); ref.setAttribute("x2", "44");
     ref.setAttribute("class", "ref");
     const poly = document.createElementNS(SVGNS, "polyline");
+    poly.setAttribute("stroke", "url(#" + sid + ")");
     sp.appendChild(defs); sp.appendChild(area); sp.appendChild(ref); sp.appendChild(poly); root.insertBefore(sp, vals);
+    v.areaStops = areaStops; v.lineStops = lineStops;
     v.sp = sp; v.poly = poly; v.area = area; v.ref = ref;
   }
   return v;
