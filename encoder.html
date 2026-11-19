@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev29</title>
+<title>Encoder Rev30</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev30  2026-11-19  Click a picture to pause or play that feed (Play all, Pause all and Stop all still work). A "Paused"
+                     or "Stopped" tag shows on the picture. The blue Open button on the picture opens the sound-on player
+                     (fixed: it was a dead label). Cards now have three buttons: Load, Copy raw, Copy ready.
   Rev29  2026-11-19  Seven ABC local stations (Charlotte, Tucson, Bakersfield, Waco, Duluth, Tallahassee, Austin MN).
   Rev28  2026-11-19  Fifteen more local stations: Dallas (Fox 4, NBC 5), Philadelphia (Fox 29), Washington (NBC 4, Fox 5), Orlando (ABC 9), Atlanta (ABC 2), Houston (Fox 26), Minneapolis (ABC 5, Fox 9), Denver (ABC 7), Seattle (CBS 7), Phoenix (Fox 10), Tampa (Fox 13), Detroit (Fox 2).
   Rev27  2026-11-19  Seven more local affiliates in channels.json: NBC New York, NBC Miami, ABC Chicago, Fox Chicago, NBC Chicago, NBC Philadelphia, NBC Bay Area.
@@ -160,12 +163,6 @@ hr {
   overflow: hidden;
 }
 
-.snapshotPreviewLink {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-}
-
 .snapshotFrame {
   width: 100%;
   height: 100%;
@@ -178,7 +175,8 @@ hr {
 .snapshotOverlay {
   position: absolute;
   inset: 0;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   background: linear-gradient(to top, rgba(0,0,0,0.58), rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.10));
   z-index: 1;
 }
@@ -201,14 +199,37 @@ hr {
   position: absolute;
   right: 8px;
   bottom: 8px;
+  min-height: 0;
+  border: 0;
   background: rgba(31,111,235,0.92);
   color: #fff;
-  font-size: 11px;
-  padding: 4px 7px;
+  font: 600 11px/1 system-ui, Arial, sans-serif;
+  padding: 6px 9px;
   border-radius: 999px;
+  cursor: pointer;
+  z-index: 4;
+}
+
+.snapshotTag {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border-radius: 8px;
   pointer-events: none;
   z-index: 2;
 }
+.snapshotPreview[data-state="paused"] .snapshotTag,
+.snapshotPreview[data-state="stopped"] .snapshotTag { display: block; }
+.snapshotPreview[data-state="paused"] .snapshotOverlay,
+.snapshotPreview[data-state="stopped"] .snapshotOverlay { background: rgba(0,0,0,0.35); }
 
 .snapshotFallback {
   position: absolute;
@@ -321,20 +342,19 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev29</h1>
+  <h1>Wallboard URL Encoder Rev30</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
-    The saved stream grid is at the top. Preview uses a muted player URL with no controls. Open uses a separate URL with sound on and full player controls.
+    The saved stream grid is at the top. Previews are muted with no controls. Open gives sound and full player controls.
   </small>
 
   <hr />
 
   <h2>Saved stream grid</h2>
   <small>
-    Click the preview tile to open the stream in a new window.
-    Use Load to populate the encoder fields.
-    Use Copy ready for the normal generated URL.
-    Use Copy open for the preview click / Open URL.
+    Click a picture to pause it, click again to play it.
+    Open (blue button on the picture) opens the feed in a new window with sound.
+    Use Load to fill the encoder fields, Copy ready for the wall URL, Copy raw for the stream address.
   </small>
 
   <div class="ctlbar" role="toolbar" aria-label="Control all feeds">
@@ -623,16 +643,29 @@ function loadStreamToEncoder(stream) {
 
 /* Play all / Pause all / Stop all: sends a command to every loaded preview tile (player.html Rev11+).
    Works on the live site, where the players and this page share an origin. */
+function sendTile(frame, cmd) {
+  const box = frame.parentElement;                       /* .snapshotPreview holds the state */
+  if (!frame.getAttribute("src") || !frame.contentWindow) return false;   /* off-air tiles are not loaded */
+  let origin;
+  try { origin = new URL(frame.getAttribute("src"), location.href).origin; } catch (e) { return false; }
+  try { frame.contentWindow.postMessage({ type: "tilectl", cmd: cmd }, origin); } catch (e) { return false; }
+  box.dataset.state = cmd === "play" ? "live" : cmd === "pause" ? "paused" : "stopped";
+  const tag = box.querySelector(".snapshotTag");
+  if (tag) tag.textContent = cmd === "pause" ? "Paused" : cmd === "stop" ? "Stopped" : "";
+  return true;
+}
+
+/* Click on a picture: pause if it is playing, play if it is paused or stopped. */
+function toggleTile(frame) {
+  const st = frame.parentElement.dataset.state;
+  const playing = st !== "paused" && st !== "stopped";
+  sendTile(frame, playing ? "pause" : "play");
+}
+
 function ctlAll(cmd) {
   const label = { play: "Playing", pause: "Paused", stop: "Stopped" }[cmd];
   let n = 0;
-  document.querySelectorAll(".snapshotFrame").forEach((f) => {
-    if (!f.getAttribute("src") || !f.contentWindow) return;   /* off-air tiles are not loaded */
-    let origin;
-    try { origin = new URL(f.getAttribute("src"), location.href).origin; } catch (e) { return; }
-    try { f.contentWindow.postMessage({ type: "tilectl", cmd: cmd }, origin); n += 1; } catch (e) {}
-    f.dataset.state = cmd === "play" ? "live" : cmd === "pause" ? "paused" : "stopped";
-  });
+  document.querySelectorAll(".snapshotFrame").forEach((f) => { if (sendTile(f, cmd)) n += 1; });
   $("ctlStatus").textContent = label + " " + n + " feed" + (n === 1 ? "" : "s");
 }
 $("playAll").addEventListener("click", () => ctlAll("play"));
@@ -653,12 +686,6 @@ function renderSnapshotGrid() {
 
     const preview = document.createElement("div");
     preview.className = "snapshotPreview";
-
-    const previewLink = document.createElement("a");
-    previewLink.className = "snapshotPreviewLink";
-    previewLink.href = openUrl;
-    previewLink.target = "_blank";
-    previewLink.rel = "noopener";
 
     const frame = document.createElement("iframe");
     frame.className = "snapshotFrame";
@@ -696,30 +723,43 @@ function renderSnapshotGrid() {
     badge.className = "snapshotBadge";
     badge.textContent = (STREAMS.indexOf(stream) + 1) + ". " + stream.name;
 
-    const open = document.createElement("div");
+    const tag = document.createElement("div");
+    tag.className = "snapshotTag";
+
+    const open = document.createElement("button");
+    open.type = "button";
     open.className = "snapshotOpen";
     open.textContent = "Open";
+    open.title = "Open with sound and full controls";
+    open.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(openUrl, "_blank", "noopener");
+    });
+
+    /* Picture click toggles pause and play. Clicks on the Open button or the Try preview button do not reach it. */
+    overlay.addEventListener("click", () => toggleTile(frame));
 
     const status = document.createElement("div");
     status.className = "snapshotStatus";
-    status.textContent = "Preview uses muted=1. Open has sound and full controls.";
+    status.textContent = "Click the picture to pause or play.";
 
     frame.addEventListener("load", () => {
       if (!frame.getAttribute("src")) return;
       fallback.style.display = "none";
-      status.textContent = "Preview loaded. Open has sound and full controls.";
+      status.textContent = "Click the picture to pause or play.";
     });
 
     frame.addEventListener("error", () => {
       fallback.style.display = "flex";
-      status.textContent = "Preview unavailable. Open still has sound and full controls.";
+      status.textContent = "Preview unavailable. Open still works.";
     });
 
     preview.appendChild(frame);
     preview.appendChild(fallback);
-    preview.appendChild(previewLink);
     preview.appendChild(overlay);
     preview.appendChild(badge);
+    preview.appendChild(tag);
     preview.appendChild(open);
 
     const meta = document.createElement("div");
@@ -751,15 +791,6 @@ function renderSnapshotGrid() {
     playerUrl.textContent = normalUrl;
     playerUrl.title = normalUrl;
 
-    const openLabel = document.createElement("div");
-    openLabel.className = "snapshotLabel";
-    openLabel.textContent = "Open URL used by preview click / Open button";
-
-    const openUrlEl = document.createElement("div");
-    openUrlEl.className = "snapshotOpenUrl code";
-    openUrlEl.textContent = openUrl;
-    openUrlEl.title = openUrl;
-
     const btns = document.createElement("div");
     btns.className = "itembtns";
 
@@ -778,26 +809,9 @@ function renderSnapshotGrid() {
     copyReadyBtn.textContent = "Copy ready";
     copyReadyBtn.addEventListener("click", () => copyText(normalUrl));
 
-    const openBtn = document.createElement("a");
-    openBtn.className = "tiny secondary";
-    openBtn.textContent = "Open";
-    openBtn.href = openUrl;
-    openBtn.target = "_blank";
-    openBtn.rel = "noopener";
-    openBtn.style.display = "inline-block";
-    openBtn.style.textDecoration = "none";
-    openBtn.style.lineHeight = "normal";
-
-    const copyOpenBtn = document.createElement("button");
-    copyOpenBtn.className = "tiny secondary";
-    copyOpenBtn.textContent = "Copy open";
-    copyOpenBtn.addEventListener("click", () => copyText(openUrl));
-
     btns.appendChild(loadBtn);
     btns.appendChild(copyRawBtn);
     btns.appendChild(copyReadyBtn);
-    btns.appendChild(openBtn);
-    btns.appendChild(copyOpenBtn);
 
     meta.appendChild(name);
     meta.appendChild(desc);
@@ -805,8 +819,6 @@ function renderSnapshotGrid() {
     meta.appendChild(rawUrl);
     meta.appendChild(readyLabel);
     meta.appendChild(playerUrl);
-    meta.appendChild(openLabel);
-    meta.appendChild(openUrlEl);
     meta.appendChild(status);
     meta.appendChild(btns);
 
