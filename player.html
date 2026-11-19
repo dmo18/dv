@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>Universal Player Rev17</title>
+<title>Universal Player Rev18</title>
 
 <!--
 UNIVERSAL PLAYER (Video.js primary, Clappr fallback)
@@ -149,6 +149,7 @@ Notes / Troubleshooting
 
 Revision log (newest first)
 ---------------------------
+Rev18 2026-11-19  Closed captions sit at the top of the tile (were at the bottom, over the headlines bar). Same two-line box.
 Rev17 2026-11-18  Works in older web views (Fire TV lab test): no "inset" shorthand, so the video area and the No signal card fill the tile.
 Rev16 2026-11-18  New option status=0: the tile label shows the channel name only (no LIVE, resolution or bitrate line). Used by the wall.
 Rev15 2026-11-18  Removed the separate audio option (audio=) added in Rev14, and the Fox News audio that used it.
@@ -275,7 +276,7 @@ html, body {
 #captions {
   position: fixed;
   left: 50%;
-  bottom: 4%;
+  top: 4%;
   transform: translateX(-50%);
   z-index: 15;
   display: none;
@@ -284,8 +285,8 @@ html, body {
   box-sizing: border-box;
   padding: 0.15em 0.55em;
   font: 600 clamp(12px, 3.1vw, 31px)/1.3 Arial, Helvetica, sans-serif;
-  /* at most 2 lines (2 x 1.3em plus the padding). The text sits at the bottom of the box and
-     any extra lines are cut off at the top, so the newest words stay visible. */
+  /* at most 2 lines (2 x 1.3em plus the padding). Captions sit at the top of the tile, so they do not cover the
+     headlines bar; the text is kept at the bottom of the box so the newest words stay visible. */
   max-height: 2.9em;
   overflow: hidden;
   flex-direction: column;
@@ -450,7 +451,7 @@ function startVjs(url) {
    Many news streams carry captions either as a WebVTT track or inside the video (CEA-608/708).
    The player finds them once they start arriving, which can take a minute or two, so this keeps
    watching for new tracks. One caption track is followed (English preferred) and its text is
-   drawn into #captions: one box, all current lines, always at the bottom of the tile. */
+   drawn into #captions: one box, all current lines, always at the top of the tile. */
 const captionsOn = param("cc", "1") !== "0";
 const captionsEl = document.getElementById("captions");
 let captionTrack = null;
