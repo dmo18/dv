@@ -6,16 +6,16 @@ GitHub Pages at https://dmo18.github.io/dv/. No build step, no package manager.
 ## What each part does
 | Part | Files | Job |
 |---|---|---|
-| Wallboard | wallboard.html | 1920x1080 stage: 40 px ticker, 50 px headlines, 4 large (480x270) and 24 small (320x180) framed video tiles, all exact 16:9; no status line on tiles; old 18-tile wall at ?layout=18; check view ?diag=1 |
-| Player | player.html | Plays one HLS stream: label, captions, backup stream, No signal card, quality cap, health report |
-| Channel list | channels.json | The one list of feeds (79: name, address, description, off-air flag) used by the encoder, the TV page and the daily check |
-| Encoder | encoder.html | Shows every feed in channels.json with a preview and description, Play all / Pause all / Stop all, Open with sound and controls, builds player links |
-| TV page | tv.html | Red Macho Devil TV: full-screen channel changer with guide, now and next, skip off air (button), channel guide with groups, captions, stats in the top bar; overlay hides after 5 s |
+| Wallboard | wallboard.html | 1920x1080 stage: 40 px ticker, 50 px headlines, 4 large (480x270) and 24 small (320x180) framed video tiles, all exact 16:9; tiles picked by name from channels.json, labels show the channel number; old 18-tile wall at ?layout=18; check view ?diag=1 |
+| Player | player.html | Plays one HLS stream: label, captions, backup stream, No signal card, quality cap, health report; remote commands play, pause, stop, back (30 s) and live |
+| Channel list | channels.json | The one list of feeds (118: name, number, group, city for locals, address, description, off-air flag) used by the encoder, the TV page, the wallboard and the daily check. Numbers come in blocks: National news 1-19, Business 20-29, International 30-79, Local stations from 100 (10 per city), Probably bad from 900 |
+| Encoder | encoder.html | Shows every feed in channels.json with a preview and description, grouped with group and city headings; click a picture to pause or play, - 30 s and Live; Play all / Pause all / Stop all, Open with sound and controls, builds player links |
+| TV page | tv.html | Red Macho Devil TV: full-screen channel changer with guide (group and city headings), real channel numbers (type one to tune), now and next, pause, back 30 s and live, skip off air (button), captions, stats in the top bar; overlay hides after 5 s; reloads itself when a new Rev is published |
 | TV guide data | epg.yml, fetch_epg.py, epg-map.json | Every 30 min: real programme names for about 20 channels (Pluto TV public guide) to branch epg-data |
 | Fire TV app | firetv/, rmtv.apk, firetv-lab-test.yml, docs/FIRETV.md | Android app that opens tv.html full screen with remote control keys; lab tested on a virtual device |
-| Ticker | ticker.html, ticker-symbols.json | Prices with no third-party widget: smooth scroll, live crypto, stale and closed states |
+| Ticker | ticker.html, ticker-symbols.json | Prices with no third-party widget: smooth scroll, live crypto, stale and closed states; name over price and change, day chart with a dotted previous-close line (green above, red below); the change line rotates every 5 s through change, day range, 52-week range and (stocks) volume vs usual |
 | Headlines | headlines.html, headlines-feeds.json | Scrolling news strip sized from its bar height |
-| Data relay | .github/workflows/relay.yml, .github/scripts/relay_loop.py, fetch_prices.py, fetch_headlines.py | Cloud job that publishes prices (2 min) and headlines (15 min) to branches ticker-data and headlines-data |
+| Data relay | .github/workflows/relay.yml, .github/scripts/relay_loop.py, fetch_prices.py, fetch_headlines.py | Cloud job that publishes prices (2 min) and headlines (15 min) to branches ticker-data and headlines-data; each run also refreshes day and 52-week ranges and volume for the 6 oldest Yahoo items |
 | Safety nets | relay.yml schedule (every 5 h) restarts the relay (prices and headlines); headlines.yml (every 6 h) refreshes headlines only | Keep the data going if the relay ever stops |
 | Daily check | stream-check.yml, check_streams.py | Plays every stream, checks data freshness, opens one issue if anything is wrong |
 | WSVN tile | player.html (since wallboard v22) | Plays WSVN's stream like every other tile and recovers by itself (the old wsvn.html page was removed) |
@@ -34,7 +34,7 @@ open https://dmo18.github.io/dv/wallboard.html. Restart the relay by hand: Actio
 ## Baseline (measured)
 - Wall: 28 tiles (since v33). The 18-tile wall measured 18 of 18 tiles moving over a 310 second headless run at CPU 1.74
   cores (headless, no graphics card); the 28-tile wall has not been measured on the real PC.
-- Streams: daily check. About 20 spare feeds (ABC News Live 1 to 10, ten CBS city streams) are only on air during events; they are listed but do not count as problems.
+- Streams: daily check (reads the wall feeds by name from channels.json). About 20 spare feeds (ABC News Live 1 to 10, ten CBS city streams) are only on air during events; they are listed but do not count as problems.
 - No test suite in the repo; checks are run by hand with Playwright against the live site, and the Fire TV app by the lab workflow.
 - Secrets: none. The WSVN entry in the encoder carries a public playback token that wsvn.com gives every visitor.
 

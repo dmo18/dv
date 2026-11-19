@@ -15,11 +15,14 @@ It also checks how old the data files published by the "Data relay" are (prices 
 headlines on branch headlines-data). A file older than 60 minutes, unreadable, or dated in the future
 is reported in the same report and counted in DEAD, so the same issue opens.
 
-Also enforces the standing rule: every stream address used on the wall (main and backup, exact
-string) must also be saved in encoder.html. Missing ones are listed and counted in DEAD, and the
-script exits with status 1.
+The wall picks its feeds by name from channels.json (wallboard v37 and later: feed("Name"), backup
+byName["Name"]). A wall name that is not in channels.json is reported as an unread tile and counted.
+Tiles written the old way (player("ID", "label", "address")) are still read.
 
 Changelog:
+  2026-11-19  Reads the wall's feed("Name") tiles and byName["Name"] backups and looks them up in channels.json.
+              Before this the wall tiles were not recognised after wallboard v37 (they were checked only as
+              encoder spares, and two helper lines were reported as unreadable tiles).
   2026-11-19  The encoder list is read from channels.json (next to encoder.html), which encoder.html and tv.html share.
   2026-11-17  Review fixes: only problems that affect the wall are counted in DEAD (wall streams, wall addresses
               missing from encoder.html, stale data, unreadable tiles); encoder-only spares that fail (for
@@ -72,7 +75,23 @@ def collect(wallboard_path, encoder_path):
     wall = re.sub(r"<!--.*?-->|/\*.*?\*/", "", wall, flags=re.S)
     wall = re.sub(r"(?m)^\s*//.*$", "", wall)
     call = re.compile(r'player\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"(https?://[^"]+)"\s*(?:,\s*\{([^}]*)\})?\s*\)')
-    UNREAD_TILES = max(0, len(re.findall(r"\bplayer\(", wall)) - len(call.findall(wall)))
+    # only literal tiles count here: player("ID", ...). The feed() helper calls player(variable, ...).
+    UNREAD_TILES = max(0, len(re.findall(r'\bplayer\(\s*"', wall)) - len(call.findall(wall)))
+    # Tiles by name: feed("Name") or feed("Name", { alt: byName["Other"] ... , altLabel: "Label" })
+    by_name = {c["name"]: c["url"] for c in channels(encoder_path)}
+    for m in re.finditer(r'\bfeed\(\s*"([^"]+)"\s*(?:,\s*\{([^}]*)\})?\s*\)', wall):
+        name, opts = m.group(1), m.group(2) or ""
+        if name not in by_name:
+            UNREAD_TILES += 1      # a wall feed name that is not in channels.json
+            continue
+        add("Wallboard", name, by_name[name])
+        alt = re.search(r'\balt\s*:\s*byName\[\s*"([^"]+)"\s*\]', opts)
+        if alt:
+            if alt.group(1) in by_name:
+                alt_label = re.search(r'\baltLabel\s*:\s*"([^"]+)"', opts)
+                add("Wallboard backup", alt_label.group(1) if alt_label else alt.group(1), by_name[alt.group(1)])
+            else:
+                UNREAD_TILES += 1
     for m in call.finditer(wall):
         opts = m.group(4) or ""
         alt = re.search(r'\balt\s*:\s*"([^"]+)"', opts)
