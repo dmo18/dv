@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
-"""fetch_prices.py Rev 4
+"""fetch_prices.py Rev 5
 
 Changelog:
+- Rev 5: day and 52-week ranges and relative volume for the Yahoo items.
+  Each run refreshes the RANGE_PER_RUN items whose range is oldest (one
+  Yahoo chart request each, its own budget, separate from the price cap).
+  Item fields: dh, dl (day high and low), wh, wl (52-week high and low),
+  vr (today's volume so far against the usual volume for this time of
+  day, from the last 20 sessions; stocks only, omitted when unknown), and
+  rr (epoch of the last range refresh). These are kept between runs.
 - Rev 4: fixes after the second review.
   1. Numbers are rounded first and checked after, so a tiny price can no
      longer become zero. Every division is guarded.
@@ -95,6 +102,8 @@ HOST_SHARE = 0.30       # share of the run time one host may use
 MAX_AHEAD = 600         # a price time may be this far ahead of now
 MIN_TIME = 1e9
 MAX_REDIRECTS = 3
+RANGE_PER_RUN = 6       # Yahoo chart requests for day and 52-week ranges per run
+RANGE_KEYS = ("dh", "dl", "wh", "wl", "vr", "rr")
 GROUPS = ("Indexes", "Stocks", "FX and commodities", "Crypto")
 BLOCKABLE = ("yahoo", "yahoo2", "nasdaq", "goldapi", "frankfurter", "coinbase")
 GOLDAPI = {"GC=F": "XAU", "SI=F": "XAG"}
@@ -134,6 +143,7 @@ _live = {}            # thread id -> open connection (for the hard limit)
 _STD_URLOPEN = urllib.request.urlopen
 LAST_STATS = []       # summary lines of the last run
 LAST_HELD = [0]       # jump markers set, changed or cleared by the last run
+LAST_RANGED = [0]     # items whose range fields were refreshed by the last run
 
 
 class FetchError(Exception):
@@ -510,6 +520,16 @@ def rebuild_prev(v):
     h = r6(v.get("h"))
     if h is not None:
         out["h"] = h
+    for key in ("dh", "dl", "wh", "wl"):
+        x = r6(v.get(key))
+        if x is not None:
+            out[key] = x
+    vr = v.get("vr")
+    if isinstance(vr, (int, float)) and 0 < vr < 1000:
+        out["vr"] = round(float(vr), 2)
+    rr = v.get("rr")
+    if epoch_like(rr):
+        out["rr"] = int(rr)
     return out
 
 
@@ -606,6 +626,66 @@ def yahoo_chart(symbol, host):
     if not item:
         raise FetchError("chart fields")
     return item
+
+
+def relative_volume(res, meta, now):
+    """Today's volume so far against the usual volume for the same part of
+    the session. None when it cannot be worked out reliably (before 10 % of
+    the session, fewer than 5 earlier sessions, no volume)."""
+    start = dig(meta, "currentTradingPeriod", "regular", "start")
+    end = dig(meta, "currentTradingPeriod", "regular", "end")
+    if not (epoch_like(start) and epoch_like(end) and end > start):
+        return None
+    if now >= end:
+        frac = 1.0
+    elif now < start:
+        return None
+    else:
+        frac = (now - start) / (end - start)
+    if frac < 0.1:
+        return None
+    today = meta.get("regularMarketVolume")
+    if not (isinstance(today, (int, float)) and today > 0):
+        return None
+    ts = dig(res, "timestamp")
+    vols = dig(res, "indicators", "quote", 0, "volume")
+    if not (isinstance(ts, list) and isinstance(vols, list) and len(ts) == len(vols)):
+        return None
+    prior = [v for t, v in zip(ts, vols)
+             if epoch_like(t) and t < start and isinstance(v, (int, float)) and v > 0]
+    prior = prior[-20:]
+    if len(prior) < 5:
+        return None
+    avg = sum(prior) / len(prior)
+    vr = today / (avg * frac)
+    if not (0 < vr < 1000):
+        return None
+    return round(vr, 2)
+
+
+def yahoo_range(symbol, host, now):
+    """Day and 52-week ranges and relative volume for one symbol. Raises
+    FetchError if the day or 52-week fields are missing."""
+    url = ("https://%s.finance.yahoo.com/v8/finance/chart/%s"
+           "?range=1mo&interval=1d&includePrePost=false"
+           % (host, urllib.parse.quote(symbol, safe="")))
+    d = http_json(url, host, gap=0.8, budget="range")
+    res = dig(d, "chart", "result", 0)
+    if not isinstance(res, dict):
+        raise FetchError("range shape")
+    meta = res.get("meta")
+    if not isinstance(meta, dict):
+        raise FetchError("range meta")
+    out = {}
+    for key, field in (("dh", "regularMarketDayHigh"), ("dl", "regularMarketDayLow"),
+                       ("wh", "fiftyTwoWeekHigh"), ("wl", "fiftyTwoWeekLow")):
+        v = r6(meta.get(field))
+        if v is None:
+            raise FetchError("range fields")
+        out[key] = v
+    out["vr"] = relative_volume(res, meta, now)
+    out["rr"] = int(now)
+    return out
 
 
 # ----------------------------------------------------------------- Nasdaq
@@ -847,6 +927,8 @@ def run(symbols_path, previous_path=None, blocked=(), deadline=None):
     _spent.clear()
     _budget.clear()
     _budget["yahoo"] = YAHOO_CAP
+    _budget["range"] = RANGE_PER_RUN
+    LAST_RANGED[0] = 0
     _deadline[0] = start + total
     _host_cap[0] = HOST_SHARE * total
     LAST_HELD[0] = 0
@@ -972,6 +1054,35 @@ def _run(syms, previous_path, start):
     for iid in sources:
         sources[iid] = clean_text(sources[iid])
 
+    # ---- day and 52-week ranges and relative volume. Fields not refreshed
+    # this run are carried over from the previous file.
+    stock_ids = {i["id"] for i in syms if i["group"] == "Stocks"}
+    for iid, it in items.items():
+        pv = prev_all.get(iid) or {}
+        for k in RANGE_KEYS:
+            if k == "vr" and iid not in stock_ids:
+                continue   # volume only means something for stocks
+            if k not in it and k in pv:
+                it[k] = pv[k]
+    yitems = [i for i in syms if yahoo_like(i) and i["id"] in items]
+    yitems.sort(key=lambda i: (items[i["id"]].get("rr") or 0))
+    for i in yitems[:RANGE_PER_RUN]:
+        if remaining() < 12:
+            break
+        for host in ("query1", "query2"):
+            try:
+                extra = yahoo_range(i["symbol"], host, time.time())
+            except Exception:
+                continue
+            it = items[i["id"]]
+            for k in RANGE_KEYS:
+                it.pop(k, None)
+            it.update(extra)
+            if extra.get("vr") is None or i["group"] != "Stocks":
+                it.pop("vr", None)   # volume only means something for stocks
+            LAST_RANGED[0] += 1
+            break
+
     LAST_HELD[0] = sum(
         1 for iid in by_id
         if (items.get(iid) or {}).get("h") != (prev_all.get(iid) or {}).get("h"))
@@ -1020,7 +1131,7 @@ def fresh_count(doc):
 def should_write(doc):
     """True if the last run() changed something worth saving: a fresh item,
     or a jump marker "h" that was set, changed or cleared."""
-    return fresh_count(doc) > 0 or LAST_HELD[0] > 0
+    return fresh_count(doc) > 0 or LAST_HELD[0] > 0 or LAST_RANGED[0] > 0
 
 
 def clean_stale_temps(path):

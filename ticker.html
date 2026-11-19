@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev4</title>
+<title>Ticker Rev5</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev5  2026-11-19  Each item's change box rotates every 5 seconds through: change, day range (D), 52-week range (52) and,
+                    for stocks, volume against the usual volume for this time of day (V). Ranges and volume come from
+                    the data file (fetch_prices Rev 5). A new stock was added: Anthropic (ANT).
   Rev4  2026-11-16  Live crypto: the page now listens to Coinbase's public price stream (6 coins from
                     ticker-symbols.json), takes the 24 hour open and the day chart from Coinbase at start
                     and hourly, and falls back to ticker.json while the stream is down (reconnects with
@@ -83,9 +86,9 @@ html, body {
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .22); }
 /* Change box has a fixed minimum width (arrow plus a 7ch percent slot), content right aligned,
    so the arrow stays next to the number and a longer percent never moves a neighbour */
-.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(7ch + .87em);
+.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(13ch + 1.6em);
       font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
-.ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
+.ar { display: inline-block; min-width: 1.5em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
 .pt { display: inline-block; text-align: right; }
 .sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
 .sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
@@ -156,6 +159,8 @@ const FUTURE_SECONDS = 7 * 86400;  /* times up to 7 days ahead are clamped to no
 const FETCH_TIMEOUT_MS = 20000;    /* each request gives up after 20 seconds */
 const STUCK_MS = 45000;            /* a poll older than this is treated as dead (page frozen meanwhile) */
 const MAX_NAME = 24;
+const VIEW_SECONDS = 5;            /* the change box shows its next view this often */
+const EXTRA_KEYS = ["dh", "dl", "wh", "wl", "vr", "rr"];   /* day and 52-week high and low, relative volume, range time */
 const U_MAX = 108;
 const NARROW_PX = 900;
 const CACHE_KEY = "ticker_cache_v1";
@@ -225,7 +230,18 @@ function validateEntry(e) {
     if (!Array.isArray(e.s) || e.s.length > MAX_POINTS || !e.s.every(isPrice)) return null;
     s = e.s.slice();
   }
-  return { p: e.p, pc: e.pc, t: clampNow(e.t), rt: e.t, open: e.open, s };
+  const out = { p: e.p, pc: e.pc, t: clampNow(e.t), rt: e.t, open: e.open, s };
+  for (const k of ["dh", "dl", "wh", "wl"]) if (isPrice(e[k])) out[k] = e[k];
+  if (isNum(e.vr) && e.vr < 1000) out.vr = e.vr;
+  if (isTime(e.rr)) out.rr = e.rr;
+  return out;
+}
+
+/* the optional range and volume fields of an entry (only those present) */
+function extrasOf(e) {
+  const o = {};
+  for (const k of EXTRA_KEYS) if (e && e[k] !== undefined && e[k] !== null) o[k] = e[k];
+  return o;
 }
 
 /* Returns {generated (clamped to now), raw (as received), items: Map id -> entry} or null. Bad single items are skipped.
@@ -245,7 +261,7 @@ function validateData(raw, ids) {
 function saveCache(list, generated, items) {
   try {
     const o = {};
-    items.forEach((e, id) => { o[id] = { p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s }; });
+    items.forEach((e, id) => { o[id] = Object.assign({ p: e.p, pc: e.pc, t: e.t, open: e.open, s: e.s }, extrasOf(e)); });
     const sy = list.map((s) => ({ id: s.id, name: s.name, group: s.group, decimals: s.decimals, pinned: s.pinned,
                                   source: s.cb ? "coinbase" : "other", symbol: s.cb || undefined }));
     localStorage.setItem(CACHE_KEY, JSON.stringify({ symbols: { version: 1, items: sy }, data: { generated, items: o } }));
@@ -295,14 +311,44 @@ function classify(e) {
   return { old, stale, closed };
 }
 
-function paint(v, e) {
+/* The change box rotates: change first, then each extra view (day, 52 week, volume) that the item has. */
+let viewTick = 0;
+function changeOf(e) {
   const pct = (e.p - e.pc) / e.pc * 100;
   const r = Math.round(pct * 100) / 100;
   const dir = r > 0 ? "up" : r < 0 ? "dn" : "fl";
+  /* 100 percent or more is shown without decimals, so it fits the same slot */
+  return { dir, arrow: dir === "up" ? "▲" : dir === "dn" ? "▼" : "▶",
+           text: (r > 0 ? "+" : "") + r.toFixed(Math.abs(r) >= 100 ? 0 : 2) + "%" };
+}
+function rangeText(lo, hi, dec) {
+  const d = hi >= 1000 ? 0 : dec;
+  return fmtPrice(lo, d) + "-" + fmtPrice(hi, d);
+}
+function extraViews(e, dec) {
+  const out = [];
+  if (isNum(e.dh) && isNum(e.dl)) out.push({ lab: "D", txt: rangeText(e.dl, e.dh, dec) });
+  if (isNum(e.wh) && isNum(e.wl)) out.push({ lab: "52", txt: rangeText(e.wl, e.wh, dec) });
+  if (isNum(e.vr)) out.push({ lab: "V", txt: e.vr.toFixed(1) + "x" });
+  return out;
+}
+function showView(v, e) {
+  const c = changeOf(e);
+  const extra = extraViews(e, v.dec);
+  const k = viewTick % (extra.length + 1);
+  if (k === 0) { setText(v.ar, c.arrow); setText(v.pt, c.text); }
+  else { setText(v.ar, extra[k - 1].lab); setText(v.pt, extra[k - 1].txt); }
+}
+setInterval(() => {
+  viewTick += 1;
+  els.forEach((views, id) => { const e = store.get(id); if (e) for (const v of views) showView(v, e); });
+}, VIEW_SECONDS * 1000);
+
+function paint(v, e) {
+  const c0 = changeOf(e);
   setText(v.pr, fmtPrice(e.p, v.dec));
-  /* 100 percent or more is shown without decimals, so it fits the same 7ch slot */
-  setText(v.pt, (r > 0 ? "+" : "") + r.toFixed(Math.abs(r) >= 100 ? 0 : 2) + "%");
-  setText(v.ar, dir === "up" ? "▲" : dir === "dn" ? "▼" : "▶");
+  showView(v, e);
+  const dir = c0.dir;
   const c = v.root.classList;
   c.toggle("up", dir === "up"); c.toggle("dn", dir === "dn"); c.toggle("fl", dir === "fl");
   const st = classify(e);
@@ -366,7 +412,8 @@ function applyPrice(id, d, src) {
   if (prev && v.t < prev.t && (src === "ws" || prev.src === "ws")) return false;
   /* the same time as received again (a file read twice): keep the time first used, so a dead feed still ages */
   const t = prev && prev.rt === v.rt && prev.src === src ? prev.t : v.t;
-  const e = { p: v.p, pc: v.pc, t, rt: v.rt, open: v.open, s: v.s || (prev && prev.s) || [], src };
+  const x = Object.keys(extrasOf(v)).length ? extrasOf(v) : extrasOf(prev);
+  const e = Object.assign({ p: v.p, pc: v.pc, t, rt: v.rt, open: v.open, s: v.s || (prev && prev.s) || [], src }, x);
   store.set(id, e);
   const views = els.get(id);
   if (!views) return true;
@@ -563,7 +610,7 @@ function ingest(symRaw, dataRaw) {
   if (gen < feedSeen) return true;                     /* older than the last file from the network: ignore */
   const changed = gen > feedGenerated || !!sy;
   feedGenerated = feedSeen = gen; feedRaw = dv.raw;
-  dv.items.forEach((e, id) => applyPrice(id, { p: e.p, pc: e.pc, t: e.rt, open: e.open, s: e.s }, "file"));
+  dv.items.forEach((e, id) => applyPrice(id, Object.assign({ p: e.p, pc: e.pc, t: e.rt, open: e.open, s: e.s }, extrasOf(e)), "file"));
   syncStructure();
   if (changed) saveCache(symbols, feedGenerated, store);
   return true;
@@ -782,7 +829,7 @@ function liveSync() {
     if (dv) {
       good = true;
       symbols = sy; feedGenerated = dv.generated; feedRaw = dv.raw;
-      dv.items.forEach((e, id) => store.set(id, { p: e.p, pc: e.pc, t: e.t, rt: e.rt, open: e.open, s: e.s || [], src: "file" }));
+      dv.items.forEach((e, id) => store.set(id, Object.assign({ p: e.p, pc: e.pc, t: e.t, rt: e.rt, open: e.open, s: e.s || [], src: "file" }, extrasOf(e))));
       buildStructure();
     }
   }

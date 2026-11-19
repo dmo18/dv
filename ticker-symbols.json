@@ -128,6 +128,15 @@
    "pinned": false
   },
   {
+   "id": "ANT",
+   "name": "Anthropic",
+   "group": "Stocks",
+   "source": "yahoo",
+   "symbol": "ANT",
+   "decimals": 2,
+   "pinned": false
+  },
+  {
    "id": "EURUSD",
    "name": "EUR/USD",
    "group": "FX and commodities",
