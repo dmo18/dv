@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev24</title>
+<title>Red Macho Devil TV Rev25</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev25 2026-11-19  The guide panel is fully hidden when closed. Its red glow (a shadow) was showing as a red fade along
+                    the bottom of the picture after the overlay had gone.
   Rev24 2026-11-19  Bottom bar back on one row. The text and the buttons scale together with the screen width, so the
                     buttons do not grow into a second row on a smaller screen.
   Rev23 2026-11-19  Bottom bar: the buttons wrap onto two rows instead of running off the screen, slightly smaller text,
@@ -138,8 +140,8 @@ body.app .volctl { display:none !important; }
 /* guide */
 #guide { position:fixed; left:0; right:0; bottom:0; z-index:8; max-height:70vh; display:flex; flex-direction:column;
   background:var(--panel); border-top:5px solid var(--red); box-shadow:0 -10px 40px rgba(225,6,0,.45);
-  transform:translateY(100%); transition:transform .3s ease; }
-#guide.open { transform:translateY(0); }
+  transform:translateY(100%); transition:transform .3s ease, visibility .3s; visibility:hidden; }
+#guide.open { transform:translateY(0); visibility:visible; }
 #guide header { display:flex; align-items:center; gap:8px; padding:10px 14px; background:linear-gradient(90deg,#e10600,#7a0000); flex-wrap:wrap; }
 #guide header b { font-size:18px; font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.05em; margin-right:auto; }
 #guide header button { min-height:38px; padding:0 12px; border:2px solid #000; border-radius:6px; background:#000; color:var(--fg); font-weight:800; font-size:13px; text-transform:uppercase; cursor:pointer; }
@@ -278,7 +280,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev24";
+const VERSION = "Rev25";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
