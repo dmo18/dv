@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v37</title>
+<title>Wallboard v38</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v38  2026-11-19  Tile labels show the channel number (same numbers as the encoder and TV).
   v37  2026-11-19  The wall reads its feeds from channels.json (one list for the wall, encoder and TV). The tile lists
                    now hold only feed names; addresses, labels and the ABC 10 backup come from the list. Wall unchanged.
   v36  2026-11-19  Player Rev19 (time shift: play after a pause resumes where it stopped; back and live commands). Wall unchanged.
@@ -228,7 +229,8 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
   const feed = (name, opts = {}) => {
     const c = byName[name];
     if (!c) { console.error("Not in channels.json: " + name); return player(name.replace(/\s+/g, ""), name, "", opts); }
-    return player(c.name.replace(/\s+/g, ""), c.name, c.url, opts);
+    const num = CHANNELS.indexOf(c) + 1;   // the channel number, as in the encoder and TV
+    return player(c.name.replace(/\s+/g, ""), num + ". " + c.name, c.url, opts);
   };
 
   // Link for tile number n (n counts from 0 in TILES order). Links are relative, so the board
