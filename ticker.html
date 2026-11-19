@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev9</title>
+<title>Ticker Rev10</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev10 2026-11-19  Less space between items (the gap was about a mile). Charts are a green or red gradient fill under a
+                    line of the same colour, as the reference.
   Rev9  2026-11-19  The day chart sits next to the name (as the reference), larger, with a light fill under the line in
                     the trend colour. Price and change stay together on the right.
   Rev8  2026-11-19  New look (as the reference picture): name on top in blue, price under it, then the change with the
@@ -90,10 +92,10 @@ html, body {
 .gd b { font-size: calc(var(--u) * .34); font-weight: 700; color: #a3a8ae; text-transform: uppercase; letter-spacing: .06em; }
 
 /* One item */
-.it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .9);
-      padding: 0 calc(var(--u) * .25); border-radius: calc(var(--u) * .3); white-space: nowrap; }
-.nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .35); min-width: calc(var(--u) * 3.2); }
-.vals { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin-right: calc(var(--u) * .35); min-width: calc(var(--u) * 5.6); }
+.it { flex: 0 0 auto; display: inline-flex; align-items: center; margin-right: calc(var(--u) * .5);
+      padding: 0 calc(var(--u) * .2); border-radius: calc(var(--u) * .3); white-space: nowrap; }
+.nmc { position: relative; display: flex; align-items: center; margin-right: calc(var(--u) * .3); min-width: calc(var(--u) * 2.6); }
+.vals { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin-right: calc(var(--u) * .2); min-width: calc(var(--u) * 4.4); }
 .nm { font-size: calc(var(--u) * .41); font-weight: 700; color: var(--nm); line-height: 1.05; }
 .cl { position: absolute; left: 0; top: calc(100% - var(--u) * .04); font-size: calc(var(--u) * .31); font-weight: 700; line-height: .9; color: #d2d6da; visibility: hidden; letter-spacing: .05em; text-transform: uppercase; }
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: left; line-height: 1.05; }
@@ -104,11 +106,12 @@ html, body {
 .pt { display: inline-block; text-align: left; }
 .sp { width: calc(var(--u) * 2.4); height: calc(var(--u) * .95); margin: 0 calc(var(--u) * .35); overflow: visible; flex: 0 0 auto; }
 .sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
-.sp polygon { fill: var(--fl); fill-opacity: .16; stroke: none; }
+.sp polygon { stroke: none; }
+.sp stop { stop-color: var(--fl); }
 .up .ch, .up .sp polyline { color: var(--up); stroke: var(--up); }
 .dn .ch, .dn .sp polyline { color: var(--dn); stroke: var(--dn); }
-.up .sp polygon { fill: var(--up); }
-.dn .sp polygon { fill: var(--dn); }
+.up .sp stop { stop-color: var(--up); }
+.dn .sp stop { stop-color: var(--dn); }
 
 /* States */
 .it.closed { opacity: .72; }
@@ -462,6 +465,7 @@ function refreshStates() {
 
 /* ---------- building the strip ---------- */
 const SVGNS = "http://www.w3.org/2000/svg";
+let gradCount = 0;   /* unique gradient ids for the day charts */
 function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   const root = document.createElement("span");
   root.className = "it" + (kind === "clone" ? " pcl" : "");
@@ -489,9 +493,18 @@ function makeItem(sym, kind) {   /* kind: "pin", "strip" or "clone" */
   if (kind !== "pin") {
     const sp = document.createElementNS(SVGNS, "svg");
     sp.setAttribute("class", "sp"); sp.setAttribute("viewBox", "0 0 44 14"); sp.setAttribute("preserveAspectRatio", "none");
+    const gid = "tg" + (++gradCount);
+    const defs = document.createElementNS(SVGNS, "defs");
+    const grad = document.createElementNS(SVGNS, "linearGradient");
+    grad.setAttribute("id", gid); grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0");
+    grad.setAttribute("x2", "0"); grad.setAttribute("y2", "1");
+    const st1 = document.createElementNS(SVGNS, "stop"); st1.setAttribute("offset", "0"); st1.setAttribute("stop-opacity", ".55");
+    const st2 = document.createElementNS(SVGNS, "stop"); st2.setAttribute("offset", "1"); st2.setAttribute("stop-opacity", "0");
+    grad.appendChild(st1); grad.appendChild(st2); defs.appendChild(grad);
     const area = document.createElementNS(SVGNS, "polygon");
+    area.setAttribute("fill", "url(#" + gid + ")");
     const poly = document.createElementNS(SVGNS, "polyline");
-    sp.appendChild(area); sp.appendChild(poly); root.insertBefore(sp, vals);
+    sp.appendChild(defs); sp.appendChild(area); sp.appendChild(poly); root.insertBefore(sp, vals);
     v.sp = sp; v.poly = poly; v.area = area;
   }
   return v;
