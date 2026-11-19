@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev16</title>
+<title>Red Macho Devil TV Rev17</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev17 2026-11-19  Seven more local affiliates (NBC New York, NBC Miami, ABC, Fox and NBC Chicago, NBC Philadelphia, NBC Bay Area).
   Rev16 2026-11-19  Channels come from channels.json (shared with encoder.html). Real "now" and "next" programme names for about
                     20 channels, from epg.json on the epg-data branch (workflow epg.yml, refreshed every 30 minutes; shown only
                     while that file is under 3 hours old). A channel that shows No signal for 20 seconds is skipped
@@ -253,7 +254,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev16";
+const VERSION = "Rev17";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
