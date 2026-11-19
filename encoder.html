@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev32</title>
+<title>Encoder Rev33</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev33  2026-11-19  Local stations show a heading for each city (Atlanta, Austin MN, Bakersfield ...), from the city field in
+                     channels.json, so the stations of one city are visibly together.
   Rev32  2026-11-19  Channels are grouped like a cable guide (National news, Business and finance, International, Local stations
                      A to Z by city, then Probably bad at the bottom). Group headings show in the grid. Numbers follow the new order.
   Rev31  2026-11-19  Time shift: "- 30 s" goes back 30 seconds, "Live" jumps back to live (player.html Rev19). Play after a
@@ -342,6 +344,15 @@ input, select, textarea { font-size: 16px; border-radius: 10px; }
   padding: 10px 0; margin: 8px 0 12px; background: rgba(10, 10, 10, 0.92); backdrop-filter: blur(6px); }
 .ctlbar button { flex: 1 1 auto; min-width: 120px; }
 .ctlstatus { flex: 1 1 100%; font-size: 13px; opacity: 0.75; min-height: 1em; }
+.cityHead {
+  grid-column: 1 / -1;
+  margin: 8px 0 -4px;
+  color: #cfd3d8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
 .groupHead {
   grid-column: 1 / -1;
   margin: 14px 0 0;
@@ -376,7 +387,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev32</h1>
+  <h1>Wallboard URL Encoder Rev33</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Previews are muted with no controls. Open gives sound and full player controls.
@@ -489,7 +500,7 @@ DEVELOPER NOTES
 
 Where to add more feeds:
 
-Add more entries to channels.json (name, group, url, desc, off).
+Add more entries to channels.json (name, group, city, url, desc, off). city is only used for Local stations.
 group is one of: National news, Business and finance, International, Local stations, Probably bad (off air or not working).
 The grid shows a heading each time the group changes, so keep each group together in the file.
 Each entry automatically creates one preview tile and one set of buttons.
@@ -532,7 +543,7 @@ let OFF_AIR = new Set();
 let DESCRIPTIONS = {};
 function loadChannels() {
   return fetch("channels.json", { cache: "no-store" }).then((r) => r.json()).then((list) => {
-    STREAMS = list.map((c) => ({ name: c.name, url: c.url, group: c.group || "" }));
+    STREAMS = list.map((c) => ({ name: c.name, url: c.url, group: c.group || "", city: c.city || "" }));
     OFF_AIR = new Set(list.filter((c) => c.off).map((c) => c.name));
     DESCRIPTIONS = Object.fromEntries(list.map((c) => [c.name, c.desc || ""]));
   });
@@ -712,7 +723,7 @@ function renderSnapshotGrid() {
   const host = $("snapshotGrid");
   host.innerHTML = "";
 
-  let lastGroup = "";
+  let lastGroup = "", lastCity = "";
   STREAMS.forEach((stream) => {
     if (stream.group && stream.group !== lastGroup) {
       lastGroup = stream.group;
@@ -720,6 +731,14 @@ function renderSnapshotGrid() {
       head.className = "groupHead";
       head.textContent = stream.group;
       host.appendChild(head);
+      lastCity = "";
+    }
+    if (stream.group === "Local stations" && stream.city && stream.city !== lastCity) {
+      lastCity = stream.city;
+      const ch = document.createElement("div");
+      ch.className = "cityHead";
+      ch.textContent = stream.city;
+      host.appendChild(ch);
     }
     const normalUrl = buildForStream(stream);
     const openUrl = buildOpenForStream(stream);
