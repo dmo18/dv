@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Ticker Rev5</title>
+<title>Ticker Rev6</title>
 <!--
   VERSION: bump the Rev number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  Rev6  2026-11-19  Back to the original change box width (the wider box left a gap before the sparkline). The day, 52-week
+                    and volume views are switched off (SHOW_EXTRA_VIEWS) until a display that fits is agreed. Data keeps
+                    being fetched.
   Rev5  2026-11-19  Each item's change box rotates every 5 seconds through: change, day range (D), 52-week range (52) and,
                     for stocks, volume against the usual volume for this time of day (V). Ranges and volume come from
                     the data file (fetch_prices Rev 5). A new stock was added: Anthropic (ANT).
@@ -86,9 +89,9 @@ html, body {
 .pr { font-size: calc(var(--u) * .53); font-weight: 500; color: #fff; text-align: right; margin-right: calc(var(--u) * .22); }
 /* Change box has a fixed minimum width (arrow plus a 7ch percent slot), content right aligned,
    so the arrow stays next to the number and a longer percent never moves a neighbour */
-.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(13ch + 1.6em);
+.ch { display: inline-flex; align-items: center; justify-content: flex-end; min-width: calc(7ch + .87em);
       font-size: calc(var(--u) * .44); font-weight: 600; color: var(--fl); }
-.ar { display: inline-block; min-width: 1.5em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
+.ar { display: inline-block; width: 1em; text-align: center; font-size: .72em; margin-right: .2em; flex: 0 0 auto; }
 .pt { display: inline-block; text-align: right; }
 .sp { width: calc(var(--u) * 1.375); height: calc(var(--u) * .4375); margin-left: calc(var(--u) * .4); overflow: visible; flex: 0 0 auto; }
 .sp polyline { fill: none; stroke: var(--fl); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
@@ -159,7 +162,8 @@ const FUTURE_SECONDS = 7 * 86400;  /* times up to 7 days ahead are clamped to no
 const FETCH_TIMEOUT_MS = 20000;    /* each request gives up after 20 seconds */
 const STUCK_MS = 45000;            /* a poll older than this is treated as dead (page frozen meanwhile) */
 const MAX_NAME = 24;
-const VIEW_SECONDS = 5;            /* the change box shows its next view this often */
+const VIEW_SECONDS = 5;
+const SHOW_EXTRA_VIEWS = false;    /* day range, 52-week range and volume views: off until the layout is agreed */            /* the change box shows its next view this often */
 const EXTRA_KEYS = ["dh", "dl", "wh", "wl", "vr", "rr"];   /* day and 52-week high and low, relative volume, range time */
 const U_MAX = 108;
 const NARROW_PX = 900;
@@ -327,6 +331,7 @@ function rangeText(lo, hi, dec) {
 }
 function extraViews(e, dec) {
   const out = [];
+  if (!SHOW_EXTRA_VIEWS) return out;
   if (isNum(e.dh) && isNum(e.dl)) out.push({ lab: "D", txt: rangeText(e.dl, e.dh, dec) });
   if (isNum(e.wh) && isNum(e.wl)) out.push({ lab: "52", txt: rangeText(e.wl, e.wh, dec) });
   if (isNum(e.vr)) out.push({ lab: "V", txt: e.vr.toFixed(1) + "x" });
