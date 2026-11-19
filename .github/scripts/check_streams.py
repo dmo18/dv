@@ -20,6 +20,7 @@ string) must also be saved in encoder.html. Missing ones are listed and counted 
 script exits with status 1.
 
 Changelog:
+  2026-11-19  The encoder list is read from channels.json (next to encoder.html), which encoder.html and tv.html share.
   2026-11-17  Review fixes: only problems that affect the wall are counted in DEAD (wall streams, wall addresses
               missing from encoder.html, stale data, unreadable tiles); encoder-only spares that fail (for
               example IRINN, Kan 11) are listed for information and no longer keep the issue open. A NaN time
@@ -82,19 +83,19 @@ def collect(wallboard_path, encoder_path):
         if alt:
             add("Wallboard backup", alt_label.group(1) if alt_label else m.group(2), alt.group(1))
 
-    enc = open(encoder_path, encoding="utf-8").read()
-    block = enc[enc.index("const STREAMS = ["):]
-    block = block[:block.index("];")]
-    for name, url in re.findall(r'\{\s*name:\s*"([^"]+)",\s*url:\s*"([^"]+)"\s*\}', block):
-        add("Encoder", name, url)
+    for c in channels(encoder_path):
+        add("Encoder", c["name"], c["url"])
     return rows
 
 
+def channels(encoder_path):
+    """The encoder's channel list: channels.json next to encoder.html."""
+    path = os.path.join(os.path.dirname(os.path.abspath(encoder_path)), "channels.json")
+    return json.load(open(path, encoding="utf-8"))
+
+
 def encoder_urls(encoder_path):
-    enc = open(encoder_path, encoding="utf-8").read()
-    block = enc[enc.index("const STREAMS = ["):]
-    block = block[:block.index("];")]
-    return set(re.findall(r'\{\s*name:\s*"[^"]+",\s*url:\s*"([^"]+)"\s*\}', block))
+    return {c["url"] for c in channels(encoder_path)}
 
 
 def get(url, byte_range=None):
