@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev21</title>
+<title>Red Macho Devil TV Rev22</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev22 2026-11-19  The channel guide shows group headings (National news, Business and finance, International, Local stations,
+                    Probably bad at the bottom). Automatic skipping of channels with no signal is removed; the Skip off air
+                    button still works as before.
   Rev21 2026-11-19  Time shift on the channel: Pause / Play, "Back 30s" and "Live" in the bar. Keys: P pause or play, B back
                     30 seconds, X live. Pausing keeps the picture and the status light says Paused (no channel skip while paused).
                     Needs player.html Rev19.
@@ -140,6 +143,7 @@ body.app .volctl { display:none !important; }
 #list { overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 0 14px; }
 .row { display:grid; grid-template-columns:56px 1fr auto; gap:2px 12px; padding:10px 14px; border:0; border-bottom:1px solid #2a0c0c; width:100%; text-align:left;
   background:none; color:var(--fg); cursor:pointer; }
+.grp { padding:14px 14px 6px; color:var(--gold); font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; border-bottom:1px solid #5c0000; }
 .row:hover { background:#1f0505; outline:none; box-shadow:inset 6px 0 0 var(--red); }
 .row:focus { background:#6b0a0a; outline:none; box-shadow:inset 8px 0 0 var(--gold), inset 0 0 0 2px var(--red); }
 .row.on { background:linear-gradient(90deg,#5c0000,#1a0404); box-shadow:inset 6px 0 0 var(--gold); }
@@ -270,7 +274,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev21";
+const VERSION = "Rev22";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
@@ -317,11 +321,9 @@ function goLive() {
   wake();
 }
 
-let tunedAt = Date.now(), autoSkips = 0, lastDir = 1;
-function tune(i, { quiet = false, keepSrc = false, auto = false } = {}) {
+let lastDir = 1;
+function tune(i, { quiet = false, keepSrc = false } = {}) {
   if (!CHANNELS.length) return;
-  tunedAt = Date.now();
-  if (!auto) autoSkips = 0;
   const next = ((i % CHANNELS.length) + CHANNELS.length) % CHANNELS.length;
   if (next !== current) previous = current;
   current = next;
@@ -401,15 +403,9 @@ function refreshStatus() {
   const ch = CHANNELS[current];
   if (tvPaused) return setStatus("Paused", "paused");
   if (!info) return setStatus("Connecting", "");
-  if (info.playing) { autoSkips = 0; return setStatus("Live", "live"); }
+  if (info.playing) return setStatus("Live", "live");
   if (info.card) {
     setStatus(ch.off ? "Off air" : "No signal", ch.off ? "off" : "nosig");
-    /* dead channel: after 20 s move on, in the direction last used; stop after 8 in a row (network down?) */
-    if (Date.now() - tunedAt > 20000 && autoSkips < 8 && !guide.classList.contains("open")) {
-      autoSkips += 1;
-      toast("No signal on " + ch.name + ", skipping", 3000);
-      tune(skipOn ? nextOnAir(current, lastDir) : current + lastDir, { auto: true });
-    }
     return;
   }
   setStatus("Connecting", "");
@@ -525,8 +521,16 @@ function markGuide() {
 }
 function buildGuide() {
   list.innerHTML = "";
+  let lastGroup = "";
   CHANNELS.forEach((ch, i) => {
     if (onAirOnly && ch.off) return;
+    if (ch.group && ch.group !== lastGroup) {
+      lastGroup = ch.group;
+      const h = document.createElement("div");
+      h.className = "grp";
+      h.textContent = ch.group;
+      list.appendChild(h);
+    }
     const b = document.createElement("button");
     b.type = "button";
     b.className = "row";
