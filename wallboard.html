@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wallboard v49</title>
+<title>Wallboard v50</title>
 <!--
   VERSION: bump the number in the <title> above on every change to this file,
   and add a line here (newest first).
 
+  v50  2026-11-19  The Fox News tile uses the feed with sound and better picture (768x432); the official silent preview is
+                   its backup.
   v49  2026-11-19  Tile labels use the real channel number (number field in channels.json), as the encoder and TV.
   v48  2026-11-19  Ticker Rev14 (chart green above the previous close, red below).
   v47  2026-11-19  Ticker Rev13 (charts with the previous-close line, as Yahoo Finance).
@@ -261,7 +263,7 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
   // Row 1 is the large tiles, then rows of small tiles. ABC 10 falls back to CNN when its own feed is dark.
   const TILES_18 = [
     feed("BBC News"), feed("WSVN 7News"), feed("LiveNOW Fox"),
-    feed("CNN"), feed("Fox News"), feed("ABC News Live"), feed("CBS News"), feed("Bloomberg"),
+    feed("CNN"), feed("Fox News", { alt: byName["Fox News (silent preview)"] ? byName["Fox News (silent preview)"].url : "", altLabel: "Fox News" }), feed("ABC News Live"), feed("CBS News"), feed("Bloomberg"),
     feed("IL13"), feed("i24"), feed("TRT World"), feed("Al Jazeera"), feed("RT"),
     feed("ABC 10", { alt: byName["CNN"] ? byName["CNN"].url : "", altLabel: "CNN" }),
     feed("Global News"), feed("Scripps News"), feed("DW"), feed("Fox Weather")
@@ -271,7 +273,7 @@ html.l28 .tile::after{ content: ""; position: absolute; inset: 0; z-index: 30; p
     feed("BBC News"), feed("WSVN 7News"), feed("LiveNOW Fox"),
     feed("CNN"), feed("ABC 10", { alt: byName["CNN"] ? byName["CNN"].url : "", altLabel: "CNN" }),
     feed("ABC News Australia"), feed("Africanews English"), feed("Al Arabiya English"), feed("Al Jazeera"), feed("Bloomberg"),
-    feed("CBS News"), feed("CBS News Miami"), feed("DW"), feed("Fox News"), feed("France 24 English"), feed("GB News"),
+    feed("CBS News"), feed("CBS News Miami"), feed("DW"), feed("Fox News", { alt: byName["Fox News (silent preview)"] ? byName["Fox News (silent preview)"].url : "", altLabel: "Fox News" }), feed("France 24 English"), feed("GB News"),
     feed("Global News"), feed("i24"), feed("i24NEWS Hebrew"), feed("India Today"), feed("MS NOW (ex MSNBC)"),
     feed("NBC News NOW"), feed("NHK World-Japan"), feed("TRT World"), feed("Newsmax TV"), feed("RT"),
     feed("Telesur English"), feed("VoA TV (Voice of America)")

@@ -43,8 +43,8 @@
     "name": "Fox News",
     "number": 6,
     "group": "National news",
-    "url": "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8",
-    "desc": "Fox News Channel live, US cable news.",
+    "url": "https://tvsen6.aynaott.com/foxnews/index.m3u8",
+    "desc": "Fox News Channel with sound (third-party relay, about a minute behind; checked against Fox's own preview feed).",
     "off": false
   },
   {
@@ -101,6 +101,14 @@
     "group": "National news",
     "url": "https://aka-live1050.delivery.roku.com/a48b72c9-5755-4ede-9dac-9e51e4ca5cc8/t2-origin/out/v1/live.m3u8",
     "desc": "Scripps News, US national news.",
+    "off": false
+  },
+  {
+    "name": "Fox News (silent preview)",
+    "number": 14,
+    "group": "National news",
+    "url": "https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8",
+    "desc": "Fox News Channel's official preview feed: picture only, no sound, low resolution. Backup for the wall tile.",
     "off": false
   },
   {
@@ -429,6 +437,15 @@
     "url": "https://cbsn-bos.cbsnstream.cbsnews.com/out/v1/589d66ec6eb8434c96c28de0370d1326/master.m3u8",
     "desc": "CBS News Boston, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
     "off": true
+  },
+  {
+    "name": "NBC10 Boston (WBTS)",
+    "number": 151,
+    "group": "Local stations",
+    "city": "Boston",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889713/hls/master.m3u8?ads.xumo_channelId=88889713a&ads.xumo_ifaType=&ads.xumo_providerId=3820&ads.xumo_providerName=NBCNBOS",
+    "desc": "NBC Boston (channel 10): local news and weather.",
+    "off": false
   },
   {
     "name": "ABC 9 Charlotte (WSOC)",
@@ -761,6 +778,78 @@
     "city": "Washington",
     "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889708/hls/master.m3u8?ads.xumo_channelId=88889708a&ads.xumo_ifaType=&ads.xumo_providerId=3830&ads.xumo_providerName=NBCNWAS",
     "desc": "NBC Washington, DC (channel 4): local news, weather and traffic.",
+    "off": false
+  },
+  {
+    "name": "NBC 3 Cleveland (WKYC)",
+    "number": 380,
+    "group": "Local stations",
+    "city": "Cleveland",
+    "url": "https://video.tegnaone.com/wkyc/live/v1/manifest/f9c1bf9ffd6ac86b6173a7c169ff6e3f4efbd693/WKYC-Production/d39cf8a9-40a6-4cba-85f7-6c9d633843b3/2.m3u8",
+    "desc": "NBC Cleveland (channel 3): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "NBC Connecticut (WVIT)",
+    "number": 390,
+    "group": "Local stations",
+    "city": "Hartford",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889707/hls/master.m3u8?ads.xumo_channelId=88889707a&ads.xumo_ifaType=&ads.xumo_providerId=3832&ads.xumo_providerName=NBCNCT",
+    "desc": "NBC Hartford and New Haven: Connecticut news and weather.",
+    "off": false
+  },
+  {
+    "name": "NBC 41 Kansas City (KSHB)",
+    "number": 400,
+    "group": "Local stations",
+    "city": "Kansas City",
+    "url": "https://content.uplynk.com/channel/50d0fa1b042945a3a4f550f9b8412c83.m3u8",
+    "desc": "NBC Kansas City (channel 41): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "NBC 4 Milwaukee (WTMJ)",
+    "number": 410,
+    "group": "Local stations",
+    "city": "Milwaukee",
+    "url": "https://aegis-cloudfront-1.tubi.video/d4d923f2-17de-4371-b86d-43490499bcdb/playlist.m3u8",
+    "desc": "NBC Milwaukee (channel 4): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "NBC 10 Providence (WJAR)",
+    "number": 420,
+    "group": "Local stations",
+    "city": "Providence",
+    "url": "https://pubads.g.doubleclick.net/ssai/event/kpannrCBQ5KwdV3Hag3Wog/master.m3u8",
+    "desc": "NBC Providence (channel 10): Rhode Island news. Low resolution (240p).",
+    "off": false
+  },
+  {
+    "name": "CBS 6 Richmond (WTVR)",
+    "number": 430,
+    "group": "Local stations",
+    "city": "Richmond",
+    "url": "https://aegis-cloudfront-1.tubi.video/d8fc1d6c-fd55-45c8-973b-b7327ee1a6e0/playlist.m3u8",
+    "desc": "CBS Richmond (channel 6): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "NBC 10 Rochester (WHEC)",
+    "number": 440,
+    "group": "Local stations",
+    "city": "Rochester",
+    "url": "https://amg01942-amg01942c4-stirr-us-10190.playouts.now.amagi.tv/playlist.m3u8",
+    "desc": "NBC Rochester NY (channel 10): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "NBC 5 West Palm Beach (WPTV)",
+    "number": 450,
+    "group": "Local stations",
+    "city": "West Palm Beach",
+    "url": "https://content.uplynk.com/channel/b02350ef854c4eef8358eead1f59a5cc.m3u8",
+    "desc": "NBC West Palm Beach (channel 5): local news and weather.",
     "off": false
   },
   {
