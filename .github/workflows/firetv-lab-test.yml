@@ -1,6 +1,9 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 8 (2026-11-19)
+# firetv-lab-test.yml Rev 9 (2026-11-19)
+# - Rev 9: TV Rev13: overlay hides after 5 s, so overlay screenshots come 2 s after a press; leaving takes two Back presses
+#   (the first shows "Press Back again to exit"); the top bar stats line is in the screenshots.
+# - Rev 8 2026-11-19
 # - Rev 8: "app closed" is read from the window in focus (Android keeps a closed app's process alive, so the process check
 #   could not tell); a screenshot right after typing 20 shows which channel was tuned; longer wait for the stream.
 # - Rev 7 2026-11-19
@@ -101,18 +104,21 @@ jobs:
           adb shell input keyevent KEYCODE_MENU
           sleep 4;   shot s03-guide-open
           adb shell input keyevent KEYCODE_BACK
-          sleep 3;   shot s04-back-closes-guide
+          sleep 2;   shot s04-back-closes-guide
           adb shell input keyevent KEYCODE_BACK
           sleep 3;   shot s05-back-hides-overlay
           echo "running after two Backs: $(adb shell pidof com.redmachodevil.tv | tr -d '\r')" | tee -a lab/log.txt
           adb shell input text s
-          sleep 3;   shot s06-skip-on
+          sleep 2;   shot s06-skip-on
           adb shell input keyevent KEYCODE_DPAD_UP
-          sleep 4;   shot s07-skip-channel-up
-          sleep 17;  shot s08-hidden-after-15s
+          sleep 2;   shot s07-skip-channel-up
+          sleep 8;   shot s08-hidden-after-5s
+          adb shell input keyevent KEYCODE_BACK
+          sleep 1;   shot s08b-press-back-again
+          echo "window in focus after the first Back with nothing on screen (should be the app): $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
           adb shell input keyevent KEYCODE_BACK
           sleep 4
-          echo "window in focus after third Back (should not be the app): $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
+          echo "window in focus after the second Back (should not be the app): $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
           adb shell am start -n com.redmachodevil.tv/.MainActivity | tee -a lab/log.txt
           sleep 40
           adb shell input text 20

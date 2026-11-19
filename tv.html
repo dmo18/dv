@@ -3,9 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev12</title>
+<title>Red Macho Devil TV Rev13</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev13 2026-11-19  The overlay hides after 5 seconds. Leaving the Fire TV app takes two Back presses: with nothing on screen,
+                    Back shows "Press Back again to exit" and only a second press within 3 seconds leaves. Volume controls are
+                    back in a normal browser and hidden only inside the Fire TV app (which says so in its user agent). The top
+                    bar shows network and stream stats while it is visible: picture size, the stream's own bitrate, the
+                    measured download speed, seconds buffered, dropped frames and the network type.
   Rev12 2026-11-19  One bottom panel instead of two overlapping overlays: the channel banner sits above a single row of buttons
                     and the channel name is no longer shown twice. Volume controls removed (use the TV remote's own volume).
                     The red top bar fades with the overlay. Back (needs app 1.1) closes the guide, then hides the overlay,
@@ -54,6 +59,13 @@ body.hideui { cursor:none; }
 #top .devil { width:38px; height:38px; flex:none; filter:drop-shadow(0 0 8px var(--red)); }
 #brand { font-weight:900; font-style:italic; text-transform:uppercase; letter-spacing:.04em; font-size:clamp(14px,2vw,20px); text-shadow:0 2px 0 var(--red2); }
 #brand span { color:var(--red); }
+#stats { flex:1 1 auto; min-width:0; font:600 11px/1.3 ui-monospace,Consolas,monospace; color:var(--dim);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#toast { position:fixed; left:50%; bottom:40%; transform:translateX(-50%); z-index:9; padding:12px 20px; border-radius:8px;
+  background:rgba(0,0,0,.85); border:2px solid var(--red); color:var(--fg); font-weight:900; font-size:18px; display:none; }
+#toast.show { display:block; }
+#bar input[type=range] { width:clamp(70px,10vw,130px); accent-color:var(--red); }
+body.app .volctl { display:none !important; }
 #clock { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:800; font-size:clamp(14px,2vw,20px); }
 #clock small { display:block; font-size:11px; font-weight:600; color:var(--dim); text-align:right; }
 #status { display:flex; align-items:center; gap:6px; padding:5px 10px; border-radius:6px; background:#000; border:1px solid #3a0a0a;
@@ -147,6 +159,7 @@ body.hideui { cursor:none; }
 </svg>
   <div id="brand">Red Macho <span>Devil</span> TV</div>
   <div id="status"><i></i><span>Connecting</span></div>
+  <div id="stats" aria-hidden="true"></div>
   <div id="clock"><span id="time"></span><small id="date"></small></div>
 </div>
 <div id="entry" aria-live="polite"></div>
@@ -170,6 +183,7 @@ body.hideui { cursor:none; }
   <span class="sub">Red Macho Devil TV</span>
 </button>
 
+<div id="toast" role="status"></div>
 <div id="dock">
   <div id="osd" aria-live="polite"></div>
   <div id="bar">
@@ -181,6 +195,9 @@ body.hideui { cursor:none; }
     <span class="gap"></span>
     <button id="cc" type="button" aria-pressed="true">CC</button>
     <button id="mute" type="button">Mute</button>
+    <button id="volDown" class="volctl" type="button" aria-label="Volume down">Vol -</button>
+    <input id="vol" class="volctl" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume" tabindex="-1" />
+    <button id="volUp" class="volctl" type="button" aria-label="Volume up">Vol +</button>
     <button id="info" type="button">Info</button>
     <button id="guideBtn" type="button">Guide</button>
     <button id="full" type="button" aria-label="Full screen">Full</button>
@@ -207,7 +224,7 @@ window.EPG = window.EPG || {};
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev12";
+const VERSION = "Rev13";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 let current = 0, previous = 0, typed = "", typeTimer = null, osdTimer = null, topTimer = null;
@@ -246,7 +263,7 @@ function tune(i, { quiet = false, keepSrc = false } = {}) {
 }
 
 /* Overlay: any input wakes it; 15 s later it hides again (not while the guide is open). */
-const HIDE_MS = 15000;
+const HIDE_MS = 5000;
 let hideTimer = null, bannerOn = false;
 function uiHidden() { return document.body.classList.contains("hideui"); }
 function wake() {
@@ -263,11 +280,14 @@ function showBanner() { bannerOn = true; osd.classList.add("show"); wake(); }
 function toggleBanner() { if (bannerOn && !uiHidden()) { bannerOn = false; osd.classList.remove("show"); wake(); } else showBanner(); }
 
 /* Remote control focus: Left and Right step through these buttons in order. */
-const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "cc", "mute", "info", "guideBtn", "full"];
+const BAR_IDS = ["chDown", "chUp", "skipOff", "last", "cc", "mute", "volDown", "volUp", "info", "guideBtn", "full"];
+/* only the buttons that are shown (the volume buttons are hidden inside the Fire TV app) */
+function barIds() { return BAR_IDS.filter((id) => { const el = $(id); return el && el.offsetParent !== null; }); }
 let barAt = 1;
 function focusBar(i) {
-  barAt = (i + BAR_IDS.length) % BAR_IDS.length;
-  const b = $(BAR_IDS[barAt]);
+  const ids = barIds();
+  barAt = (i + ids.length) % ids.length;
+  const b = $(ids[barAt]);
   if (b) b.focus();
 }
 
@@ -307,6 +327,54 @@ function applyVolume() {
 }
 
 function toggleMute() { muted = !muted; applyVolume(); wake(); }
+function setVolume(v) {
+  volume = Math.min(1, Math.max(0, Math.round(v * 20) / 20));
+  if (volume > 0) muted = false;
+  $("vol").value = volume;
+  applyVolume();
+  wake();
+}
+
+/* Network and stream stats for the top bar, read from the player page (same site). */
+function streamStats() {
+  try {
+    const w = screen_.contentWindow, d = screen_.contentDocument;
+    if (!w || !d) return "";
+    const v = Array.from(d.querySelectorAll("video")).find((x) => x.readyState >= 2);
+    const parts = [];
+    if (v && v.videoHeight) parts.push(v.videoWidth + "\u00d7" + v.videoHeight);
+    let rate = 0, link = 0;
+    const players = w.videojs && w.videojs.getPlayers ? Object.values(w.videojs.getPlayers()).filter(Boolean) : [];
+    players.forEach((p) => {
+      try {
+        const vhs = p.tech(true).vhs;
+        if (!vhs) return;
+        const m = vhs.playlists && vhs.playlists.media && vhs.playlists.media();
+        if (m && m.attributes && m.attributes.BANDWIDTH) rate = m.attributes.BANDWIDTH;
+        if (vhs.bandwidth) link = vhs.bandwidth;
+      } catch (e) {}
+    });
+    if (rate) parts.push("stream " + (rate / 1e6).toFixed(1) + " Mb/s");
+    if (link) parts.push("download " + (link / 1e6).toFixed(1) + " Mb/s");
+    if (v && v.buffered && v.buffered.length) parts.push(Math.max(0, Math.round(v.buffered.end(v.buffered.length - 1) - v.currentTime)) + " s buffered");
+    if (v && v.getVideoPlaybackQuality) { const q = v.getVideoPlaybackQuality(); if (q.totalVideoFrames) parts.push(q.droppedVideoFrames + " dropped"); }
+    const c = navigator.connection;
+    if (c && (c.effectiveType || c.downlink)) parts.push("net " + [c.effectiveType, c.downlink ? c.downlink + " Mb/s" : ""].filter(Boolean).join(" "));
+    return parts.join("  \u00b7  ");
+  } catch (e) { return ""; }
+}
+function refreshStats() { if (started && !uiHidden()) $("stats").textContent = streamStats(); }
+setInterval(refreshStats, 1000);
+
+/* short message in the middle of the screen */
+let toastTimer = null;
+function toast(text, ms) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), ms || 3000);
+}
 function toggleCC() {
   ccOn = !ccOn;
   try { localStorage.setItem(CC_KEY, ccOn ? "1" : "0"); } catch (e) {}
@@ -332,10 +400,16 @@ function step(dir) { tune(skipOn ? nextOnAir(current, dir) : current + dir); }
 
 /* Back (the Fire TV app calls this): close the guide, else hide the overlay; false means leave the app. */
 function hideNow() { clearTimeout(hideTimer); document.body.classList.add("hideui"); osd.classList.remove("show"); bannerOn = false; }
+let exitArmedAt = 0;
 window.rmtvBack = function () {
   if (guide.classList.contains("open")) { closeGuide(); wake(); return true; }
   if (started && !uiHidden()) { hideNow(); return true; }
-  return false;
+  if (!APP) return false;
+  /* leaving takes a second Back within 3 seconds */
+  if (Date.now() - exitArmedAt < 3000) return false;
+  exitArmedAt = Date.now();
+  toast("Press Back again to exit", 3000);
+  return true;
 };
 function lastChannel() { tune(previous); }
 function toggleFull() {
@@ -401,6 +475,9 @@ $("last").addEventListener("click", lastChannel);
 $("cc").addEventListener("click", toggleCC);
 $("mute").addEventListener("click", toggleMute);
 $("info").addEventListener("click", toggleBanner);
+$("volDown").addEventListener("click", () => setVolume(volume - 0.1));
+$("volUp").addEventListener("click", () => setVolume(volume + 0.1));
+$("vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value)));
 $("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
 $("full").addEventListener("click", toggleFull);
 $("closeGuide").addEventListener("click", closeGuide);
@@ -424,14 +501,14 @@ document.addEventListener("keydown", (e) => {
   }
   if (!guideOpen && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
     /* first press only brings the overlay back; after that it moves along the buttons */
-    const onBar = BAR_IDS.indexOf(document.activeElement && document.activeElement.id);
+    const onBar = barIds().indexOf(document.activeElement && document.activeElement.id);
     if (wasHidden || onBar === -1) focusBar(barAt);
     else focusBar(onBar + (e.key === "ArrowRight" ? 1 : -1));
     e.preventDefault();
     return;
   }
   if (!guideOpen && isSelect && !typed) {
-    const onBar = BAR_IDS.indexOf(document.activeElement && document.activeElement.id);
+    const onBar = barIds().indexOf(document.activeElement && document.activeElement.id);
     if (wasHidden || onBar === -1) focusBar(barAt);          /* show the bar, light the last used button */
     else { barAt = onBar; document.activeElement.click(); }
     e.preventDefault();
@@ -451,6 +528,8 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "g" || e.key === "G") { guide.classList.contains("open") ? closeGuide() : openGuide(); }
   else if (e.key === "m" || e.key === "M") { toggleMute(); }
   else if (e.key === "i" || e.key === "I") { toggleBanner(); }
+  else if (!APP && (e.key === "+" || e.key === "=")) { setVolume(volume + 0.1); }
+  else if (!APP && e.key === "-") { setVolume(volume - 0.1); }
   else if (e.key === "s" || e.key === "S") { toggleSkip(); }
   else if (e.key === "l" || e.key === "L") { lastChannel(); }
   else if (e.key === "c" || e.key === "C") { toggleCC(); }
@@ -479,6 +558,7 @@ document.addEventListener("touchend", (e) => {
   let start = 0;
   try { start = parseInt(localStorage.getItem(KEY), 10) || 0; } catch (e) {}
   current = start; previous = start;
+  if (APP) document.body.classList.add("app");
   $("ver").textContent = "TV " + VERSION + (APP ? " \u00b7 App " + APP : "");
   showSkip();
   buildGuide();
