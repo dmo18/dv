@@ -1,6 +1,9 @@
 name: Fire TV lab test
 
-# firetv-lab-test.yml Rev 7 (2026-11-19)
+# firetv-lab-test.yml Rev 8 (2026-11-19)
+# - Rev 8: "app closed" is read from the window in focus (Android keeps a closed app's process alive, so the process check
+#   could not tell); a screenshot right after typing 20 shows which channel was tuned; longer wait for the stream.
+# - Rev 7 2026-11-19
 # - Rev 7: tests app 1.1 and TV Rev12: Back closes the guide, then hides the overlay, then leaves the app; Skip off air
 #   stays lit and channel up jumps over off-air channels; the overlay hides by itself after 15 s. Old files in the
 #   release are removed before the new ones are uploaded.
@@ -109,13 +112,15 @@ jobs:
           sleep 17;  shot s08-hidden-after-15s
           adb shell input keyevent KEYCODE_BACK
           sleep 4
-          echo "running after third Back (empty = app closed): '$(adb shell pidof com.redmachodevil.tv | tr -d '\r')'" | tee -a lab/log.txt
+          echo "window in focus after third Back (should not be the app): $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
           adb shell am start -n com.redmachodevil.tv/.MainActivity | tee -a lab/log.txt
           sleep 40
           adb shell input text 20
           adb shell input keyevent KEYCODE_ENTER
-          sleep 60;  shot s09-channel20-a
-          sleep 10;  shot s10-channel20-b
+          sleep 3;   shot s09-channel20-tuned
+          echo "window in focus after relaunch: $(adb shell dumpsys window | grep -m1 -E 'mCurrentFocus' | tr -d '\r')" | tee -a lab/log.txt
+          sleep 90;  shot s10-channel20-a
+          sleep 10;  shot s11-channel20-b
           echo "running at end: $(adb shell pidof com.redmachodevil.tv | tr -d '\r')" | tee -a lab/log.txt
           adb logcat -d -v brief 2>/dev/null | grep -iE 'redmacho|AndroidRuntime|chromium.*(ERROR|FATAL)|FATAL' | tail -60 > lab/app-log.txt || true
           adb emu kill || true
