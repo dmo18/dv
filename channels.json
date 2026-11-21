@@ -376,6 +376,102 @@
     "off": false
   },
   {
+    "name": "Kan 11",
+    "number": 58,
+    "group": "International",
+    "url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8",
+    "desc": "Israeli public broadcaster (Kan): Hebrew news, current affairs and documentaries.",
+    "off": false
+  },
+  {
+    "name": "Channel 16",
+    "number": 59,
+    "group": "International",
+    "url": "https://ch16israel-cdn.encoders.immergo.tv/2/streamPlaylist.m3u8",
+    "desc": "Israeli channel 16: Hebrew general entertainment and news.",
+    "off": false
+  },
+  {
+    "name": "Comedy Channel",
+    "number": 60,
+    "group": "International",
+    "url": "https://d15ds134q59udk.cloudfront.net/out/v1/fbba879221d045598540ee783b140fe2/index.m3u8",
+    "desc": "Israeli comedy channel: Hebrew comedy shows and sketches.",
+    "off": false
+  },
+  {
+    "name": "Reality Channel",
+    "number": 61,
+    "group": "International",
+    "url": "https://d2dffl3588mvfk.cloudfront.net/out/v1/d8e15050ca4148aab0ee387a5e2eb46b/index_1.m3u8",
+    "desc": "Israeli reality channel: Hebrew reality shows.",
+    "off": false
+  },
+  {
+    "name": "Vacation Channel",
+    "number": 62,
+    "group": "International",
+    "url": "https://d1yd8hohnldm33.cloudfront.net/out/v1/19dee23c2cc24f689bd4e1288661ee0c/index_2.m3u8",
+    "desc": "Israeli travel channel: Hebrew travel and holiday programmes.",
+    "off": false
+  },
+  {
+    "name": "Shelanu.TV",
+    "number": 63,
+    "group": "International",
+    "url": "https://1247634592.rsc.cdn77.org/1247634592/playlist.m3u8",
+    "desc": "Israeli Jewish channel: Hebrew religious and family programmes.",
+    "off": false
+  },
+  {
+    "name": "Hidabroot",
+    "number": 64,
+    "group": "International",
+    "url": "https://cdn.cybercdn.live/HidabrootIL/Live97/playlist.m3u8",
+    "desc": "Israeli religious channel (Hidabroot): Hebrew Jewish programmes.",
+    "off": false
+  },
+  {
+    "name": "Angel TV Hebrew",
+    "number": 65,
+    "group": "International",
+    "url": "https://janya-digimix.akamaized.net/vglive-sk-150533/hebrew/ngrp:angelhebrew_all/playlist.m3u8",
+    "desc": "Israeli family and faith channel: Hebrew programmes.",
+    "off": false
+  },
+  {
+    "name": "Foody",
+    "number": 66,
+    "group": "International",
+    "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/foody/live.livx/playlist.m3u8",
+    "desc": "Israeli food channel: Hebrew cooking shows.",
+    "off": false
+  },
+  {
+    "name": "Economy Channel",
+    "number": 67,
+    "group": "International",
+    "url": "https://r.il.cdn-redge.media/livehls/oil/calcala-live/live/channel10/live.livx/playlist.m3u8",
+    "desc": "Israeli business channel (Calcalist, channel 10): Hebrew business news.",
+    "off": false
+  },
+  {
+    "name": "Music IL",
+    "number": 68,
+    "group": "International",
+    "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/music_il/live.livx/playlist.m3u8",
+    "desc": "Israeli music channel: Hebrew and international music videos.",
+    "off": false
+  },
+  {
+    "name": "Arutz HaYeladim",
+    "number": 69,
+    "group": "International",
+    "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/kids_channel/live.livx/playlist.m3u8",
+    "desc": "Israeli kids channel: Hebrew children's programmes.",
+    "off": false
+  },
+  {
     "name": "ABC 2 Atlanta (WSB)",
     "number": 100,
     "group": "Local stations",
