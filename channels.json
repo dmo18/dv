@@ -280,16 +280,8 @@
     "off": false
   },
   {
-    "name": "IL13",
-    "number": 46,
-    "group": "International",
-    "url": "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8",
-    "desc": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.",
-    "off": false
-  },
-  {
     "name": "India Today",
-    "number": 47,
+    "number": 46,
     "group": "International",
     "url": "https://d2lk5u59tns74c.cloudfront.net/out/v1/d4435039c7d1433d9b9d0b6cdc9dd4ff/index.m3u8",
     "desc": "India Today, major Indian news channel in English.",
@@ -297,23 +289,15 @@
   },
   {
     "name": "NHK World-Japan",
-    "number": 48,
+    "number": 47,
     "group": "International",
     "url": "https://masterpl.hls.nhkworld.jp/hls/w/live/smarttv.m3u8",
     "desc": "NHK World-Japan, Japan's public international news in English.",
     "off": false
   },
   {
-    "name": "Now 14 (Israel)",
-    "number": 49,
-    "group": "International",
-    "url": "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8",
-    "desc": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.",
-    "off": false
-  },
-  {
     "name": "RT",
-    "number": 50,
+    "number": 48,
     "group": "International",
     "url": "https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8",
     "desc": "RT, Russian state news in English.",
@@ -321,7 +305,7 @@
   },
   {
     "name": "Reuters TV",
-    "number": 51,
+    "number": 49,
     "group": "International",
     "url": "https://amg00453-reuters-amg00453c1-rakuten-uk-2110.playouts.now.amagi.tv/playlist/amg00453-reuters-reuters-rakutenuk/playlist.m3u8",
     "desc": "Reuters TV, wire service video news. Mostly footage with captions.",
@@ -329,7 +313,7 @@
   },
   {
     "name": "TRT World",
-    "number": 52,
+    "number": 50,
     "group": "International",
     "url": "https://tv-trtworld.medya.trt.com.tr/master.m3u8",
     "desc": "TRT World, Turkey's state English news channel.",
@@ -337,7 +321,7 @@
   },
   {
     "name": "Telesur English",
-    "number": 53,
+    "number": 51,
     "group": "International",
     "url": "https://mblenmain01.telesur.ultrabase.net/mblivev3/hd/playlist.m3u8",
     "desc": "teleSUR English, Latin American news (Venezuela backed).",
@@ -345,7 +329,7 @@
   },
   {
     "name": "VoA TV (Voice of America)",
-    "number": 54,
+    "number": 52,
     "group": "International",
     "url": "https://voa-ingest.akamaized.net/hls/live/2033874/tvmc06/playlist.m3u8",
     "desc": "Voice of America TV, US government international broadcaster, English.",
@@ -353,7 +337,7 @@
   },
   {
     "name": "WION",
-    "number": 55,
+    "number": 53,
     "group": "International",
     "url": "https://vg-zeefta.akamaized.net/ptnr-yupptv/title-wion/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/20c3c0d9-0256-43fe-bca6-70fdd490b957/main.m3u8",
     "desc": "WION, Indian world news channel in English.",
@@ -361,114 +345,178 @@
   },
   {
     "name": "i24",
-    "number": 56,
-    "group": "International",
+    "number": 60,
+    "group": "Israel",
     "url": "https://i24newsenglish-cdn.encoders.immergo.tv/master.m3u8",
     "desc": "i24NEWS English: Israel based international news, Middle East focus.",
     "off": false
   },
   {
     "name": "i24NEWS Hebrew",
-    "number": 57,
-    "group": "International",
+    "number": 61,
+    "group": "Israel",
     "url": "https://i24newshebrew-cdn.encoders.immergo.tv/master.m3u8",
     "desc": "i24NEWS in Hebrew, Israeli news and talk.",
     "off": false
   },
   {
+    "name": "IL13",
+    "number": 62,
+    "group": "Israel",
+    "url": "https://d2xg1g9o5vns8m.cloudfront.net/out/v1/66d4ac8748ce4a9298b4e40e48d1ae2f/index.m3u8",
+    "desc": "Channel 13 Israel (Reshet 13): Israeli commercial TV in Hebrew. A general channel with shows, ads and news, not a news only channel.",
+    "off": false
+  },
+  {
+    "name": "Now 14 (Israel)",
+    "number": 63,
+    "group": "Israel",
+    "url": "https://r.il.cdn-redge.media/livehls/oil/ch14/live/ch14/live.livx/playlist.m3u8",
+    "desc": "Now 14 (Channel 14), Israeli TV in Hebrew: news, politics and talk.",
+    "off": false
+  },
+  {
     "name": "Kan 11",
-    "number": 58,
-    "group": "International",
+    "number": 64,
+    "group": "Israel",
     "url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8",
     "desc": "Israeli public broadcaster (Kan): Hebrew news, current affairs and documentaries.",
     "off": false
   },
   {
     "name": "Channel 16",
-    "number": 59,
-    "group": "International",
+    "number": 65,
+    "group": "Israel",
     "url": "https://ch16israel-cdn.encoders.immergo.tv/2/streamPlaylist.m3u8",
     "desc": "Israeli channel 16: Hebrew general entertainment and news.",
     "off": false
   },
   {
     "name": "Comedy Channel",
-    "number": 60,
-    "group": "International",
+    "number": 66,
+    "group": "Israel",
     "url": "https://d15ds134q59udk.cloudfront.net/out/v1/fbba879221d045598540ee783b140fe2/index.m3u8",
     "desc": "Israeli comedy channel: Hebrew comedy shows and sketches.",
     "off": false
   },
   {
     "name": "Reality Channel",
-    "number": 61,
-    "group": "International",
+    "number": 67,
+    "group": "Israel",
     "url": "https://d2dffl3588mvfk.cloudfront.net/out/v1/d8e15050ca4148aab0ee387a5e2eb46b/index_1.m3u8",
     "desc": "Israeli reality channel: Hebrew reality shows.",
     "off": false
   },
   {
     "name": "Vacation Channel",
-    "number": 62,
-    "group": "International",
+    "number": 68,
+    "group": "Israel",
     "url": "https://d1yd8hohnldm33.cloudfront.net/out/v1/19dee23c2cc24f689bd4e1288661ee0c/index_2.m3u8",
     "desc": "Israeli travel channel: Hebrew travel and holiday programmes.",
     "off": false
   },
   {
     "name": "Shelanu.TV",
-    "number": 63,
-    "group": "International",
+    "number": 69,
+    "group": "Israel",
     "url": "https://1247634592.rsc.cdn77.org/1247634592/playlist.m3u8",
     "desc": "Israeli Jewish channel: Hebrew religious and family programmes.",
     "off": false
   },
   {
     "name": "Hidabroot",
-    "number": 64,
-    "group": "International",
+    "number": 70,
+    "group": "Israel",
     "url": "https://cdn.cybercdn.live/HidabrootIL/Live97/playlist.m3u8",
     "desc": "Israeli religious channel (Hidabroot): Hebrew Jewish programmes.",
     "off": false
   },
   {
     "name": "Angel TV Hebrew",
-    "number": 65,
-    "group": "International",
+    "number": 71,
+    "group": "Israel",
     "url": "https://janya-digimix.akamaized.net/vglive-sk-150533/hebrew/ngrp:angelhebrew_all/playlist.m3u8",
     "desc": "Israeli family and faith channel: Hebrew programmes.",
     "off": false
   },
   {
     "name": "Foody",
-    "number": 66,
-    "group": "International",
+    "number": 72,
+    "group": "Israel",
     "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/foody/live.livx/playlist.m3u8",
     "desc": "Israeli food channel: Hebrew cooking shows.",
     "off": false
   },
   {
     "name": "Economy Channel",
-    "number": 67,
-    "group": "International",
+    "number": 73,
+    "group": "Israel",
     "url": "https://r.il.cdn-redge.media/livehls/oil/calcala-live/live/channel10/live.livx/playlist.m3u8",
     "desc": "Israeli business channel (Calcalist, channel 10): Hebrew business news.",
     "off": false
   },
   {
     "name": "Music IL",
-    "number": 68,
-    "group": "International",
+    "number": 74,
+    "group": "Israel",
     "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/music_il/live.livx/playlist.m3u8",
     "desc": "Israeli music channel: Hebrew and international music videos.",
     "off": false
   },
   {
     "name": "Arutz HaYeladim",
-    "number": 69,
-    "group": "International",
+    "number": 75,
+    "group": "Israel",
     "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/kids_channel/live.livx/playlist.m3u8",
     "desc": "Israeli kids channel: Hebrew children's programmes.",
+    "off": false
+  },
+  {
+    "name": "Press TV (English)",
+    "number": 80,
+    "group": "Iran",
+    "url": "https://live.presstv.co.uk/hls/presstv.m3u8",
+    "desc": "Iranian state broadcaster's English news channel (Press TV). Iranian state media.",
+    "off": false
+  },
+  {
+    "name": "Iran International",
+    "number": 81,
+    "group": "Iran",
+    "url": "https://hlspackager.akamaized.net/live/DB/IRAN_INTERNATIONAL/HLS/IRAN_INTERNATIONAL.m3u8",
+    "desc": "Persian-language news channel from London (Iran International). Independent news; not Iranian state TV.",
+    "off": false
+  },
+  {
+    "name": "Iran National Revolution TV",
+    "number": 82,
+    "group": "Iran",
+    "url": "https://hls.irannrtv.live/hls/stream.m3u8",
+    "desc": "Persian-language channel (Iran National Revolution TV). Persian speech.",
+    "off": false
+  },
+  {
+    "name": "IraneFarda TV",
+    "number": 83,
+    "group": "Iran",
+    "url": "https://iranefardalive.com/stream/live.m3u8",
+    "desc": "Persian-language channel (Iran Farda). Persian speech.",
+    "off": false
+  },
+  {
+    "name": "Pars TV",
+    "number": 84,
+    "group": "Iran",
+    "url": "https://parshls.wns.live/hls/stream.m3u8",
+    "desc": "Persian-language entertainment and talk channel (Pars TV). Persian speech.",
+    "off": false
+  },
+  {
+    "name": "TV ITN",
+    "number": 85,
+    "group": "Iran",
+    "url": "https://itnhls.wns.live/hls/stream.m3u8",
+    "desc": "Persian-language news and talk channel (TV ITN). Persian speech.",
     "off": false
   },
   {
