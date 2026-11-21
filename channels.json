@@ -637,8 +637,17 @@
     "off": false
   },
   {
-    "name": "Fox 4 Dallas (KDFW)",
+    "name": "NBC 3 Cleveland (WKYC)",
     "number": 180,
+    "group": "Local stations",
+    "city": "Cleveland",
+    "url": "https://video.tegnaone.com/wkyc/live/v1/manifest/f9c1bf9ffd6ac86b6173a7c169ff6e3f4efbd693/WKYC-Production/d39cf8a9-40a6-4cba-85f7-6c9d633843b3/2.m3u8",
+    "desc": "NBC Cleveland (channel 3): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "Fox 4 Dallas (KDFW)",
+    "number": 190,
     "group": "Local stations",
     "city": "Dallas",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox4dallaskdfw-vizious/playlist.m3u8",
@@ -647,7 +656,7 @@
   },
   {
     "name": "NBC 5 Dallas (KXAS)",
-    "number": 181,
+    "number": 191,
     "group": "Local stations",
     "city": "Dallas",
     "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889706/hls/master.m3u8?ads.xumo_channelId=88889706a&ads.xumo_ifaType=&ads.xumo_providerId=3831&ads.xumo_providerName=NBCNDAL",
@@ -656,7 +665,7 @@
   },
   {
     "name": "ABC 7 Denver (KMGH)",
-    "number": 190,
+    "number": 200,
     "group": "Local stations",
     "city": "Denver",
     "url": "https://content.uplynk.com/channel/64ca339f04964a5e961c3207a7771bf1.m3u8",
@@ -665,7 +674,7 @@
   },
   {
     "name": "CBS News Colorado",
-    "number": 191,
+    "number": 201,
     "group": "Local stations",
     "city": "Denver",
     "url": "https://cbsn-den.cbsnstream.cbsnews.com/out/v1/2e49baf2906244ecb01b07d9885fbe7a/master.m3u8",
@@ -674,7 +683,7 @@
   },
   {
     "name": "CBS News Detroit",
-    "number": 200,
+    "number": 210,
     "group": "Local stations",
     "city": "Detroit",
     "url": "https://cbsn-det.cbsnstream.cbsnews.com/out/v1/169f5c001bc74fa7a179b19c20fea069/master.m3u8",
@@ -683,7 +692,7 @@
   },
   {
     "name": "Fox 2 Detroit (WJBK)",
-    "number": 201,
+    "number": 211,
     "group": "Local stations",
     "city": "Detroit",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox2detroitwjbk-vizious/playlist.m3u8",
@@ -692,7 +701,7 @@
   },
   {
     "name": "ABC 10 Duluth (WDIO)",
-    "number": 210,
+    "number": 220,
     "group": "Local stations",
     "city": "Duluth",
     "url": "https://amg01942-amg01942c3-stirr-us-10196.playouts.now.amagi.tv/playlist.m3u8",
@@ -700,8 +709,17 @@
     "off": false
   },
   {
+    "name": "NBC Connecticut (WVIT)",
+    "number": 230,
+    "group": "Local stations",
+    "city": "Hartford",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889707/hls/master.m3u8?ads.xumo_channelId=88889707a&ads.xumo_ifaType=&ads.xumo_providerId=3832&ads.xumo_providerName=NBCNCT",
+    "desc": "NBC Hartford and New Haven: Connecticut news and weather.",
+    "off": false
+  },
+  {
     "name": "Fox 26 Houston (KRIV)",
-    "number": 220,
+    "number": 240,
     "group": "Local stations",
     "city": "Houston",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kriv-lgus/playlist.m3u8",
@@ -709,8 +727,17 @@
     "off": false
   },
   {
+    "name": "NBC 41 Kansas City (KSHB)",
+    "number": 250,
+    "group": "Local stations",
+    "city": "Kansas City",
+    "url": "https://content.uplynk.com/channel/50d0fa1b042945a3a4f550f9b8412c83.m3u8",
+    "desc": "NBC Kansas City (channel 41): local news and weather.",
+    "off": false
+  },
+  {
     "name": "CBS News Los Angeles",
-    "number": 230,
+    "number": 260,
     "group": "Local stations",
     "city": "Los Angeles",
     "url": "https://cbsn-la.cbsnstream.cbsnews.com/out/v1/57b6c4534a164accb6b1872b501e0028/master.m3u8",
@@ -719,7 +746,7 @@
   },
   {
     "name": "Fox 11 Los Angeles (KTTV)",
-    "number": 231,
+    "number": 261,
     "group": "Local stations",
     "city": "Los Angeles",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox11losangeleskttv-vizious/playlist.m3u8",
@@ -728,7 +755,7 @@
   },
   {
     "name": "NBC 6 Miami (WTVJ)",
-    "number": 240,
+    "number": 270,
     "group": "Local stations",
     "city": "Miami",
     "url": "https://nbculocallive.akamaized.net/hls/live/2037498/miami/stream1/master.m3u8",
@@ -737,7 +764,7 @@
   },
   {
     "name": "WSVN 7News",
-    "number": 241,
+    "number": 271,
     "group": "Local stations",
     "city": "Miami",
     "url": "https://dai2-playlistserver.aws.syncbak.com/cpl/20359441/dai2v5/1.0/7b2264657669636554797065223a387d/master.m3u8?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMTYwNDAxIn0.eyJtaWQiOiIyMDM1OTQ0MSIsImNpZCI6MjA5MzAsInNpZCI6ODYzLCJtZDUiOiI2NDVlOGI4YzNlZjVjNjIzMWZmZDBmMjQ2YjM2NWNhNSIsImlhdCI6MTY4MTQyMDM2MSwiaXNzIjoiU3luY2JhayAoVEcpIn0.z6s98foBqaIqJNlYcAcqkgFbgL5xw_oO7KK0S38E6z0&platform=web",
@@ -745,8 +772,17 @@
     "off": false
   },
   {
+    "name": "NBC 4 Milwaukee (WTMJ)",
+    "number": 280,
+    "group": "Local stations",
+    "city": "Milwaukee",
+    "url": "https://aegis-cloudfront-1.tubi.video/d4d923f2-17de-4371-b86d-43490499bcdb/playlist.m3u8",
+    "desc": "NBC Milwaukee (channel 4): local news and weather.",
+    "off": false
+  },
+  {
     "name": "ABC 5 Minneapolis (KSTP)",
-    "number": 250,
+    "number": 290,
     "group": "Local stations",
     "city": "Minneapolis",
     "url": "https://amg01942-amg01942c2-stirr-us-10173.playouts.now.amagi.tv/playlist.m3u8",
@@ -755,7 +791,7 @@
   },
   {
     "name": "CBS News Minnesota",
-    "number": 251,
+    "number": 291,
     "group": "Local stations",
     "city": "Minneapolis",
     "url": "https://cbsn-min.cbsnstream.cbsnews.com/out/v1/76518f06941246ba810c8d175600bf74/master.m3u8",
@@ -764,7 +800,7 @@
   },
   {
     "name": "Fox 9 Minneapolis (KMSP)",
-    "number": 252,
+    "number": 292,
     "group": "Local stations",
     "city": "Minneapolis",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-kmsp-lgus/playlist.m3u8",
@@ -773,7 +809,7 @@
   },
   {
     "name": "CBS News New York",
-    "number": 260,
+    "number": 300,
     "group": "Local stations",
     "city": "New York",
     "url": "https://cbsn-ny.cbsnstream.cbsnews.com/out/v1/ec3897d58a9b45129a77d67aa247d136/master.m3u8",
@@ -782,7 +818,7 @@
   },
   {
     "name": "Fox 5 New York (WNYW)",
-    "number": 261,
+    "number": 301,
     "group": "Local stations",
     "city": "New York",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-wnyw-lgus/playlist.m3u8",
@@ -791,7 +827,7 @@
   },
   {
     "name": "NBC4 New York (WNBC)",
-    "number": 262,
+    "number": 302,
     "group": "Local stations",
     "city": "New York",
     "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889709/hls/master.m3u8?ads.xumo_channelId=88889709a&ads.xumo_ifaType=&ads.xumo_providerId=3816&ads.xumo_providerName=NBCNNY",
@@ -800,7 +836,7 @@
   },
   {
     "name": "ABC 9 Orlando (WFTV)",
-    "number": 270,
+    "number": 310,
     "group": "Local stations",
     "city": "Orlando",
     "url": "https://amg00327-coxmediagroup-wftvbreaking-ono-hec7b.amagi.tv/playlist/amg00327-coxmediagroup-wftvbreaking-ono/playlist.m3u8",
@@ -809,7 +845,7 @@
   },
   {
     "name": "CBS News Philly",
-    "number": 280,
+    "number": 320,
     "group": "Local stations",
     "city": "Philadelphia",
     "url": "https://cbsn-phi.cbsnstream.cbsnews.com/out/v1/5c9ad3e215984b0e9ad845b335216b72/master.m3u8",
@@ -818,7 +854,7 @@
   },
   {
     "name": "Fox 29 Philadelphia (WTXF)",
-    "number": 281,
+    "number": 321,
     "group": "Local stations",
     "city": "Philadelphia",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox29philadelphiawtx-vizious/playlist.m3u8",
@@ -827,7 +863,7 @@
   },
   {
     "name": "NBC 10 Philadelphia (WCAU)",
-    "number": 282,
+    "number": 322,
     "group": "Local stations",
     "city": "Philadelphia",
     "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889705/hls/master.m3u8?ads.xumo_channelId=88889705a&ads.xumo_ifaType=&ads.xumo_providerId=3819&ads.xumo_providerName=NBCNPHI",
@@ -836,7 +872,7 @@
   },
   {
     "name": "Fox 10 Phoenix (KSAZ)",
-    "number": 290,
+    "number": 330,
     "group": "Local stations",
     "city": "Phoenix",
     "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-ksaz-lgus/playlist.m3u8",
@@ -845,7 +881,7 @@
   },
   {
     "name": "CBS News Pittsburgh",
-    "number": 300,
+    "number": 340,
     "group": "Local stations",
     "city": "Pittsburgh",
     "url": "https://cbsn-pit.cbsnstream.cbsnews.com/out/v1/6966dabf8150405ab26f854e3cd6a2b8/master.m3u8",
@@ -853,116 +889,8 @@
     "off": true
   },
   {
-    "name": "CBS News Sacramento",
-    "number": 310,
-    "group": "Local stations",
-    "city": "Sacramento",
-    "url": "https://lineup.cbsivideo.com/playout/c1ed69db-6b71-4581-a937-a70ab4089f8a/index.m3u8",
-    "desc": "CBS News Sacramento, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
-    "off": false
-  },
-  {
-    "name": "CBS 7 Seattle (KIRO)",
-    "number": 320,
-    "group": "Local stations",
-    "city": "Seattle",
-    "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-kirobreaking-ono/playlist.m3u8",
-    "desc": "CBS Seattle (channel 7): Seattle local news and weather.",
-    "off": false
-  },
-  {
-    "name": "ABC 27 Tallahassee (WTXL)",
-    "number": 330,
-    "group": "Local stations",
-    "city": "Tallahassee",
-    "url": "https://aegis-cloudfront-1.tubi.video/e739361e-fa12-4cac-92f3-e0dbf332cd88/playlist.m3u8",
-    "desc": "ABC Tallahassee (channel 27): North Florida local news and weather. 576p.",
-    "off": false
-  },
-  {
-    "name": "Fox 13 Tampa (WTVT)",
-    "number": 340,
-    "group": "Local stations",
-    "city": "Tampa",
-    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox13tampabaywtvt-vizious/playlist.m3u8",
-    "desc": "Fox Tampa Bay (channel 13): local news, weather and Fox shows.",
-    "off": false
-  },
-  {
-    "name": "ABC 9 Tucson (KGUN)",
-    "number": 350,
-    "group": "Local stations",
-    "city": "Tucson",
-    "url": "https://aegis-cloudfront-1.tubi.video/a53514a7-f2aa-4d34-802e-c2b5594fc0d7/playlist.m3u8",
-    "desc": "ABC Tucson (channel 9): Tucson local news and weather. 576p.",
-    "off": false
-  },
-  {
-    "name": "ABC 25 Waco (KXXV)",
-    "number": 360,
-    "group": "Local stations",
-    "city": "Waco",
-    "url": "https://content.uplynk.com/channel/9d4e02c9c3544c269d32e6b316792c8f.m3u8",
-    "desc": "ABC Waco-Temple-Bryan (channel 25): Central Texas local news and weather. 540p.",
-    "off": false
-  },
-  {
-    "name": "Fox 5 Washington (WTTG)",
-    "number": 370,
-    "group": "Local stations",
-    "city": "Washington",
-    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox5dcwttg-vizious/playlist.m3u8",
-    "desc": "Fox Washington, DC (channel 5): local news, weather and Fox shows.",
-    "off": false
-  },
-  {
-    "name": "NBC 4 Washington (WRC)",
-    "number": 371,
-    "group": "Local stations",
-    "city": "Washington",
-    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889708/hls/master.m3u8?ads.xumo_channelId=88889708a&ads.xumo_ifaType=&ads.xumo_providerId=3830&ads.xumo_providerName=NBCNWAS",
-    "desc": "NBC Washington, DC (channel 4): local news, weather and traffic.",
-    "off": false
-  },
-  {
-    "name": "NBC 3 Cleveland (WKYC)",
-    "number": 380,
-    "group": "Local stations",
-    "city": "Cleveland",
-    "url": "https://video.tegnaone.com/wkyc/live/v1/manifest/f9c1bf9ffd6ac86b6173a7c169ff6e3f4efbd693/WKYC-Production/d39cf8a9-40a6-4cba-85f7-6c9d633843b3/2.m3u8",
-    "desc": "NBC Cleveland (channel 3): local news and weather.",
-    "off": false
-  },
-  {
-    "name": "NBC Connecticut (WVIT)",
-    "number": 390,
-    "group": "Local stations",
-    "city": "Hartford",
-    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889707/hls/master.m3u8?ads.xumo_channelId=88889707a&ads.xumo_ifaType=&ads.xumo_providerId=3832&ads.xumo_providerName=NBCNCT",
-    "desc": "NBC Hartford and New Haven: Connecticut news and weather.",
-    "off": false
-  },
-  {
-    "name": "NBC 41 Kansas City (KSHB)",
-    "number": 400,
-    "group": "Local stations",
-    "city": "Kansas City",
-    "url": "https://content.uplynk.com/channel/50d0fa1b042945a3a4f550f9b8412c83.m3u8",
-    "desc": "NBC Kansas City (channel 41): local news and weather.",
-    "off": false
-  },
-  {
-    "name": "NBC 4 Milwaukee (WTMJ)",
-    "number": 410,
-    "group": "Local stations",
-    "city": "Milwaukee",
-    "url": "https://aegis-cloudfront-1.tubi.video/d4d923f2-17de-4371-b86d-43490499bcdb/playlist.m3u8",
-    "desc": "NBC Milwaukee (channel 4): local news and weather.",
-    "off": false
-  },
-  {
     "name": "NBC 10 Providence (WJAR)",
-    "number": 420,
+    "number": 350,
     "group": "Local stations",
     "city": "Providence",
     "url": "https://pubads.g.doubleclick.net/ssai/event/kpannrCBQ5KwdV3Hag3Wog/master.m3u8",
@@ -971,7 +899,7 @@
   },
   {
     "name": "CBS 6 Richmond (WTVR)",
-    "number": 430,
+    "number": 360,
     "group": "Local stations",
     "city": "Richmond",
     "url": "https://aegis-cloudfront-1.tubi.video/d8fc1d6c-fd55-45c8-973b-b7327ee1a6e0/playlist.m3u8",
@@ -980,11 +908,83 @@
   },
   {
     "name": "NBC 10 Rochester (WHEC)",
-    "number": 440,
+    "number": 370,
     "group": "Local stations",
     "city": "Rochester",
     "url": "https://amg01942-amg01942c4-stirr-us-10190.playouts.now.amagi.tv/playlist.m3u8",
     "desc": "NBC Rochester NY (channel 10): local news and weather.",
+    "off": false
+  },
+  {
+    "name": "CBS News Sacramento",
+    "number": 380,
+    "group": "Local stations",
+    "city": "Sacramento",
+    "url": "https://lineup.cbsivideo.com/playout/c1ed69db-6b71-4581-a937-a70ab4089f8a/index.m3u8",
+    "desc": "CBS News Sacramento, CBS's local news stream for that city. Shows a CBS placeholder card when no local newscast is on.",
+    "off": false
+  },
+  {
+    "name": "CBS 7 Seattle (KIRO)",
+    "number": 390,
+    "group": "Local stations",
+    "city": "Seattle",
+    "url": "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00327-coxmediagroup-kirobreaking-ono/playlist.m3u8",
+    "desc": "CBS Seattle (channel 7): Seattle local news and weather.",
+    "off": false
+  },
+  {
+    "name": "ABC 27 Tallahassee (WTXL)",
+    "number": 400,
+    "group": "Local stations",
+    "city": "Tallahassee",
+    "url": "https://aegis-cloudfront-1.tubi.video/e739361e-fa12-4cac-92f3-e0dbf332cd88/playlist.m3u8",
+    "desc": "ABC Tallahassee (channel 27): North Florida local news and weather. 576p.",
+    "off": false
+  },
+  {
+    "name": "Fox 13 Tampa (WTVT)",
+    "number": 410,
+    "group": "Local stations",
+    "city": "Tampa",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox13tampabaywtvt-vizious/playlist.m3u8",
+    "desc": "Fox Tampa Bay (channel 13): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "ABC 9 Tucson (KGUN)",
+    "number": 420,
+    "group": "Local stations",
+    "city": "Tucson",
+    "url": "https://aegis-cloudfront-1.tubi.video/a53514a7-f2aa-4d34-802e-c2b5594fc0d7/playlist.m3u8",
+    "desc": "ABC Tucson (channel 9): Tucson local news and weather. 576p.",
+    "off": false
+  },
+  {
+    "name": "ABC 25 Waco (KXXV)",
+    "number": 430,
+    "group": "Local stations",
+    "city": "Waco",
+    "url": "https://content.uplynk.com/channel/9d4e02c9c3544c269d32e6b316792c8f.m3u8",
+    "desc": "ABC Waco-Temple-Bryan (channel 25): Central Texas local news and weather. 540p.",
+    "off": false
+  },
+  {
+    "name": "Fox 5 Washington (WTTG)",
+    "number": 440,
+    "group": "Local stations",
+    "city": "Washington",
+    "url": "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00488-foxdigital-fox5dcwttg-vizious/playlist.m3u8",
+    "desc": "Fox Washington, DC (channel 5): local news, weather and Fox shows.",
+    "off": false
+  },
+  {
+    "name": "NBC 4 Washington (WRC)",
+    "number": 441,
+    "group": "Local stations",
+    "city": "Washington",
+    "url": "https://d368vp0qqzvkid.cloudfront.net/11603/88889708/hls/master.m3u8?ads.xumo_channelId=88889708a&ads.xumo_ifaType=&ads.xumo_providerId=3830&ads.xumo_providerName=NBCNWAS",
+    "desc": "NBC Washington, DC (channel 4): local news, weather and traffic.",
     "off": false
   },
   {
