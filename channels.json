@@ -1156,45 +1156,5 @@
     "url": "https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/makan/live.livx/playlist.m3u8",
     "desc": "Makan 33, Kan's Arabic language channel, Israeli public broadcaster. News in Arabic.",
     "off": false
-  },
-  {
-    "name": "IRIB 1 (Iran state TV)",
-    "number": 918,
-    "group": "Probably bad (off air or not working)",
-    "url": "https://ncdn.telewebion.ir/tv1/live/playlist.m3u8",
-    "desc": "Iranian state TV channel 1 (IRIB TV1), Persian. Not yet verified: refused from the test machine; the daily check will test it from GitHub.",
-    "off": false
-  },
-  {
-    "name": "IRIB 2 (Iran state TV)",
-    "number": 919,
-    "group": "Probably bad (off air or not working)",
-    "url": "https://ncdn.telewebion.ir/tv2/live/playlist.m3u8",
-    "desc": "Iranian state TV channel 2 (IRIB TV2), Persian. Not yet verified: refused from the test machine; the daily check will test it from GitHub.",
-    "off": false
-  },
-  {
-    "name": "IRIB 3 (Iran state TV)",
-    "number": 920,
-    "group": "Probably bad (off air or not working)",
-    "url": "https://ncdn.telewebion.ir/tv3/live/playlist.m3u8",
-    "desc": "Iranian state TV channel 3 (IRIB TV3), Persian. Not yet verified: refused from the test machine; the daily check will test it from GitHub.",
-    "off": false
-  },
-  {
-    "name": "IRIB 4 (Iran state TV)",
-    "number": 921,
-    "group": "Probably bad (off air or not working)",
-    "url": "https://ncdn.telewebion.ir/tv4/live/playlist.m3u8",
-    "desc": "Iranian state TV channel 4 (IRIB TV4), Persian. Not yet verified: refused from the test machine; the daily check will test it from GitHub.",
-    "off": false
-  },
-  {
-    "name": "IRINN 2 (Iran state news)",
-    "number": 922,
-    "group": "Probably bad (off air or not working)",
-    "url": "https://ncdn.telewebion.ir/irinn2/live/playlist.m3u8",
-    "desc": "Iranian state news channel 2 (IRINN 2), Persian. Not yet verified: refused from the test machine; the daily check will test it from GitHub.",
-    "off": false
   }
 ]
