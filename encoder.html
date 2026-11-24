@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Encoder Rev35</title>
+<title>Encoder Rev36</title>
 <!--
   VERSION: bump the Rev number (title above and the page heading) on every change to this file,
   and add a line here (newest first).
 
+  Rev36  2026-11-24  Science group (PBS Nature, Smithsonian Channel) after Israel; help text lists it.
   Rev35  2026-11-21  Israel and Iran are their own groups (after International). Help text lists the groups.
   Rev34  2026-11-19  Real channel numbers (number field in channels.json): blocks like a cable provider, see tv.html Rev28.
   Rev33  2026-11-19  Local stations show a heading for each city (Atlanta, Austin MN, Bakersfield ...), from the city field in
@@ -389,7 +390,7 @@ hr { border: 0; border-top: 1px solid #262626; margin: 16px 0; }
 
 <body>
 <div class="wrap">
-  <h1>Wallboard URL Encoder Rev35</h1>
+  <h1>Wallboard URL Encoder Rev36</h1>
   <small>
     Paste an HLS .m3u8 URL and this page generates a ready-to-copy player.html link.
     The saved stream grid is at the top. Previews are muted with no controls. Open gives sound and full player controls.
@@ -503,7 +504,7 @@ DEVELOPER NOTES
 Where to add more feeds:
 
 Add more entries to channels.json (name, number, group, city, url, desc, off). Keep the numbers unique and in ascending order. city is only used for Local stations.
-group is one of: National news, Business and finance, International, Israel, Iran, Local stations, Probably bad (off air or not working).
+group is one of: National news, Business and finance, International, Israel, Science, Iran, Local stations, Probably bad (off air or not working).
 The grid shows a heading each time the group changes, so keep each group together in the file.
 Each entry automatically creates one preview tile and one set of buttons.
 

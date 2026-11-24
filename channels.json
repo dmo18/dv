@@ -344,6 +344,46 @@
     "off": false
   },
   {
+    "name": "Lao Net TV",
+    "number": 54,
+    "group": "International",
+    "url": "https://livefta.malimarcdn.com/ftaedge00/laonet.sdp/playlist.m3u8",
+    "desc": "Royal Lao Government TV (Lao Net TV). Lao-language government channel.",
+    "off": false
+  },
+  {
+    "name": "LS TV",
+    "number": 55,
+    "group": "International",
+    "url": "https://livefta.malimarcdn.com/ftaedge00/laostv.sdp/playlist.m3u8",
+    "desc": "LS TV, a Lao-language community news channel.",
+    "off": false
+  },
+  {
+    "name": "Oh Muang Lao TV",
+    "number": 56,
+    "group": "International",
+    "url": "https://livefta.malimarcdn.com/ftaedge00/ohmuanglao.stream/playlist.m3u8",
+    "desc": "Lao-language channel with Lao music and culture.",
+    "off": false
+  },
+  {
+    "name": "Look Thoong TV",
+    "number": 57,
+    "group": "International",
+    "url": "https://livefta.malimarcdn.com/ftaedge00/lookthoongtv.sdp/playlist.m3u8",
+    "desc": "Lao and Thai-language channel (Look Thoong TV). Not 24/7.",
+    "off": false
+  },
+  {
+    "name": "Vati Lao TV",
+    "number": 58,
+    "group": "International",
+    "url": "https://livefta.malimarcdn.com/ftaedge00/vatilaotv.stream/playlist.m3u8",
+    "desc": "Lao-language channel (Vati Lao TV).",
+    "off": false
+  },
+  {
     "name": "i24",
     "number": 60,
     "group": "Israel",
@@ -469,6 +509,22 @@
     "group": "Israel",
     "url": "https://r.il.cdn-redge.media/livehls/oil/freetv/live/kids_channel/live.livx/playlist.m3u8",
     "desc": "Israeli kids channel: Hebrew children's programmes.",
+    "off": false
+  },
+  {
+    "name": "PBS Nature",
+    "number": 76,
+    "group": "Science",
+    "url": "https://d3mr43kyql7wgk.cloudfront.net/PBS_Nature.m3u8",
+    "desc": "Public broadcasting nature documentaries (PBS Nature, US).",
+    "off": false
+  },
+  {
+    "name": "Smithsonian Channel",
+    "number": 77,
+    "group": "Science",
+    "url": "https://jmp2.uk/plu-6298bd10d88ef000073f16b7.m3u8",
+    "desc": "Smithsonian documentaries: history, science and exploration (Smithsonian Channel, Pluto TV feed).",
     "off": false
   },
   {
