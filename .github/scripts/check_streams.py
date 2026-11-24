@@ -20,6 +20,7 @@ byName["Name"]). A wall name that is not in channels.json is reported as an unre
 Tiles written the old way (player("ID", "label", "address")) are still read.
 
 Changelog:
+  2026-11-24  A tag the server sent without its "#" (EXT-X-VERSION:6, Iranian state TV) is skipped, not read as an address.
   2026-11-24  A playlist line that is not an address is reported with the start of what the server sent (found when
               Iranian state TV playlists failed with an unreadable line).
   2026-11-19  Reads the wall's feed("Name") tiles and byName["Name"] backups and looks them up in channels.json.
@@ -131,7 +132,15 @@ def get(url, byte_range=None):
 
 
 def uris(playlist):
-    return [l.strip() for l in playlist.splitlines() if l.strip() and not l.startswith("#")]
+    """Addresses in a playlist: every line that is not a tag. A tag the server sent without its "#"
+    (Iranian state TV sends "EXT-X-VERSION:6") is not an address either."""
+    out = []
+    for l in playlist.splitlines():
+        t = l.strip().lstrip("\ufeff")
+        if not t or t.startswith("#") or t.upper().startswith("EXT-X-") or t.upper().startswith("EXTM3U") or t.upper().startswith("EXTINF"):
+            continue
+        out.append(t)
+    return out
 
 
 def media_playlist(url):
