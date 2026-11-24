@@ -20,6 +20,8 @@ byName["Name"]). A wall name that is not in channels.json is reported as an unre
 Tiles written the old way (player("ID", "label", "address")) are still read.
 
 Changelog:
+  2026-11-24  A playlist line that is not an address is reported with the start of what the server sent (found when
+              Iranian state TV playlists failed with an unreadable line).
   2026-11-19  Reads the wall's feed("Name") tiles and byName["Name"] backups and looks them up in channels.json.
               Before this the wall tiles were not recognised after wallboard v37 (they were checked only as
               encoder spares, and two helper lines were reported as unreadable tiles).
@@ -142,7 +144,11 @@ def media_playlist(url):
         variants = uris(text)
         if not variants:
             raise ValueError("playlist is empty")
-        url = urljoin(url, variants[0])
+        first = variants[0]
+        if ":" in first.split("/")[0] and not first.lower().startswith(("http://", "https://")):
+            # not an address: say what the server sent, so the problem can be found from the report
+            raise ValueError("playlist line is not an address; starts: " + repr(text[:140]))
+        url = urljoin(url, first)
         data, _ = get(url)
         text = data.decode("utf-8", "replace")
     return url, text, cors
