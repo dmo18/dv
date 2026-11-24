@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Red Macho Devil TV Rev28</title>
+<title>Red Macho Devil TV Rev29</title>
 <!--
   RED MACHO DEVIL TV (framework). Full-screen channel changer built on player.html.
+  Rev29 2026-11-24  Export button in the guide: downloads the whole channel list as a CSV file (number, name, description,
+                    status On air or Off air). The file opens in Excel. If the screen cannot download files, a message says so.
   Rev28 2026-11-19  Real channel numbers, in blocks like a cable provider (National news 1-19, Business 20-29, International
                     30-79, Local stations from 100 with a block of 10 per city, Probably bad from 900). The number comes from the
                     "number" field in channels.json (shown in the bar, the banner and the guide). Typing a number finds that
@@ -254,6 +256,7 @@ body.app .volctl { display:none !important; }
     <b>Red Macho Devil TV</b>
     <button id="tabAll" type="button" class="on">All</button>
     <button id="tabOn" type="button">On air</button>
+    <button id="exportGuide" type="button" aria-label="Export the channel list as a CSV file">Export</button>
     <button id="closeGuide" type="button">Close</button>
   </header>
   <div id="list"></div>
@@ -290,7 +293,7 @@ function showAt(ch, offset) {
 
 const $ = (id) => document.getElementById(id);
 const screen_ = $("screen"), osd = $("osd"), guide = $("guide"), list = $("list");
-const VERSION = "Rev28";
+const VERSION = "Rev29";
 const APP = (navigator.userAgent.match(/RMTV\/([0-9.]+)/) || [])[1] || "";
 const KEY = "tv.lastChannel", CC_KEY = "tv.cc", SKIP_KEY = "tv.skipOff";
 /* the channel number shown to the viewer: the number field of channels.json, else the place in the list */
@@ -581,6 +584,26 @@ function buildGuide() {
   markGuide();
 }
 function openGuide() { guide.classList.add("open"); const on = list.querySelector(".row.on"); if (on) on.scrollIntoView({ block: "center" }); }
+/* Export the whole channel list (not just the tab shown) as CSV: number, name, description, status. */
+function exportGuide() {
+  const esc = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+  const lines = ["Number,Name,Description,Status"];
+  CHANNELS.forEach((ch, i) => {
+    lines.push([numOf(ch, i), ch.name, ch.desc, ch.off ? "Off air" : "On air"].map(esc).join(","));
+  });
+  try {
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "red-macho-devil-tv-channels.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast("Channel list exported (" + CHANNELS.length + " channels)", 3000);
+  } catch (e) {
+    toast("This screen cannot download files", 4000);
+  }
+  wake();
+}
 function closeGuide() {
   guide.classList.remove("open");
   if (document.activeElement && guide.contains(document.activeElement)) document.activeElement.blur();
@@ -618,6 +641,7 @@ $("volDown").addEventListener("click", () => setVolume(volume - 0.1));
 $("volUp").addEventListener("click", () => setVolume(volume + 0.1));
 $("vol").addEventListener("input", (e) => setVolume(parseFloat(e.target.value)));
 $("guideBtn").addEventListener("click", () => (guide.classList.contains("open") ? closeGuide() : openGuide()));
+$("exportGuide").addEventListener("click", exportGuide);
 $("full").addEventListener("click", toggleFull);
 $("closeGuide").addEventListener("click", closeGuide);
 $("tabAll").addEventListener("click", () => setTab(false));
